@@ -1,6 +1,6 @@
 = rvc
 
-The Ribose VPN Client.
+The {R}ibose {V}PN {C}lient.
 
 This is like Tunnelblick but we found Tunnelblick too heavy and not
 configurable via the command line (with unnecessary UI prompts).
@@ -8,7 +8,8 @@ configurable via the command line (with unnecessary UI prompts).
 
 == Configuration file
 
-The global configuration file must be in: '~/.setup/vpn/vpn.json' and should be based on the following (json format):
+The global configuration file must be in: `~/.setup/vpn/vpn.json` and should be
+based on the following (json format):
 
 [source,json]
 ----
@@ -26,12 +27,15 @@ The global configuration file must be in: '~/.setup/vpn/vpn.json' and should be 
 ]
 ----
 
-The script loops through 'vpn.json' and does the following:
+The script loops through `vpn.json` and does the following:
 
-1. Checks whether OpenVPN is installed and properly set up, in case it's not installed or properly set up then display some hints on how to install / set up
+1. Checks whether OpenVPN is installed and properly set up, in case it`s not
+   installed or properly set up then display some hints on how to install / set up
 2. Check whether the endpoints needs to be connected or not
-3. Checks whether the '.ovpn' file is sane (contains the correct configuration and that all keys and certificates are present)
-4. Based upon the value of 'connect' it connects or disconnects the OpenVPN connection (start/stop OpenVPN for the endpoint)
+3. Checks whether the `.ovpn` file is sane (contains the correct configuration
+   and that all keys and certificates are present)
+4. Based upon the value of `connect` it connects or disconnects the OpenVPN
+   connection (start/stop OpenVPN for the endpoint)
 
 
 == CLI
@@ -43,19 +47,55 @@ The script can be started/used in the following methods:
 rvc [command] [options] <vpn-name>
 ----
 
-Options:
+Common options:
 
 * `--json` gives output in JSON format.
 * `--all` applies to all preferred VPNs (where `connect: true`)
 
-1. `rvc connect --all` connects all configured VPNs that have `connect` set to `true`
-2. `rvc connect <VPN name>` where VPN name is the `name` property as configured in `vpn.json`, with the longest match.
-a. Example: In `vpn.json` there is `name: "testing foobar.baz"`, to connect we could then run: `rvc c testing` or `rvc c "testing foobar.baz"`.
-3. `rvc kill --all` kills all VPN connections
-4. `rvc kill <VPN name>` kills a single VPN connection in a similar fashion like #2
-5. `rvc status` shows the status of all VPN connections (connected and not connected)
-6. `rvc status <VPN name>` shows the status of a single VPN connection in a similar fashion like #2
+=== List
 
+Lists out all configured VPNs.
+
+[source,bash]
+----
+rvc list
+----
+
+=== Connect
+
+Connects VPN connections.
+
+[source,bash]
+----
+rvc connect [--all or vpn-name]
+----
+
+* `rvc connect` connects all configured VPNs that are `preferred` (according to `rvc list`)
+* `rvc connect <VPN name>` where name is given in `rvc list`
+
+=== Disconnect
+
+Kills VPN connections.
+
+[source,bash]
+----
+rvc disconnect [--all or vpn-name]
+----
+
+* `rvc disconnect --all` kills all VPN connections
+* `rvc disconnect <VPN name>` where name is given in `rvc list`
+
+=== Status
+
+Shows status of VPN connections (connected and not connected).
+
+[source,bash]
+----
+rvc status [--all or vpn-name]
+----
+
+* `rvc status` shows the status of all VPN connections (connected and not connected)
+* `rvc status <VPN name>` where name is given in `rvc list`
 
 
 == GUI
@@ -63,10 +103,10 @@ a. Example: In `vpn.json` there is `name: "testing foobar.baz"`, to connect we c
 The GUI is an icon in the macOS Menu Bar. It should expand/unfold when clicked
 on it.
 
-The GUI status monitor displays each configured VPN (via 'vpn.json') with the
+The GUI status monitor displays each configured VPN (via `vpn.json`) with the
 status [not connected: grey] or [connected: green] based on the actual OpenVPN
 process status. At the bottom of the list of configured VPNs there is a toggle
-switch to connect and disconnect all VPNs that have 'connect' set to true:
+switch to connect and disconnect all VPNs that have `connect` set to true:
 
 
 == Launchd
@@ -78,8 +118,12 @@ Create a launchd file with the following properties:
 
 == Technical specifications
 
-* The connecting script is written in bash and it needs to run on macOS and needs to follow Google's shell style (https://google.github.io/styleguide/shell.xml). Obviously the GUI is not in bash.
-* The script should not run as root where possible. If root privileges are needed (e.g.: for OpenVPN) then 'sudo' needs to be used
+* The connecting script is written in bash and it needs to run on macOS and
+  needs to follow Google's shell style
+  (https://google.github.io/styleguide/shell.xml). Obviously the GUI is not in
+  bash.
+* The script should not run as root where possible. If root privileges are
+  needed (e.g.: for OpenVPN) then `sudo` needs to be used
 * The location of the script and GUI is in /usr/local/bin
 * Error logging should be done to syslog
 
