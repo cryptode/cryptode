@@ -15,12 +15,12 @@ The global configuration file must be in: '~/.setup/vpn/vpn.json' and should be 
 [
   {
     "name": "staging foobar.baz",
-    "ovpn": /Users/test/.setup/vpn/test@foobar.baz-staging.ovpn",
+    "ovpn": "/Users/test/.setup/vpn/test@foobar.baz-staging.ovpn",
     "connect": "true"
   },
   {
     "name": "testing foobar.baz",
-    "ovpn": /Users/test/.setup/vpn/test@foobar.baz-testing.ovpn",
+    "ovpn": "/Users/test/.setup/vpn/test@foobar.baz-testing.ovpn",
     "connect": "false"
   }
 ]
@@ -44,6 +44,7 @@ rvc [command] [options] <vpn-name>
 ----
 
 Options:
+
 * `--json` gives output in JSON format.
 * `--all` applies to all preferred VPNs (where `connect: true`)
 
