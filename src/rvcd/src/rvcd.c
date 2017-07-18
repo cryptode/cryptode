@@ -28,9 +28,8 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <signal.h>
+#include <pthread.h>
 #include <unistd.h>
-
-#include "log.h"
 
 #include "rvcd.h"
 
@@ -43,6 +42,8 @@ static bool g_end_flag;
 static void
 signal_handler(const int signum)
 {
+	RVCD_DEBUG_MSG("Main: Received signal %d", signum);
+
 	/* set end flag */
 	g_end_flag = true;
 }
@@ -144,9 +145,13 @@ remove_pid_file()
 static int
 rvcd_ctx_init(rvcd_ctx_t *c)
 {
-	RVCD_DEBUG_MSG("Initializing rvcd context");
+	RVCD_DEBUG_MSG("Main: Initializing rvcd context");
 
 	/* initialize command manager */
+	if (rvcd_cmd_proc_init(c) != 0) {
+		RVCD_DEBUG_ERR("Main: Could not initialize command processor");
+		return -1;
+	}
 
 	/* initialize VPN connection manager */
 
@@ -160,12 +165,12 @@ rvcd_ctx_init(rvcd_ctx_t *c)
 static void
 rvcd_ctx_finalize(rvcd_ctx_t *c)
 {
-	RVCD_DEBUG_MSG("Finalizing rvcd context");
+	RVCD_DEBUG_MSG("Main: Finalizing rvcd context");
 
 	/* finalize VPN connection manager */
 
 	/* finalize command manager */
-
+	rvcd_cmd_proc_finalize(&c->cmd_proc);
 }
 
 /*
@@ -207,7 +212,7 @@ main(int argc, char *argv[])
 
 	/* initialize rvcd context */
 	if (rvcd_ctx_init(&ctx) != 0) {
-		RVCD_DEBUG_ERR("Initializing rvcd context has failed.");
+		RVCD_DEBUG_ERR("Main: Initializing rvcd context has failed.");
 
 		rvcd_ctx_finalize(&ctx);
 		exit(-1);
