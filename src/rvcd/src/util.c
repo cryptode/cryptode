@@ -28,6 +28,8 @@
 #include <stdlib.h>
 #include <sys/select.h>
 
+#include "util.h"
+
 /*
  * get maximum fd from fd_set
  */

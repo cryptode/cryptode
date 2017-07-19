@@ -3,16 +3,24 @@
 
 struct rvcd_ctx;
 
+#include <pthread.h>
+#include <stdbool.h>
+#include <sys/select.h>
+
 #include "common.h"
 #include "log.h"
 #include "util.h"
 
+#include "config.h"
 #include "cmd.h"
 
 /* macro constants */
 #define RVCD_PID_FPATH				"/var/run/rvcd.pid"
 
 typedef struct rvcd_ctx {
+	const char *config_path;
+
+	rvcd_config_t config;
 	rvcd_cmd_proc_t cmd_proc;
 } rvcd_ctx_t;
 

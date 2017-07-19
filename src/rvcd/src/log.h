@@ -6,7 +6,7 @@
 /* macro definition of debug functions */
 #define RVCD_DEBUG_MSG(...)				rvcd_debug_log(LOG_TYPE_MSG, __FILE__, __LINE__, __VA_ARGS__);
 #define RVCD_DEBUG_ERR(...)				rvcd_debug_log(LOG_TYPE_ERR, __FILE__, __LINE__, __VA_ARGS__);
-#define RVCD_DEBUG_WARN(...)				rvcd_debug_warn(LOG_TYPE_WARN, __FILE__, __LINE__, __VA_ARGS__);
+#define RVCD_DEBUG_WARN(...)				rvcd_debug_log(LOG_TYPE_WARN, __FILE__, __LINE__, __VA_ARGS__);
 
 /* debug types */
 enum LOG_TYPE {
