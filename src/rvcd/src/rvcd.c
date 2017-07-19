@@ -26,9 +26,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <signal.h>
-#include <pthread.h>
 #include <unistd.h>
 
 #include "rvcd.h"
@@ -147,6 +145,12 @@ rvcd_ctx_init(rvcd_ctx_t *c)
 {
 	RVCD_DEBUG_MSG("Main: Initializing rvcd context");
 
+	/* initialize configuration */
+	if (rvcd_config_init(c) != 0) {
+		RVCD_DEBUG_ERR("Main: Could not initialize configuration");
+		return -1;
+	}
+
 	/* initialize command manager */
 	if (rvcd_cmd_proc_init(c) != 0) {
 		RVCD_DEBUG_ERR("Main: Could not initialize command processor");
@@ -171,6 +175,9 @@ rvcd_ctx_finalize(rvcd_ctx_t *c)
 
 	/* finalize command manager */
 	rvcd_cmd_proc_finalize(&c->cmd_proc);
+
+	/* finalize configuration */
+	rvcd_config_finalize(&c->config);
 }
 
 /*
@@ -190,6 +197,22 @@ main(int argc, char *argv[])
 	if (getuid() != 0) {
 		fprintf(stderr, "Please run as root privilege\n");
 		exit(-1);
+	}
+
+	/* parse command line options */
+	if (argc > 1) {
+		int opt;
+
+		while ((opt = getopt(argc, argv, "c:")) != -1) {
+			switch (opt) {
+				case 'c':
+					ctx.config_path = optarg;
+					break;
+
+				default:
+					break;
+			}
+		}
 	}
 
 	/* check if the process is already running */
