@@ -37,6 +37,8 @@ AC_CHECK_HEADERS_ONCE(m4_flatten([
     sys/types.h
 ]))
 
+AC_CHECK_HEADER([json-c/json.h], [], [AC_MSG_ERROR([Couldn't find json-c/json.h... try 'brew install json-c'])])
+
 # add more host definitions if needed.
 islinux=no
 isdarwin=no
