@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
@@ -34,19 +35,65 @@
 
 static int g_sock;
 
+static char g_cmd[RVCD_MAX_CMD_LEN + 1];
+static char g_resp[RVCD_MAX_RESP_LEN + 1];
+
+/*
+ * send command and print response
+ */
+
+static void send_cmd()
+{
+	/* send command */
+	if (send(g_sock, g_cmd, strlen(g_cmd), 0) <= 0) {
+		fprintf(stderr, "Couldn't send command %s\n", g_cmd);
+		return;
+	}
+
+	/* receive response */
+	memset(g_resp, 0, sizeof(g_resp));
+	if (recv(g_sock, g_resp, sizeof(g_resp), 0) <= 0) {
+		fprintf(stderr, "Couldn't receive response\n");
+		return;
+	}
+
+	printf("%s\n", g_resp);
+}
+
 /*
  * show vpn profile list
  */
 
-static void show_vpn_list(void)
+static void show_vpn_list(bool use_json)
 {
-	const char *cmd = "{\"cmd\": \"list\"}";
+	if (use_json)
+		snprintf(g_cmd, sizeof(g_cmd), "%s", "{\"cmd\": \"list\", \"format\": \"json\"}");
+	else
+		snprintf(g_cmd, sizeof(g_cmd), "%s", "{\"cmd\": \"list\"}");
 
-	/* send command */
-	if (send(g_sock, cmd, strlen(cmd), 0) <= 0) {
-		fprintf(stderr, "Couldn't send command %s\n", cmd);
-		return;
-	}
+	send_cmd();
+}
+
+/*
+ * connect to VPN server
+ */
+
+static void connect_to_vpn(const char *param)
+{
+	snprintf(g_cmd, sizeof(g_cmd), "{\"cmd\": \"connect\", \"name\": \"%s\"}", param);
+
+	send_cmd();
+}
+
+/*
+ * disconnect from VPN server
+ */
+
+static void disconnect_from_vpn(const char *param)
+{
+	snprintf(g_cmd, sizeof(g_cmd), "{\"cmd\": \"disconnect\", \"name\": \"%s\"}", param);
+
+	send_cmd();
 }
 
 /*
@@ -57,7 +104,10 @@ static void print_help(void)
 {
 	printf("Usage: rvcd_console [options]\n"
 		"\tOptions:\n"
-		"\t\t--list\t\tshow list of VPN connections\n"
+		"\t\t-l\t\t\t\tshow list of VPN connections\n"
+		"\t\t-c [all|connection name]\tconnect to VPN server with given name\n"
+		"\t\t-d [all|connection name]\tdisconnect from VPN server with given name\n"
+		"\t\t-j\t\t\t\tprint result using JSON format\n"
 		);
 }
 
@@ -89,6 +139,13 @@ static int connect_to_rvcd(void)
 
 int main(int argc, char *argv[])
 {
+	enum RVCD_CMD_CODE cmd_code = RVCD_CMD_UNKNOWN;
+	bool use_json = false;
+
+	int opt;
+
+	const char *cmd_param = NULL;
+
 	/* check argument */
 	if (argc < 2) {
 		print_help();
@@ -102,10 +159,52 @@ int main(int argc, char *argv[])
 	}
 
 	/* process commands */
-	if (strcmp(argv[1], "--list") == 0)
-		show_vpn_list();
-	else
-		print_help();
+	while ((opt = getopt(argc, argv, "lc:d:j")) != -1) {
+		switch (opt) {
+			case 'l':
+				cmd_code = RVCD_CMD_LIST;
+				break;
+
+			case 'c':
+				cmd_code = RVCD_CMD_CONNECT;
+				cmd_param = optarg;
+				break;
+
+			case 'd':
+				cmd_code = RVCD_CMD_DISCONNECT;
+				cmd_param = optarg;
+				break;
+
+			case 'j':
+				use_json = true;
+				break;
+
+			default:
+				break;
+		}
+	}
+
+	/* send commands */
+	switch (cmd_code) {
+		case RVCD_CMD_LIST:
+			show_vpn_list(use_json);
+			break;
+
+		case RVCD_CMD_CONNECT:
+			connect_to_vpn(cmd_param);
+			break;
+
+		case RVCD_CMD_DISCONNECT:
+			disconnect_from_vpn(cmd_param);
+			break;
+
+		case RVCD_CMD_UNKNOWN:
+			print_help();
+			break;
+
+		default:
+			break;
+	}
 
 	/* close socket */
 	close(g_sock);

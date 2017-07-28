@@ -108,12 +108,108 @@ static int set_non_blocking(int sock)
 }
 
 /*
- * process list command
+ * send command response
  */
 
-static void process_cmd_list(rvcd_cmd_proc_t *cmd_proc, const json_object *j_obj)
+struct rvcd_resp_errs {
+	enum RVCD_RESP_CODE resp_code;
+	const char *err_msg;
+} g_rvcd_resp_errs[] = {
+	{RVCD_RESP_OK, "Success"},
+	{RVCD_RESP_INVALID_CMD, "Invalid command"},
+	{RVCD_RESP_EMPTY_LIST, "Empty List"},
+	{RVCD_RESP_CONN_NOT_FOUND, "Not found connection"},
+	{RVCD_RESP_CONN_ALREADY_CONNECTED, "Already connected"},
+	{RVCD_RESP_CONN_ALREADY_DISCONNECTED, "Already disconnected"},
+	{RVCD_RESP_CONN_IN_PROGRESS, "Connection/Disconnection is in progress"}
+};
+
+static void send_cmd_response(int clnt_sock, int resp_code, const char *buffer)
 {
+	const char *resp_buffer;
+
+	if (resp_code == RVCD_RESP_OK) {
+		resp_buffer = buffer ? buffer : g_rvcd_resp_errs[0].err_msg;
+	} else {
+		resp_buffer = g_rvcd_resp_errs[resp_code].err_msg;
+	}
+
+	RVCD_DEBUG_MSG("CMD: Sending response '%s'(code: %d)", resp_buffer, resp_code);
+
+	if (send(clnt_sock, resp_buffer, strlen(resp_buffer), 0) < 0) {
+		RVCD_DEBUG_ERR("CMD: Sending response has failed(err: %d)", errno);
+	}
+}
+
+/*
+ * process 'list' command
+ */
+
+static int process_cmd_list(rvcd_cmd_proc_t *cmd_proc, json_object *j_obj, char **resp_buffer)
+{
+	json_object *j_sub_obj;
+	char *buffer = NULL;
+
+	bool json_format = false;
+
+	int resp_code = RVCD_RESP_OK;
+
 	RVCD_DEBUG_MSG("CMD: Processing 'list' command");
+
+	/* get format of list */
+	if (json_object_object_get_ex(j_obj, "format", &j_sub_obj)) {
+		const char *format_name = json_object_get_string(j_sub_obj);
+
+		if (strcmp(format_name, "json") == 0)
+			json_format = true;
+	}
+
+	/* get buffer of config list */
+	rvcd_config_to_buffer(&cmd_proc->c->config, json_format, &buffer);
+	if (!buffer)
+		resp_code = RVCD_RESP_EMPTY_LIST;
+
+	*resp_buffer = buffer;
+
+	return resp_code;
+}
+
+/*
+ * process 'connect' command
+ */
+
+static int process_cmd_connect(rvcd_cmd_proc_t *cmd_proc, json_object *j_obj)
+{
+	json_object *j_sub_obj;
+	const char *conn_name;
+
+	/* get VPN connection name to be connected */
+	if (!json_object_object_get_ex(j_obj, "name", &j_sub_obj))
+		return RVCD_RESP_INVALID_CMD;
+
+	conn_name = json_object_get_string(j_sub_obj);
+
+	/* connect to rvcd servers */
+	return rvcd_vpnconn_connect(&cmd_proc->c->vpnconn_mgr, conn_name);
+}
+
+/*
+ * process 'disconnect' command
+ */
+
+static int process_cmd_disconnect(rvcd_cmd_proc_t *cmd_proc, json_object *j_obj)
+{
+	json_object *j_sub_obj;
+	const char *conn_name;
+
+	/* get VPN connection name to be disconnected */
+	if (!json_object_object_get_ex(j_obj, "name", &j_sub_obj))
+		return RVCD_RESP_INVALID_CMD;
+
+	conn_name = json_object_get_string(j_sub_obj);
+
+	/* disconnect from rvcd servers */
+	return rvcd_vpnconn_disconnect(&cmd_proc->c->vpnconn_mgr, conn_name);
 }
 
 /*
@@ -125,10 +221,12 @@ struct rvcd_cmd {
 	const char *name;
 } g_rvcd_cmds[] = {
 	{RVCD_CMD_LIST, "list"},
+	{RVCD_CMD_CONNECT, "connect"},
+	{RVCD_CMD_DISCONNECT, "disconnect"},
 	{RVCD_CMD_UNKNOWN, NULL}
 };
 
-static void process_cmd(rvcd_cmd_proc_t *cmd_proc, const char *cmd)
+static void process_cmd(rvcd_cmd_proc_t *cmd_proc, int clnt_sock, const char *cmd)
 {
 	json_object *j_obj, *j_cmd_obj;
 
@@ -136,6 +234,9 @@ static void process_cmd(rvcd_cmd_proc_t *cmd_proc, const char *cmd)
 	const char *cmd_name;
 
 	int i;
+
+	int resp_code;
+	char *resp_data = NULL;
 
 	RVCD_DEBUG_MSG("CMD: Received command '%s'", cmd);
 
@@ -173,7 +274,15 @@ static void process_cmd(rvcd_cmd_proc_t *cmd_proc, const char *cmd)
 
 	switch (cmd_code) {
 		case RVCD_CMD_LIST:
-			process_cmd_list(cmd_proc, j_obj);
+			resp_code = process_cmd_list(cmd_proc, j_obj, &resp_data);
+			break;
+
+		case RVCD_CMD_CONNECT:
+			resp_code = process_cmd_connect(cmd_proc, j_obj);
+			break;
+
+		case RVCD_CMD_DISCONNECT:
+			resp_code = process_cmd_disconnect(cmd_proc, j_obj);
 			break;
 
 		default:
@@ -182,6 +291,13 @@ static void process_cmd(rvcd_cmd_proc_t *cmd_proc, const char *cmd)
 
 	/* free json object */
 	json_object_put(j_obj);
+
+	/* send response */
+	send_cmd_response(clnt_sock, resp_code, resp_data);
+
+	/* free response data */
+	if (resp_data)
+		free(resp_data);
 }
 
 /*
@@ -253,7 +369,7 @@ static void *rvcd_cmd_proc(void *p)
 					memset(cmd_buf, 0, sizeof(cmd_buf));
 					ret = recv(i, cmd_buf, RVCD_MAX_CMD_LEN, 0);
 					if (ret > 0) {
-						process_cmd(cmd_proc, cmd_buf);
+						process_cmd(cmd_proc, i, cmd_buf);
 						break;
 					}
 					else if (ret == 0)

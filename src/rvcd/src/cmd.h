@@ -1,12 +1,6 @@
 #ifndef __RVCD_CMD_H__
 #define __RVCD_CMD_H__
 
-/* rvcd command codes */
-enum RVCD_CMD_CODE {
-	RVCD_CMD_LIST = 0,
-	RVCD_CMD_UNKNOWN
-};
-
 /* rvcd command processor */
 typedef struct rvcd_cmd_proc {
 	bool init_flag;
