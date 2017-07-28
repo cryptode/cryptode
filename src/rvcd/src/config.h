@@ -22,4 +22,6 @@ typedef struct rvcd_config {
 int rvcd_config_init(struct rvcd_ctx *c);
 void rvcd_config_finalize(rvcd_config_t *config);
 
+void rvcd_config_to_buffer(rvcd_config_t *config, bool json_format, char **buffer);
+
 #endif	/* __RVCD_CONFIG_H__ */

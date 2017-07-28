@@ -26,7 +26,14 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <errno.h>
+#include <unistd.h>
+#include <ctype.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 #include <sys/select.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 #include "util.h"
 
@@ -47,4 +54,73 @@ int get_max_fd(int orig_max_fd, fd_set *fds)
 	}
 
 	return max_fd;
+}
+
+/*
+ * get free listen port
+ */
+
+int get_free_listen_port(int start_port)
+{
+	int sock;
+	int listen_port = start_port;
+
+	int ret;
+
+	/* create socket */
+	sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if (sock < 0)
+		return -1;
+
+	while (1) {
+		struct sockaddr_in listen_addr;
+
+		/* set listen address */
+		memset(&listen_addr, 0, sizeof(listen_addr));
+
+		listen_addr.sin_family = AF_INET;
+		inet_pton(AF_INET, "127.0.0.1", &listen_addr.sin_addr);
+		listen_addr.sin_port = htons(listen_port);
+
+		/* try bind */
+		ret = bind(sock, (struct sockaddr *) &listen_addr, sizeof(struct sockaddr_in));
+		if (ret == 0)
+			break;
+
+		/* check errno has in-use value */
+		if (errno != EADDRINUSE)
+			continue;
+
+		/* check maximum listening port number */
+		if (listen_port == 65535)
+			break;
+
+		listen_port++;
+	}
+
+	/* close socket */
+	close(sock);
+
+	return (ret == 0) ? listen_port : -1;
+}
+
+/* get token by comma */
+void get_token_by_comma(char **pp, char *token, size_t size)
+{
+	char *p = *pp;
+	int i = 0;
+
+	/* set buffer until comma is exist */
+	while (*p != ',' && *p != '\0' && *p != '\n' && !isspace(*p)) {
+		if (i == (size - 1))
+			break;
+
+		token[i++] = *p;
+		p++;
+	}
+
+	token[i] = '\0';
+
+	if (*p != '\0')
+		*pp = p + 1;
 }

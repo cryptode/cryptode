@@ -249,3 +249,120 @@ void rvcd_config_finalize(rvcd_config_t *config)
 	/* destroy mutex */
 	pthread_mutex_destroy(&config->config_mt);
 }
+
+/*
+ * convert config item into buffer
+ */
+
+#define CONFIG_ITEM_SEPARATOR_LINE			"###################################################\n"
+
+static ssize_t write_config_item_to_file(int fd, bool json_format, struct rvcd_config_item *config_item)
+{
+	char buffer[RVCD_MAX_LINE];
+
+	ssize_t total_bytes = 0, write_bytes;
+
+	/* write separator */
+	if (!json_format && (write_bytes = write(fd, CONFIG_ITEM_SEPARATOR_LINE, strlen(CONFIG_ITEM_SEPARATOR_LINE))) > 0)
+		total_bytes += write_bytes;
+
+	/* write name */
+	if (!json_format) {
+		snprintf(buffer, sizeof(buffer), "Name: %s\n", config_item->name);
+		if ((write_bytes = write(fd, buffer, strlen(buffer))) > 0)
+			total_bytes += write_bytes;
+
+		/* write openvpn profile */
+		snprintf(buffer, sizeof(buffer), "Profile: %s\n", config_item->ovpn_profile_path);
+		if ((write_bytes = write(fd, buffer, strlen(buffer))) > 0)
+			total_bytes += write_bytes;
+
+		/* write connected status */
+		snprintf(buffer, sizeof(buffer), "Connected: %s\n", config_item->connected ? "YES" : "NO");
+		if ((write_bytes = write(fd, buffer, strlen(buffer))) > 0)
+			total_bytes += write_bytes;
+	} else {
+		json_object *j_obj;
+		const char *json_buffer;
+
+		/* create json object */
+		j_obj = json_object_new_object();
+		if (!j_obj)
+			return 0;
+
+		/* add json object */
+		json_object_object_add(j_obj, "name", json_object_new_string(config_item->name));
+		json_object_object_add(j_obj, "profile", json_object_new_string(config_item->ovpn_profile_path));
+		json_object_object_add(j_obj, "connected", json_object_new_string(config_item->connected ? "YES" : "NO"));
+
+		json_buffer = json_object_get_string(j_obj);
+		if (json_buffer)
+			total_bytes = write(fd, json_buffer, strlen(json_buffer));
+
+		/* free json object */
+		json_object_put(j_obj);
+	}
+
+	return total_bytes;
+}
+
+/*
+ * convert config list to buffer
+ */
+
+#define TEMP_FILE_FORMAT			"rvcd-list.XXXXXX"
+
+void rvcd_config_to_buffer(rvcd_config_t *config, bool json_format, char **buffer)
+{
+	char *p = NULL;
+	int i;
+
+	char tmp_fpath[RVCD_MAX_PATH];
+	const char *tmp_dpath = getenv("TMPDIR");
+	int tmp_fd;
+
+	ssize_t buffer_len = 0;
+
+	RVCD_DEBUG_MSG("CONFIG: Writing config list into buffer");
+
+	/* create temporary file */
+	snprintf(tmp_fpath, sizeof(tmp_fpath), "%s%s", tmp_dpath ? tmp_dpath : "/tmp/", TEMP_FILE_FORMAT);
+	if (!mktemp(tmp_fpath))
+		return;
+
+	/* open temporary file for writing mode */
+	tmp_fd = open(tmp_fpath, O_CREAT | O_RDWR);
+	if (tmp_fd < 0)
+		return;
+
+	/* lock mutex */
+	pthread_mutex_lock(&config->config_mt);
+
+	for (i = 0; i < config->config_items_count; i++)
+		buffer_len += write_config_item_to_file(tmp_fd, json_format, &config->config_items[i]);
+
+	/* unlock mutex */
+	pthread_mutex_unlock(&config->config_mt);
+
+	/* if buffer length is 0, then return */
+	if (buffer_len > 0) {
+		/* allocate buffer */
+		p = (char *) malloc(buffer_len + 1);
+		if (!p)
+			return;
+
+		memset(p, 0, buffer_len + 1);
+
+		/* seek file position */
+		lseek(tmp_fd, 0L, SEEK_SET);
+
+		if (read(tmp_fd, p, buffer_len) > 0)
+			*buffer = p;
+	}
+
+	/* close file */
+	close(tmp_fd);
+
+	/* remove file */
+	remove(tmp_fpath);
+}

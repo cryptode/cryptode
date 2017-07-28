@@ -34,6 +34,21 @@
 static bool g_end_flag;
 
 /*
+ * print help message
+ */
+
+static void print_help(void)
+{
+	printf("Usage:\n"
+		"\trvcd [options]\n\n"
+		"\tOptions:\n"
+		"\t\t-c [config file] set configuration file\n"
+		"\t\t-v print version\n");
+
+	exit(0);
+}
+
+/*
  * signal handler
  */
 
@@ -88,14 +103,14 @@ check_process_running()
 			break;
 	}
 
-	// close pid file
+	/* close pid file */
 	fclose(pid_fp);
 
-	// check if pid is valid
+	/* check if pid is valid */
 	if (pid < 1)
 		return 0;
 
-	// check if the process is running with given pid
+	/* check if the process is running with given pid */
 	if (kill(pid, 0) == 0)
 		return pid;
 
@@ -158,6 +173,10 @@ rvcd_ctx_init(rvcd_ctx_t *c)
 	}
 
 	/* initialize VPN connection manager */
+	if (rvcd_vpnconn_mgr_init(c) != 0) {
+		RVCD_DEBUG_ERR("Main: Could not initialize VPN connection manager");
+		return -1;
+	}
 
 	return 0;
 }
@@ -172,6 +191,7 @@ rvcd_ctx_finalize(rvcd_ctx_t *c)
 	RVCD_DEBUG_MSG("Main: Finalizing rvcd context");
 
 	/* finalize VPN connection manager */
+	rvcd_vpnconn_mgr_finalize(&c->vpnconn_mgr);
 
 	/* finalize command manager */
 	rvcd_cmd_proc_finalize(&c->cmd_proc);
@@ -203,13 +223,18 @@ main(int argc, char *argv[])
 	if (argc > 1) {
 		int opt;
 
-		while ((opt = getopt(argc, argv, "c:")) != -1) {
+		while ((opt = getopt(argc, argv, "c:h")) != -1) {
 			switch (opt) {
 				case 'c':
 					ctx.config_path = optarg;
 					break;
 
+				case 'h':
+					print_help();
+					break;
+
 				default:
+					print_help();
 					break;
 			}
 		}
