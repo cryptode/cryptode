@@ -17,12 +17,14 @@ based on the following (json format):
   {
     "name": "staging foobar.baz",
     "ovpn": "/Users/test/.setup/vpn/test@foobar.baz-staging.ovpn",
-    "connect": "true"
+    "autoconnect": "true",
+    "up-script": "/Users/test/.setup/vpn/test@foobar.baz-staging-up.sh",
+    "down-script": "/Users/test/.setup/vpn/test@foobar.baz-staging-down.sh",
   },
   {
     "name": "testing foobar.baz",
     "ovpn": "/Users/test/.setup/vpn/test@foobar.baz-testing.ovpn",
-    "connect": "false"
+    "autoconnect": "false"
   }
 ]
 ----
@@ -34,7 +36,7 @@ The script loops through `vpn.json` and does the following:
 2. Check whether the endpoints needs to be connected or not
 3. Checks whether the `.ovpn` file is sane (contains the correct configuration
    and that all keys and certificates are present)
-4. Based upon the value of `connect` it connects or disconnects the OpenVPN
+4. Based upon the value of `autoconnect` it connects or disconnects the OpenVPN
    connection (start/stop OpenVPN for the endpoint)
 
 
@@ -51,6 +53,46 @@ Common options:
 
 * `--json` gives output in JSON format.
 * `--all` applies to all preferred VPNs (where `connect: true`)
+
+=== Help
+
+[source,sh]
+----
+rvc help --json
+----
+
+[source,json]
+----
+{
+  "commands": {
+    "general": [ "--json", "Output in JSON format"],
+    "help": [],
+    "list": [
+      [ "--all", "List all profiles" ],
+      [ "<profilename>", "List single profile of name <profilename>" ],
+    ]
+    "...more-commands...": []
+  },
+  "openvpn": {
+    "version": "2.3.16",
+    "command": [
+      "..path to openvpn..",
+      "--daemon",
+      "--log /Library/Application Support/rvc/OpenVPNLogs/userXXX-connectionYYY.log",
+      "--cd XXXX",
+      "--verb 3",
+      "--config /Users/test/.setup/vpn/test@foobar.baz-staging.ovpn",
+      "--management 127.0.0.1 1337",
+      "--management-query-passwords",
+      "--management-hold",
+      "--script-security 2",
+      "--up /Applications/rvc.app/Contents/Resources/client.up.rvc.sh -9 -d -f -m -w -ptADGNWradsgnw",
+      "--down /Applications/rvc.app/Contents/Resources/client.down.rvc.sh -9 -d -f -m -w -ptADGNWradsgnw"
+    ]
+  },
+  "version": "0.1.0"
+}
+----
 
 === List
 
@@ -73,6 +115,28 @@ rvc connect [--all or vpn-name]
 * `rvc connect` connects all configured VPNs that are `preferred` (according to `rvc list`)
 * `rvc connect <VPN name>` where name is given in `rvc list`
 
+
+[source,sh]
+----
+rvc connect "staging foobar.baz" --json
+----
+
+[source,json]
+----
+{
+  "name": "myvpn-connection",
+  "status": "connecting",
+  "status-since": "2017-08-02T03:11:10Z",
+  "network": {
+    "in-total": 10401740,
+    "out-total": 5861057,
+    "in-current": 1847,
+    "out-current": 1904
+  },
+  "timestamp": "2017-08-02T05:03:16Z"
+}
+----
+
 === Disconnect
 
 Kills VPN connections.
@@ -84,6 +148,28 @@ rvc disconnect [--all or vpn-name]
 
 * `rvc disconnect --all` kills all VPN connections
 * `rvc disconnect <VPN name>` where name is given in `rvc list`
+
+[source,sh]
+----
+rvc disconnect "staging foobar.baz" --json
+----
+
+[source,json]
+----
+{
+  "name": "myvpn-connection",
+  "status": "disconnecting",
+  "status-since": "2017-08-02T03:11:10Z",
+  "network": {
+    "in-total": 10401740,
+    "out-total": 5861057,
+    "in-current": 1847,
+    "out-current": 1904
+  },
+  "timestamp": "2017-08-02T05:03:16Z"
+}
+----
+
 
 === Status
 
@@ -97,6 +183,70 @@ rvc status [--all or vpn-name]
 * `rvc status` shows the status of all VPN connections (connected and not connected)
 * `rvc status <VPN name>` where name is given in `rvc list`
 
+[source,sh]
+----
+rvc status --json  # implies --all
+----
+
+[source,json]
+----
+[
+  {
+    "name": "myvpn-connection",
+    "connected-time": 3380,
+    "status": "connected",
+    "status-since": "2017-08-02T03:11:52Z",
+    "network": {
+      "in-total": 10401740,
+      "out-total": 5861057,
+      "in-current": 1847,
+      "out-current": 1904
+    },
+    "timestamp": "2017-08-02T05:03:16Z"
+  },
+  ...
+]
+----
+
+
+[source,sh]
+----
+rvc status --json myvpn-connection
+----
+
+[source,json]
+----
+{
+  "name": "myvpn-connection",
+  "connected-time": 3380,
+  "status": "connected",
+  "status-since": "2017-08-02T03:11:52Z",
+  "network": {
+    "in-total": 10401740,
+    "out-total": 5861057,
+    "in-current": 1847,
+    "out-current": 1904
+  },
+  "timestamp": "2017-08-02T05:03:16Z"
+}
+----
+
+
+
+=== All Statuses
+
+[source,json]
+----
+[
+  "connecting",
+  "authorizing",
+  "fetching-config",
+  "registering-routes",
+  "connected",
+  "disconnecting",
+  "disconnected"
+]
+----
 
 == GUI
 
@@ -126,5 +276,3 @@ Create a launchd file with the following properties:
   needed (e.g.: for OpenVPN) then `sudo` needs to be used
 * The location of the script and GUI is in /usr/local/bin
 * Error logging should be done to syslog
-
-
