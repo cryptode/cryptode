@@ -31,6 +31,8 @@
 #include <sys/un.h>
 #include <unistd.h>
 
+#include <json-c/json.h>
+
 #include "common.h"
 
 static int g_sock;
@@ -42,8 +44,37 @@ static char g_resp[RVCD_MAX_RESP_LEN + 1];
  * send command and print response
  */
 
-static void send_cmd()
+static const char *g_cmd_strs[] = {
+	"list",
+	"connect",
+	"disconnect",
+	"status",
+	NULL
+};
+
+static void send_cmd(enum RVCD_CMD_CODE cmd_code, const char *cmd_param, bool use_json)
 {
+	json_object *j_obj;
+
+	/* create json object */
+	j_obj = json_object_new_object();
+	if (!j_obj) {
+		fprintf(stderr, "Couldn't create JSON object");
+		return;
+	}
+
+	json_object_object_add(j_obj, "cmd", json_object_new_string(g_cmd_strs[cmd_code]));
+
+	if (cmd_param)
+		json_object_object_add(j_obj, "name", json_object_new_string(cmd_param));
+
+	json_object_object_add(j_obj, "json", json_object_new_boolean(use_json ? 1 : 0));
+
+	snprintf(g_cmd, sizeof(g_cmd), "%s", json_object_get_string(j_obj));
+
+	/* free json object */
+	json_object_put(j_obj);
+
 	/* send command */
 	if (send(g_sock, g_cmd, strlen(g_cmd), 0) <= 0) {
 		fprintf(stderr, "Couldn't send command %s\n", g_cmd);
@@ -58,42 +89,6 @@ static void send_cmd()
 	}
 
 	printf("%s\n", g_resp);
-}
-
-/*
- * show vpn profile list
- */
-
-static void show_vpn_list(bool use_json)
-{
-	if (use_json)
-		snprintf(g_cmd, sizeof(g_cmd), "%s", "{\"cmd\": \"list\", \"format\": \"json\"}");
-	else
-		snprintf(g_cmd, sizeof(g_cmd), "%s", "{\"cmd\": \"list\"}");
-
-	send_cmd();
-}
-
-/*
- * connect to VPN server
- */
-
-static void connect_to_vpn(const char *param)
-{
-	snprintf(g_cmd, sizeof(g_cmd), "{\"cmd\": \"connect\", \"name\": \"%s\"}", param);
-
-	send_cmd();
-}
-
-/*
- * disconnect from VPN server
- */
-
-static void disconnect_from_vpn(const char *param)
-{
-	snprintf(g_cmd, sizeof(g_cmd), "{\"cmd\": \"disconnect\", \"name\": \"%s\"}", param);
-
-	send_cmd();
 }
 
 /*
@@ -184,27 +179,9 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	/* send commands */
-	switch (cmd_code) {
-		case RVCD_CMD_LIST:
-			show_vpn_list(use_json);
-			break;
-
-		case RVCD_CMD_CONNECT:
-			connect_to_vpn(cmd_param);
-			break;
-
-		case RVCD_CMD_DISCONNECT:
-			disconnect_from_vpn(cmd_param);
-			break;
-
-		case RVCD_CMD_UNKNOWN:
-			print_help();
-			break;
-
-		default:
-			break;
-	}
+	/* send command to core */
+	if (cmd_code != RVCD_CMD_UNKNOWN)
+		send_cmd(cmd_code, cmd_param, use_json);
 
 	/* close socket */
 	close(g_sock);

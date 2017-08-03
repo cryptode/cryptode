@@ -12,7 +12,6 @@ struct rvcd_ctx;
 #include "log.h"
 #include "util.h"
 
-#include "config.h"
 #include "cmd.h"
 #include "vpn.h"
 
@@ -22,7 +21,6 @@ struct rvcd_ctx;
 typedef struct rvcd_ctx {
 	const char *config_path;
 
-	rvcd_config_t config;
 	rvcd_cmd_proc_t cmd_proc;
 	rvcd_vpnconn_mgr_t vpnconn_mgr;
 } rvcd_ctx_t;
