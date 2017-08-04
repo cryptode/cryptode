@@ -4,8 +4,12 @@
 #define OVPN_BIN_PATH				"/usr/local/sbin/openvpn"
 #define OVPN_MGM_PORT_START			6001
 
-#define OVPN_MGM_CMD_STATE			"state\n"
+#define OVPN_MGM_CMD_STATE			"state on\n"
 #define OVPN_MGM_CMD_SIGTERM			"signal SIGTERM\n"
+#define OVPN_MGM_CMD_BYTECOUNT			"bytecount 10\n"
+
+#define OVPN_MGM_RESP_BYTECOUNT			">BYTECOUNT:"
+#define OVPN_MGM_RESP_STATE			">STATE:"
 
 #define RVCD_OVPN_CONN_TIMEOUT			20
 #define RVCD_OVPN_STOP_TIMEOUT			15
@@ -30,7 +34,8 @@ enum RVCD_VPNCONN_STATE {
 	RVCD_CONN_STATE_DISCONNECTED = 0,
 	RVCD_CONN_STATE_CONNECTED,
 	RVCD_CONN_STATE_CONNECTING,
-	RVCD_CONN_STATE_DISCONNECTING
+	RVCD_CONN_STATE_DISCONNECTING,
+	RVCD_CONN_STATE_RECONNECTING,
 };
 
 /* vpn configuration structure */
@@ -47,17 +52,26 @@ struct rvcd_vpnconfig {
 /* vpn connection structure */
 struct rvcd_vpnconn {
 	bool end_flag;
+	bool conn_cancel;
 
 	struct rvcd_vpnconfig config;
 
 	enum RVCD_VPNCONN_STATE conn_state;
+	enum OVPN_CONN_STATE ovpn_state;
+
+	time_t connected_tm;
 
 	pid_t ovpn_pid;
 
 	int ovpn_mgm_port;
 	int ovpn_mgm_sock;
+	fd_set fds;
+
+	long total_bytes_in, total_bytes_out;
+	long curr_bytes_in, curr_bytes_out;
 
 	pthread_t pt_conn;
+	pthread_t pt_conn_mon;
 
 	struct rvcd_vpnconn *next;
 	struct rvcd_vpnconn *prev;
@@ -73,8 +87,6 @@ typedef struct rvcd_vpnconn_mgr {
 
 	pthread_mutex_t conn_mt;
 
-	pthread_t pt_conn_mon;
-
 	struct rvcd_ctx *c;
 } rvcd_vpnconn_mgr_t;
 
@@ -85,7 +97,7 @@ void rvcd_vpnconn_mgr_finalize(rvcd_vpnconn_mgr_t *vpnconn_mgr);
 void rvcd_vpnconn_connect(rvcd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name);
 void rvcd_vpnconn_disconnect(rvcd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name);
 
-int rvcd_vpnconn_getstatus(rvcd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name, char **state_jstr);
+void rvcd_vpnconn_getstatus(rvcd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name, char **state_jstr);
 
 void rvcd_vpnconn_list_to_buffer(rvcd_vpnconn_mgr_t *vpnconn_mgr, bool json_format, char **buffer);
 struct rvcd_vpnconn *rvcd_vpnconn_get_byname(rvcd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name);

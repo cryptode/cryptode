@@ -89,25 +89,6 @@ static int create_listen_socket()
 }
 
 /*
- * set socket as non-blocking mode
- */
-
-static int set_non_blocking(int sock)
-{
-	int ret, on = 1;
-
-	/* set socket option as reusable */
-	if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (char *) &on, sizeof(on)) < 0)
-		return -1;
-
-	/* set non-blocking mode */
-	if (ioctl(sock, FIONBIO, (char *) &on) < 0)
-		return -1;
-
-	return 0;
-}
-
-/*
  * send command response
  */
 

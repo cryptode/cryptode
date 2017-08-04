@@ -10,4 +10,7 @@ int get_free_listen_port(int start_port);
 /* get token by comma */
 void get_token_by_comma(char **pp, char *token, size_t size);
 
+/* set socket as non-blocking mode */
+int set_non_blocking(int sock);
+
 #endif /* __RVCD_UTIL_H__ */
