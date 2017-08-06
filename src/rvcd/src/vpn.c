@@ -75,6 +75,9 @@ static void add_vpn_conn(rvcd_vpnconn_mgr_t *vpnconn_mgr, struct rvcd_vpnconfig 
 		vpn_conn->prev = p;
 	}
 
+	/* initialize vpn connection info */
+	memset(vpn_conn, 0, sizeof(struct rvcd_vpnconn));
+
 	/* set configuration item infos */
 	memcpy(&vpn_conn->config, config, sizeof(struct rvcd_vpnconfig));
 
@@ -301,6 +304,7 @@ static void *stop_vpn_conn(void *p)
 
 	/* set connection state */
 	vpn_conn->conn_state = RVCD_CONN_STATE_DISCONNECTED;
+	vpn_conn->ovpn_state = OVPN_STATE_DISCONNECTED;
 
 	return 0;
 }
@@ -360,6 +364,7 @@ struct rvcd_ovpn_state {
 	enum OVPN_CONN_STATE ovpn_state;
 	const char *ovpn_state_str;
 } g_ovpn_state[] = {
+	{OVPN_STATE_DISCONNECTED, "DISCONNECTED"},
 	{OVPN_STATE_CONNECTING, "TCP_CONNECT"},
 	{OVPN_STATE_WAIT, "WAIT"},
 	{OVPN_STATE_AUTH, "AUTH"},
@@ -369,7 +374,6 @@ struct rvcd_ovpn_state {
 	{OVPN_STATE_CONNECTED, "CONNECTED"},
 	{OVPN_STATE_RECONNECTING, "RECONNECTING"},
 	{OVPN_STATE_EXITING, "EXITING"},
-	{OVPN_STATE_DISCONNECTED, "DISCONNECTED"},
 	{OVPN_STATE_UNKNOWN, NULL}
 };
 
@@ -613,7 +617,7 @@ void rvcd_vpnconn_disconnect(rvcd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_n
 	/* get configuration item by connection name */
 	vpn_conn = get_vpnconn_byname(vpnconn_mgr, conn_name);
 	if (!vpn_conn) {
-		RVCD_DEBUG_ERR("VPN: Couldn't find VPN connection with name '%s', conn_name");
+		RVCD_DEBUG_ERR("VPN: Couldn't find VPN connection with name '%s'", conn_name);
 		return;
 	}
 
@@ -629,16 +633,101 @@ void rvcd_vpnconn_disconnect(rvcd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_n
 
 static void get_single_conn_status(struct rvcd_vpnconn *vpn_conn, char **status_jstr)
 {
-	
+	json_object *j_obj, *j_sub_obj;
+	const char *p;
+
+	char *ret_jstr;
+
+	RVCD_DEBUG_MSG("VPN: Getting status of VPN connection '%s'", vpn_conn->config.name);
+
+	/* create json object */
+	j_obj = json_object_new_object();
+	if (!j_obj)
+		return;
+
+	j_sub_obj = json_object_new_object();
+	if (!j_sub_obj) {
+		json_object_put(j_obj);
+		return;
+	}
+
+	/* add fields */
+	json_object_object_add(j_obj, "name", json_object_new_string(vpn_conn->config.name));
+	json_object_object_add(j_obj, "status", json_object_new_string(g_ovpn_state[vpn_conn->ovpn_state].ovpn_state_str));
+
+	if (vpn_conn->conn_state == RVCD_CONN_STATE_CONNECTED) {
+		json_object_object_add(j_obj, "connected-time", json_object_new_int64(vpn_conn->connected_tm));
+
+		json_object_object_add(j_sub_obj, "in-current", json_object_new_int64(vpn_conn->curr_bytes_in));
+		json_object_object_add(j_sub_obj, "out-current", json_object_new_int64(vpn_conn->curr_bytes_out));
+	}
+
+	json_object_object_add(j_sub_obj, "in-total", json_object_new_int64(vpn_conn->total_bytes_in + vpn_conn->curr_bytes_in));
+	json_object_object_add(j_sub_obj, "out-total", json_object_new_int64(vpn_conn->total_bytes_out + vpn_conn->curr_bytes_out));
+
+	json_object_object_add(j_obj, "timestamp", json_object_new_int64(time(NULL)));
+
+	json_object_object_add(j_obj, "network", j_sub_obj);
+
+	/* get json buffer from json object */
+	p = json_object_get_string(j_obj);
+	if (p) {
+		ret_jstr = (char *) malloc(strlen(p) + 1);
+		if (ret_jstr) {
+			strncpy(ret_jstr, p, strlen(p));
+			ret_jstr[strlen(p)] = '\0';
+
+			*status_jstr = ret_jstr;
+		}
+	}
+
+	/* free json object */
+	json_object_put(j_obj);
 }
 
 /*
  * get status of all connections
  */
 
-static void get_all_conn_status(rvcd_vpnconn_mgr_t *vpnconn_mgr, char **status_str)
+static void get_all_conn_status(rvcd_vpnconn_mgr_t *vpnconn_mgr, char **status_jstr)
 {
-	
+	struct rvcd_vpnconn *vpn_conn = vpnconn_mgr->vpn_conns;
+
+	json_object *j_obj;
+	const char *p;
+	char *ret_jstr = NULL;
+
+	/* create new json object */
+	j_obj = json_object_new_array();
+
+	while (vpn_conn) {
+		json_object *j_sub_obj;
+		char *conn_status_jstr = NULL;
+
+		/* get connection status */
+		get_single_conn_status(vpn_conn, &conn_status_jstr);
+		if (conn_status_jstr) {
+			j_sub_obj = json_tokener_parse(conn_status_jstr);
+			if (j_sub_obj)
+				json_object_array_add(j_obj, j_sub_obj);
+		}
+
+		vpn_conn = vpn_conn->next;
+	}
+
+	/* set all status */
+	p = json_object_get_string(j_obj);
+
+	ret_jstr = (char *) malloc(strlen(p) + 1);
+	if (ret_jstr) {
+		strncpy(ret_jstr, p, strlen(p));
+		ret_jstr[strlen(p)] = '\0';
+
+		*status_jstr = ret_jstr;
+	}
+
+	/* free json object */
+	json_object_put(j_obj);
 }
 
 /*

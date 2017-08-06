@@ -102,6 +102,7 @@ static void print_help(void)
 		"\t\t-l\t\t\t\tshow list of VPN connections\n"
 		"\t\t-c [all|connection name]\tconnect to VPN server with given name\n"
 		"\t\t-d [all|connection name]\tdisconnect from VPN server with given name\n"
+		"\t\t-s [all|connection name]\tget status of VPN connection with given name\n"
 		"\t\t-j\t\t\t\tprint result using JSON format\n"
 		);
 }
@@ -154,7 +155,7 @@ int main(int argc, char *argv[])
 	}
 
 	/* process commands */
-	while ((opt = getopt(argc, argv, "lc:d:j")) != -1) {
+	while ((opt = getopt(argc, argv, "lc:d:s:j")) != -1) {
 		switch (opt) {
 			case 'l':
 				cmd_code = RVCD_CMD_LIST;
@@ -167,6 +168,11 @@ int main(int argc, char *argv[])
 
 			case 'd':
 				cmd_code = RVCD_CMD_DISCONNECT;
+				cmd_param = optarg;
+				break;
+
+			case 's':
+				cmd_code = RVCD_CMD_STATUS;
 				cmd_param = optarg;
 				break;
 

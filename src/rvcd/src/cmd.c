@@ -161,9 +161,8 @@ static void send_cmd_response(int clnt_sock, int resp_code, const char *buffer, 
  * process 'list' command
  */
 
-static int process_cmd_list(rvcd_cmd_proc_t *cmd_proc, json_object *j_obj, bool json_format, char **resp_buffer)
+static int process_cmd_list(rvcd_cmd_proc_t *cmd_proc, bool json_format, char **resp_buffer)
 {
-	json_object *j_sub_obj;
 	char *buffer = NULL;
 
 	int resp_code = RVCD_RESP_OK;
@@ -184,22 +183,16 @@ static int process_cmd_list(rvcd_cmd_proc_t *cmd_proc, json_object *j_obj, bool 
  * process 'connect' command
  */
 
-static int process_cmd_connect(rvcd_cmd_proc_t *cmd_proc, bool json_format, json_object *j_obj)
+static int process_cmd_connect(rvcd_cmd_proc_t *cmd_proc, const char *conn_name, bool json_format)
 {
 	json_object *j_sub_obj;
 	int ret;
 
-	char conn_name[RVCD_MAX_CONN_NAME_LEN + 1];
-
-	RVCD_DEBUG_MSG("CMD: Processing 'connect' command");
-
-	/* get VPN connection name to be connected */
-	if (!json_object_object_get_ex(j_obj, "name", &j_sub_obj)) {
-		RVCD_DEBUG_ERR("CMD: Couldn't parse configuration name");
+	/* check connection name */
+	if (!conn_name) {
+		RVCD_DEBUG_ERR("CMD: Missing connection name");
 		return RVCD_RESP_INVALID_CMD;
 	}
-
-	snprintf(conn_name, sizeof(conn_name), "%s", json_object_get_string(j_sub_obj));
 
 	/* check connection status */
 	if (strcmp(conn_name, "all") != 0) {
@@ -225,18 +218,16 @@ static int process_cmd_connect(rvcd_cmd_proc_t *cmd_proc, bool json_format, json
  * process 'disconnect' command
  */
 
-static int process_cmd_disconnect(rvcd_cmd_proc_t *cmd_proc, bool json_format, json_object *j_obj)
+static int process_cmd_disconnect(rvcd_cmd_proc_t *cmd_proc, const char *conn_name, bool json_format)
 {
 	json_object *j_sub_obj;
 	int ret;
 
-	char conn_name[RVCD_MAX_CONN_NAME_LEN + 1];
-
-	/* get VPN connection name to be disconnected */
-	if (!json_object_object_get_ex(j_obj, "name", &j_sub_obj))
+	/* check connection name */
+	if (!conn_name) {
+		RVCD_DEBUG_ERR("CMD: Missing connection name");
 		return RVCD_RESP_INVALID_CMD;
-
-	snprintf(conn_name, sizeof(conn_name), "%s", json_object_get_string(j_sub_obj));
+	}
 
 	/* check connection status */
 	if (strcmp(conn_name, "all") != 0) {
@@ -254,7 +245,7 @@ static int process_cmd_disconnect(rvcd_cmd_proc_t *cmd_proc, bool json_format, j
 	}
 
 	/* disconnect from rvcd servers */
-	rvcd_vpnconn_disconnect(&cmd_proc->c->vpnconn_mgr, json_object_get_string(j_sub_obj));
+	rvcd_vpnconn_disconnect(&cmd_proc->c->vpnconn_mgr, conn_name);
 
 	return RVCD_RESP_OK;
 }
@@ -263,20 +254,16 @@ static int process_cmd_disconnect(rvcd_cmd_proc_t *cmd_proc, bool json_format, j
  * process 'status' command
  */
 
-static int process_cmd_status(rvcd_cmd_proc_t *cmd_proc, bool json_format, json_object *j_obj)
+static int process_cmd_status(rvcd_cmd_proc_t *cmd_proc, const char *conn_name, char **status_jstr)
 {
 	json_object *j_sub_obj;
 	int ret;
 
-	char conn_name[RVCD_MAX_CONN_NAME_LEN + 1];
-
-	char *state_jstr = NULL;
-
-	/* get VPN connection name to get status */
-	if (!json_object_object_get_ex(j_obj, "name", &j_sub_obj))
+	/* check connection name */
+	if (!conn_name) {
+		RVCD_DEBUG_ERR("CMD: Missing connection name");
 		return RVCD_RESP_INVALID_CMD;
-
-	snprintf(conn_name, sizeof(conn_name), "%s", json_object_get_string(j_sub_obj));
+	}
 
 	/* check connection is exist */
 	if (strcmp(conn_name, "all") != 0) {
@@ -289,7 +276,7 @@ static int process_cmd_status(rvcd_cmd_proc_t *cmd_proc, bool json_format, json_
 	}
 
 	/* get status for vpn connection */
-	rvcd_vpnconn_getstatus(&cmd_proc->c->vpnconn_mgr, conn_name, &state_jstr);
+	rvcd_vpnconn_getstatus(&cmd_proc->c->vpnconn_mgr, conn_name, status_jstr);
 
 	return RVCD_RESP_OK;
 }
@@ -314,7 +301,7 @@ static void process_cmd(rvcd_cmd_proc_t *cmd_proc, int clnt_sock, const char *cm
 	json_object *j_obj, *j_cmd_obj;
 
 	enum RVCD_CMD_CODE cmd_code = RVCD_CMD_UNKNOWN;
-	const char *cmd_name;
+	const char *cmd_name, *conn_name = NULL;
 	bool json_format = false;
 
 	int i;
@@ -340,9 +327,12 @@ static void process_cmd(rvcd_cmd_proc_t *cmd_proc, int clnt_sock, const char *cm
 	cmd_name = json_object_get_string(j_cmd_obj);
 
 	/* get format of list */
-	if (json_object_object_get_ex(j_obj, "json", &j_cmd_obj)) {
+	if (json_object_object_get_ex(j_obj, "json", &j_cmd_obj))
 		json_format = json_object_get_boolean(j_cmd_obj);
-	}
+
+	/* get connection name */
+	if (json_object_object_get_ex(j_obj, "name", &j_cmd_obj))
+		conn_name = json_object_get_string(j_cmd_obj);
 
 	/* get command code */
 	for (i = 0; g_rvcd_cmds[i].name != NULL; i++) {
@@ -363,19 +353,19 @@ static void process_cmd(rvcd_cmd_proc_t *cmd_proc, int clnt_sock, const char *cm
 
 	switch (cmd_code) {
 	case RVCD_CMD_LIST:
-		resp_code = process_cmd_list(cmd_proc, j_obj, json_format, &resp_data);
+		resp_code = process_cmd_list(cmd_proc, json_format, &resp_data);
 		break;
 
 	case RVCD_CMD_CONNECT:
-		resp_code = process_cmd_connect(cmd_proc, json_format, j_obj);
+		resp_code = process_cmd_connect(cmd_proc, conn_name, json_format);
 		break;
 
 	case RVCD_CMD_DISCONNECT:
-		resp_code = process_cmd_disconnect(cmd_proc, json_format, j_obj);
+		resp_code = process_cmd_disconnect(cmd_proc, conn_name, json_format);
 		break;
 
 	case RVCD_CMD_STATUS:
-		resp_code = process_cmd_status(cmd_proc, json_format, j_obj);
+		resp_code = process_cmd_status(cmd_proc, conn_name, &resp_data);
 		break;
 
 	default:
