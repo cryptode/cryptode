@@ -32,6 +32,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/select.h>
+#include <sys/ioctl.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
@@ -123,4 +124,23 @@ void get_token_by_comma(char **pp, char *token, size_t size)
 
 	if (*p != '\0')
 		*pp = p + 1;
+}
+
+/*
+ * set socket as non-blocking mode
+ */
+
+int set_non_blocking(int sock)
+{
+	int ret, on = 1;
+
+	/* set socket option as reusable */
+	if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (char *) &on, sizeof(on)) < 0)
+		return -1;
+
+	/* set non-blocking mode */
+	if (ioctl(sock, FIONBIO, (char *) &on) < 0)
+		return -1;
+
+	return 0;
 }
