@@ -97,7 +97,7 @@ static void send_cmd(enum RVCD_CMD_CODE cmd_code, const char *cmd_param, bool us
 
 static void print_help(void)
 {
-	printf("Usage: rvcd_console [options]\n"
+	printf("Usage: rvc [options]\n"
 		"\tOptions:\n"
 		"\t\t-l\t\t\t\tshow list of VPN connections\n"
 		"\t\t-c [all|connection name]\tconnect to VPN server with given name\n"
@@ -148,14 +148,8 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
-	/* connect to rvcd */
-	if (connect_to_rvcd() != 0) {
-		fprintf(stderr, "Could't connect to rvcd process.\n");
-		exit(1);
-	}
-
 	/* process commands */
-	while ((opt = getopt(argc, argv, "lc:d:s:j")) != -1) {
+	while ((opt = getopt(argc, argv, "lc:d:s:jh")) != -1) {
 		switch (opt) {
 			case 'l':
 				cmd_code = RVCD_CMD_LIST;
@@ -180,9 +174,20 @@ int main(int argc, char *argv[])
 				use_json = true;
 				break;
 
+			case 'h':
+				print_help();
+				exit(0);
+				break;
+
 			default:
 				break;
 		}
+	}
+
+	/* connect to rvcd */
+	if (connect_to_rvcd() != 0) {
+		fprintf(stderr, "Could't connect to rvcd process.\n");
+		exit(1);
 	}
 
 	/* send command to core */
