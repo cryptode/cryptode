@@ -23,6 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -336,14 +338,14 @@ static int run_openvpn_proc(struct rvcd_vpnconn *vpn_conn)
 	/* create openvpn process */
 	ovpn_pid = fork();
 	if (ovpn_pid == 0) {
-		char *const ovpn_params[] = {OVPN_BIN_PATH, "--config", vpn_conn->config.ovpn_profile_path,
+		char *const ovpn_params[] = {OPENVPN_BINARY_PATH, "--config", vpn_conn->config.ovpn_profile_path,
 			"--management", "127.0.0.1", mgm_port_str, "--log", ovpn_log_fpath, NULL};
 
 		/* set new session */
 		setsid();
 
 		/* child process */
-		execv(OVPN_BIN_PATH, ovpn_params);
+		execv(OPENVPN_BINARY_PATH, ovpn_params);
 
 		/* if failed, then exit child with error */
 		exit(1);
