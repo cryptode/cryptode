@@ -87,5 +87,19 @@ if test "x$enable_profiling" = "xyes" ; then
     CFLAGS="$CFLAGS -pg"
 fi
 
+AC_ARG_WITH(openvpn, AC_HELP_STRING([--with-openvpn=OPENVPN_BINARY_PATH], [specify location of openvpn binary]), [path_openvpn=${withval}])
+if (test -z "${path_openvpn}"); then
+    AC_PATH_PROG(OPENVPN_BINARY_PATH, [openvpn], [], $PATH:/sbin:/usr/sbin:/usr/local/sbin)
+else
+    OPENVPN_BINARY_PATH="${path_openvpn}"
+fi
+
+if ! test -x "$OPENVPN_BINARY_PATH"; then
+    AC_MSG_ERROR([Couldn't find openvpn binary path... try 'brew install openvpn or specify correct location of openvpn'])
+fi
+
+AC_DEFINE_UNQUOTED([OPENVPN_BINARY_PATH], ["$OPENVPN_BINARY_PATH"], [Path to OpenVPN])
+AC_SUBST(OPENVPN_BINARY_PATH)
+
 AC_CONFIG_FILES([Makefile src/Makefile])
 AC_OUTPUT

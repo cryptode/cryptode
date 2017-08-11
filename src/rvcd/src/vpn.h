@@ -1,7 +1,6 @@
 #ifndef __RVCD_VPN_H__
 #define __RVCD_VPN_H__
 
-#define OVPN_BIN_PATH				"/usr/local/sbin/openvpn"
 #define OVPN_MGM_PORT_START			6001
 
 #define OVPN_MGM_CMD_STATE			"state on\n"
