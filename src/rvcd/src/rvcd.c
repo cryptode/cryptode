@@ -41,11 +41,11 @@ static bool g_end_flag;
 
 static void print_help(void)
 {
-	printf("Usage:\n"
-		"\trvcd [options]\n\n"
+	printf("Usage:"
+		"\trvcd [options]\n"
 		"\tOptions:\n"
-		"\t\t-c [config file] set configuration file\n"
-		"\t\t-v print version\n");
+		"\t -c [config file] set configuration file\n"
+		"\t -v print version\n");
 
 	exit(0);
 }
@@ -164,13 +164,13 @@ rvcd_ctx_init(rvcd_ctx_t *c)
 
 	/* initialize command manager */
 	if (rvcd_cmd_proc_init(c) != 0) {
-		RVCD_DEBUG_ERR("Main: Could not initialize command processor");
+		RVCD_DEBUG_ERR("Main: Couldn't initialize command processor");
 		return -1;
 	}
 
 	/* initialize VPN connection manager */
 	if (rvcd_vpnconn_mgr_init(c) != 0) {
-		RVCD_DEBUG_ERR("Main: Could not initialize VPN connection manager");
+		RVCD_DEBUG_ERR("Main: Couldn't initialize VPN connection manager");
 		return -1;
 	}
 
@@ -208,7 +208,7 @@ main(int argc, char *argv[])
 
 	/* check UID */
 	if (getuid() != 0) {
-		fprintf(stderr, "Please run as root privilege\n");
+		fprintf(stderr, "Please run as root\n");
 		exit(-1);
 	}
 
@@ -235,7 +235,7 @@ main(int argc, char *argv[])
 
 	/* check if the process is already running */
 	if ((pid = check_process_running()) > 0) {
-		fprintf(stderr, "The rvcd process is already running with PID %d. Existing...\n", pid);
+		fprintf(stderr, "The rvcd process is already running with PID %d. Exiting...\n", pid);
 		exit(-1);
 	}
 
@@ -247,13 +247,13 @@ main(int argc, char *argv[])
 
 	/* initialize logging */
 	if (rvcd_log_init() != 0) {
-		fprintf(stderr, "Could not initialize logging.\n");
+		fprintf(stderr, "Couldn't initialize logging.\n");
 		exit(-1);
 	}
 
 	/* initialize rvcd context */
 	if (rvcd_ctx_init(&ctx) != 0) {
-		RVCD_DEBUG_ERR("Main: Initializing rvcd context has failed.");
+		RVCD_DEBUG_ERR("Main: Failed initializing rvcd context.");
 
 		rvcd_ctx_finalize(&ctx);
 		exit(-1);

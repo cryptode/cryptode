@@ -47,7 +47,7 @@ int rvcd_log_init()
 	/* open log file */
 	g_log_fp = fopen(RVCD_LOG_FPATH, "w");
 	if (!g_log_fp) {
-		fprintf(stderr, "Could not open log file '%s' for writting.\n", RVCD_LOG_FPATH);
+		fprintf(stderr, "Couldn't open log file '%s' for writing.\n", RVCD_LOG_FPATH);
 		return -1;
 	}
 

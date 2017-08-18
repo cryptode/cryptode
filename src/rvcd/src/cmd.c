@@ -57,7 +57,7 @@ static int create_listen_socket()
 	/* create unix domain socket */
 	listen_sock = socket(AF_UNIX, SOCK_STREAM, 0);
 	if (listen_sock < 0) {
-		RVCD_DEBUG_ERR("CMD: Could not create UNIX domain socket(err:%d)", errno);
+		RVCD_DEBUG_ERR("CMD: Couldn't create UNIX domain socket(err:%d)", errno);
 		return -1;
 	}
 
@@ -71,14 +71,14 @@ static int create_listen_socket()
 
 	/* bind and listen socket */
 	if (bind(listen_sock, (struct sockaddr *) &listen_addr, sizeof(struct sockaddr_un)) != 0) {
-		RVCD_DEBUG_ERR("CMD: Could not bind on unix domain socket '%s'(err:%d)", RVCD_CMD_LISTEN_SOCK, errno);
+		RVCD_DEBUG_ERR("CMD: Couldn't bind on unix domain socket '%s'(err:%d)", RVCD_CMD_LISTEN_SOCK, errno);
 		close(listen_sock);
 
 		return -1;
 	}
 
 	if (listen(listen_sock, 5) != 0) {
-		RVCD_DEBUG_ERR("CMD: Could not listen on unix domain socket '%s'(err:%d)", RVCD_CMD_LISTEN_SOCK, errno);
+		RVCD_DEBUG_ERR("CMD: Couldn't listen on unix domain socket '%s'(err:%d)", RVCD_CMD_LISTEN_SOCK, errno);
 		close(listen_sock);
 
 		return -1;
@@ -102,7 +102,7 @@ struct rvcd_resp_errs {
 	{RVCD_RESP_INVALID_CMD, "Invalid command"},
 	{RVCD_RESP_NO_MEMORY, "Insufficient memory"},
 	{RVCD_RESP_EMPTY_LIST, "Empty List"},
-	{RVCD_RESP_CONN_NOT_FOUND, "Not found connection"},
+	{RVCD_RESP_CONN_NOT_FOUND, "Connection not found"},
 	{RVCD_RESP_CONN_ALREADY_CONNECTED, "Already connected"},
 	{RVCD_RESP_CONN_ALREADY_DISCONNECTED, "Already disconnected"},
 	{RVCD_RESP_CONN_IN_PROGRESS, "Connection/Disconnection is in progress"}
@@ -151,7 +151,7 @@ static void send_cmd_response(int clnt_sock, int resp_code, const char *buffer, 
 	RVCD_DEBUG_MSG("CMD: Response string is \n'%s'\n(code: %d)", resp_buffer, resp_code);
 
 	if (send(clnt_sock, resp_buffer, strlen(resp_buffer), 0) < 0) {
-		RVCD_DEBUG_ERR("CMD: Sending response has failed(err: %d)", errno);
+		RVCD_DEBUG_ERR("CMD: Failed sending response(err: %d)", errno);
 	}
 
 	/* free json object */
@@ -190,6 +190,8 @@ static int process_cmd_connect(rvcd_cmd_proc_t *cmd_proc, const char *conn_name,
 	json_object *j_sub_obj;
 	int ret;
 
+	RVCD_DEBUG_MSG("CMD: Processing 'connect' command");
+
 	/* check connection name */
 	if (!conn_name) {
 		RVCD_DEBUG_ERR("CMD: Missing connection name");
@@ -204,7 +206,7 @@ static int process_cmd_connect(rvcd_cmd_proc_t *cmd_proc, const char *conn_name,
 			RVCD_DEBUG_ERR("CMD: Couldn't find VPN connection with name '%s'", conn_name);
 			return RVCD_RESP_CONN_NOT_FOUND;
 		} else if (vpn_conn->conn_state != RVCD_CONN_STATE_DISCONNECTED) {
-			RVCD_DEBUG_ERR("CMD: Connection is already established or in pending", conn_name);
+			RVCD_DEBUG_ERR("CMD: Connection is already established or is pending", conn_name);
 			return (vpn_conn->conn_state == RVCD_CONN_STATE_CONNECTED) ? RVCD_RESP_CONN_ALREADY_CONNECTED :
 				RVCD_RESP_CONN_IN_PROGRESS;
 		}
@@ -225,6 +227,8 @@ static int process_cmd_disconnect(rvcd_cmd_proc_t *cmd_proc, const char *conn_na
 	json_object *j_sub_obj;
 	int ret;
 
+	RVCD_DEBUG_MSG("CMD: Processing 'disconnect' command");
+
 	/* check connection name */
 	if (!conn_name) {
 		RVCD_DEBUG_ERR("CMD: Missing connection name");
@@ -240,7 +244,7 @@ static int process_cmd_disconnect(rvcd_cmd_proc_t *cmd_proc, const char *conn_na
 			return RVCD_RESP_CONN_NOT_FOUND;
 		} else if (vpn_conn->conn_state == RVCD_CONN_STATE_DISCONNECTED
 				|| vpn_conn->conn_state == RVCD_CONN_STATE_DISCONNECTING) {
-			RVCD_DEBUG_ERR("CMD: Connection is already disconnected or in pending", conn_name);
+			RVCD_DEBUG_ERR("CMD: Connection is already disconnected or is pending", conn_name);
 			return (vpn_conn->conn_state == RVCD_CONN_STATE_DISCONNECTED) ? RVCD_RESP_CONN_ALREADY_DISCONNECTED :
 				RVCD_RESP_CONN_IN_PROGRESS;
 		}
@@ -260,6 +264,8 @@ static int process_cmd_status(rvcd_cmd_proc_t *cmd_proc, const char *conn_name, 
 {
 	json_object *j_sub_obj;
 	int ret;
+
+	RVCD_DEBUG_MSG("CMD: Processing 'status' command");
 
 	/* check connection name */
 	if (!conn_name) {
@@ -419,7 +425,7 @@ static void *rvcd_cmd_proc(void *p)
 		/* I/O polling */
 		ret = select(max_fd + 1, &tmp_fds, NULL, NULL, &tv);
 		if (ret < 0) {
-			RVCD_DEBUG_ERR("CMD: Async select I/O multiplexing has failed.(err:%d) Exiting...", errno);
+			RVCD_DEBUG_ERR("CMD: Failed async select I/O multiplexing.(err:%d) Exiting...", errno);
 			exit(-1);
 		}
 
@@ -434,7 +440,7 @@ static void *rvcd_cmd_proc(void *p)
 				do {
 					clnt_fd = accept(cmd_proc->listen_sock, NULL, NULL);
 					if (clnt_fd < 0 && errno != EWOULDBLOCK) {
-						RVCD_DEBUG_ERR("CMD: Accepting connection has failed.(err:%d)", errno);
+						RVCD_DEBUG_ERR("CMD: Failed accepting connection request.(err:%d)", errno);
 						break;
 					}
 
@@ -479,7 +485,7 @@ static void *rvcd_cmd_proc(void *p)
 		}
 	}
 
-	RVCD_DEBUG_MSG("CMD: Stopped rvcd command processing thread");
+	RVCD_DEBUG_MSG("CMD: rvcd command processing thread stopped");
 
 	return 0;
 }
@@ -502,7 +508,7 @@ int rvcd_cmd_proc_init(struct rvcd_ctx *c)
 
 	/* set socket as non blocking mode */
 	if (set_non_blocking(listen_sock) != 0) {
-		RVCD_DEBUG_ERR("CMD: Could not set as non-blocking mode(err:%d)", errno);
+		RVCD_DEBUG_ERR("CMD: Couldn't set socket in non-blocking mode(err:%d)", errno);
 		close(listen_sock);
 
 		return -1;
@@ -511,7 +517,7 @@ int rvcd_cmd_proc_init(struct rvcd_ctx *c)
 	/* create thread for command process */
 	cmd_proc->c = c;
 	if (pthread_create(&cmd_proc->pt_cmd_proc, NULL, rvcd_cmd_proc, (void *) cmd_proc) != 0) {
-		RVCD_DEBUG_ERR("CMD: Could not create command processor thread(err:%d)", errno);
+		RVCD_DEBUG_ERR("CMD: Couldn't create command processor thread(err:%d)", errno);
 		close(listen_sock);
 
 		return -1;

@@ -1,0 +1,23 @@
+.DS_Store
+*.o
+
+# autotools related stuff
+compile
+config.guess
+config.status
+configure
+config.h
+config.log
+config.sub
+depcomp
+Makefile
+install-sh
+libtool
+ltmain.sh
+missing
+stamp-h1
+ar-lib
+test-driver
+autom4te.cache/
+rvc
+rvcd
