@@ -59,7 +59,7 @@ static void send_cmd(enum RVCD_CMD_CODE cmd_code, const char *cmd_param, bool us
 	/* create json object */
 	j_obj = json_object_new_object();
 	if (!j_obj) {
-		fprintf(stderr, "Couldn't create JSON object");
+		fprintf(stderr, "Couldn't create JSON object\n");
 		return;
 	}
 
@@ -99,11 +99,11 @@ static void print_help(void)
 {
 	printf("Usage: rvc [options]\n"
 		"\tOptions:\n"
-		"\t\t-l\t\t\t\tshow list of VPN connections\n"
-		"\t\t-c [all|connection name]\tconnect to VPN server with given name\n"
-		"\t\t-d [all|connection name]\tdisconnect from VPN server with given name\n"
-		"\t\t-s [all|connection name]\tget status of VPN connection with given name\n"
-		"\t\t-j\t\t\t\tprint result using JSON format\n"
+		"\t -l\t\t\t\tshow list of VPN connections\n"
+		"\t -c [all|connection name]\tconnect to a VPN with given name\n"
+		"\t -d [all|connection name]\tdisconnect from VPN with given name\n"
+		"\t -s [all|connection name]\tget status of VPN connection with given name\n"
+		"\t -j\t\t\t\tprint output in JSON\n"
 		);
 }
 
@@ -186,7 +186,7 @@ int main(int argc, char *argv[])
 
 	/* connect to rvcd */
 	if (connect_to_rvcd() != 0) {
-		fprintf(stderr, "Could't connect to rvcd process.\n");
+		fprintf(stderr, "Couldn't connect to rvcd process.\n");
 		exit(1);
 	}
 

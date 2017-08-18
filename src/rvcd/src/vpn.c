@@ -502,7 +502,7 @@ static void *start_vpn_conn(void *p)
 		if (vpn_conn->end_flag || vpn_conn->conn_cancel)
 			return 0;
 
-		RVCD_DEBUG_MSG("VPN: VPN connection with name '%s' has been failed. Try stop OpenVPN", vpn_conn->config.name);
+		RVCD_DEBUG_MSG("VPN: Failed VPN connection with name '%s'. Try to stop OpenVPN", vpn_conn->config.name);
 		stop_vpn_conn(vpn_conn);
 	}
 
@@ -550,7 +550,7 @@ void rvcd_vpnconn_connect(rvcd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name
 {
 	struct rvcd_vpnconn *vpn_conn;
 
-	RVCD_DEBUG_MSG("VPN: Try connect using VPN name '%s'", conn_name);
+	RVCD_DEBUG_MSG("VPN: Try to connect a VPN with name '%s'", conn_name);
 
 	/* if connection name is 'all', try start all connections */
 	if (strcmp(conn_name, "all") == 0) {
@@ -608,7 +608,7 @@ void rvcd_vpnconn_disconnect(rvcd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_n
 {
 	struct rvcd_vpnconn *vpn_conn;
 
-	RVCD_DEBUG_MSG("VPN: Try disconnect using VPN name '%s'", conn_name);
+	RVCD_DEBUG_MSG("VPN: Try to disconnect from VPN with name '%s'", conn_name);
 
 	/* if connection name is 'all', try stop all connections */
 	if (strcmp(conn_name, "all") == 0) {
@@ -640,7 +640,7 @@ static void get_single_conn_status(struct rvcd_vpnconn *vpn_conn, char **status_
 
 	char *ret_jstr;
 
-	RVCD_DEBUG_MSG("VPN: Getting status of VPN connection '%s'", vpn_conn->config.name);
+	RVCD_DEBUG_MSG("VPN: Getting status of VPN connection with name '%s'", vpn_conn->config.name);
 
 	/* create json object */
 	j_obj = json_object_new_object();
@@ -740,7 +740,7 @@ void rvcd_vpnconn_getstatus(rvcd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_na
 {
 	struct rvcd_vpnconn *vpn_conn;
 
-	RVCD_DEBUG_MSG("VPN: Getting connection status for VPN name '%s'", conn_name);
+	RVCD_DEBUG_MSG("VPN: Getting connection status for VPN connection with name '%s'", conn_name);
 
 	/* if connection name is 'all', then try get all connection info */
 	if (strcmp(conn_name, "all") == 0) {
@@ -1129,7 +1129,7 @@ static void *monitor_vpn_conn(void *p)
 		sleep(1);
 	}
 
-	RVCD_DEBUG_MSG("VPN: Stopped VPN connection monitoring thread with name '%s'", vpn_conn->config.name);
+	RVCD_DEBUG_MSG("VPN: VPN connection monitoring thread with name '%s' stopped", vpn_conn->config.name);
 
 	return 0;
 }
@@ -1157,7 +1157,7 @@ int rvcd_vpnconn_mgr_init(struct rvcd_ctx *c)
 	vpn_conn = vpnconn_mgr->vpn_conns;
 	while (vpn_conn) {
 		if (pthread_create(&vpn_conn->pt_conn_mon, NULL, monitor_vpn_conn, (void *) vpn_conn) != 0) {
-			RVCD_DEBUG_ERR("VPN: Couldn't create VPN connection monitoring thread.");
+			RVCD_DEBUG_ERR("VPN: Couldn't create VPN connection monitoring thread");
 		}
 
 		vpn_conn = vpn_conn->next;
@@ -1182,7 +1182,7 @@ void rvcd_vpnconn_mgr_finalize(rvcd_vpnconn_mgr_t *vpnconn_mgr)
 	if (!vpnconn_mgr->init_flag)
 		return;
 
-	RVCD_DEBUG_MSG("VPN: Finalizing VPN connection manager.");
+	RVCD_DEBUG_MSG("VPN: Finalizing VPN connection manager");
 
 	/* set end status */
 	vpnconn_mgr->end_flag = true;
