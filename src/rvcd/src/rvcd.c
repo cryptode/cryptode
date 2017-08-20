@@ -28,6 +28,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <fcntl.h>
 #include <signal.h>
 #include <unistd.h>
 
@@ -129,13 +130,24 @@ write_pid_file()
 	FILE *pid_fp;
 	pid_t pid;
 
+	int fd;
+
 	/* get process ID of current process */
 	pid = getpid();
 
+	/* remove old pid file */
+	remove(RVCD_PID_FPATH);
+
 	/* open pid file and write */
-	pid_fp = fopen(RVCD_PID_FPATH, "w");
-	if (!pid_fp)
+	fd = open(RVCD_PID_FPATH, O_CREAT | O_WRONLY);
+	if (fd < 0)
 		return;
+
+	pid_fp = fdopen(fd, "w");
+	if (!pid_fp) {
+		close(fd);
+		return;
+	}
 
 	fprintf(pid_fp, "%d\n", pid);
 
