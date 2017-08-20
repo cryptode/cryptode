@@ -261,7 +261,7 @@ static void *stop_vpn_conn(void *p)
 	pthread_join(vpn_conn->pt_conn, NULL);
 
 	/* check openvpn process ID */
-	if (vpn_conn->ovpn_pid < 0) {
+	if (vpn_conn->ovpn_pid <= 0) {
 		RVCD_DEBUG_MSG("VPN: OpenVPN process isn't running with name '%s'", vpn_conn->config.name);
 	} else {
 		bool force_kill_ovpn = false;
@@ -573,6 +573,12 @@ void rvcd_vpnconn_connect(rvcd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name
 
 static void stop_single_conn(struct rvcd_vpnconn *vpn_conn)
 {
+	if (vpn_conn->conn_state == RVCD_CONN_STATE_DISCONNECTED ||
+		vpn_conn->conn_state == RVCD_CONN_STATE_DISCONNECTING) {
+		RVCD_DEBUG_MSG("VPN: The VPN connection with name '%s' is already disconnected or is pending", vpn_conn->config.name);
+		return;
+	}
+
 	/* set end flag */
 	vpn_conn->conn_cancel = true;
 
