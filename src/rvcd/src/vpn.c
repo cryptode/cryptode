@@ -1167,6 +1167,12 @@ int rvcd_vpnconn_mgr_init(struct rvcd_ctx *c)
 	/* create thread for monitoring vpn connections */
 	vpn_conn = vpnconn_mgr->vpn_conns;
 	while (vpn_conn) {
+		/* if auto connect flag enabled, then start VPN connection */
+		if (vpn_conn->config.auto_connect) {
+			RVCD_DEBUG_MSG("VPN: The auto-connect for VPN connection '%s' is enabled. Try to start it.", vpn_conn->config.name);
+			start_single_conn(vpn_conn);
+		}
+
 		if (pthread_create(&vpn_conn->pt_conn_mon, NULL, monitor_vpn_conn, (void *) vpn_conn) != 0) {
 			RVCD_DEBUG_ERR("VPN: Couldn't create VPN connection monitoring thread");
 		}
