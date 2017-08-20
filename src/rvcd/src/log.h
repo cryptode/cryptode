@@ -2,6 +2,9 @@
 #define __RVCD_LOG_H__
 
 #define RVCD_LOG_FPATH					"/var/log/rvcd.log"
+#define RVCD_LOG_BACKUP_FPATH				"/var/log/rvcd.log.0"
+
+#define RVCD_MAX_LOG_FSIZE				30 * 1024 * 1024
 
 /* macro definition of debug functions */
 #define RVCD_DEBUG_MSG(...)				rvcd_debug_log(LOG_TYPE_MSG, __FILE__, __LINE__, __VA_ARGS__);
