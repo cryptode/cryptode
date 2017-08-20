@@ -842,6 +842,11 @@ static int parse_config(rvcd_vpnconn_mgr_t *vpnconn_mgr, const char *config_buff
 		}
 
 		snprintf(config.name, sizeof(config.name), "%s", json_object_get_string(j_sub_obj));
+		if (!is_valid_conn_name(config.name)) {
+			RVCD_DEBUG_ERR("VPN: Invalid VPN connection name '%s'. The name should contain only alphabetic characters.",
+				config.name);
+			continue;
+		}
 
 		/* get ovpn object */
 		if (!json_object_object_get_ex(j_item_obj, "ovpn", &j_sub_obj)) {

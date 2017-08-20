@@ -146,3 +146,19 @@ int set_non_blocking(int sock)
 
 	return 0;
 }
+
+/* check whether connection name is valid */
+int is_valid_conn_name(const char *conn_name)
+{
+	int i;
+
+	while (conn_name[i] != '\0') {
+		char p = conn_name[i++];
+
+		if (!isalpha(p) && !isdigit(p) &&
+			p != '-' && p != '_')
+			return 0;
+	}
+
+	return 1;
+}
