@@ -156,7 +156,7 @@ void rvcd_debug_log(enum LOG_TYPE log_type, const char *file_name, int file_line
 	time(&tt);
 	tm = localtime(&tt);
 
-	strftime(time_str, sizeof(time_str), "%a %d %b %Y %T", tm);
+	strftime(time_str, sizeof(time_str), "%FT%T%Z", tm);
 
 	/* write log */
 	written_log_bytes = fprintf(g_log_fp, "%s\t%s : %s(at %s:%d)\n", time_str, log_type_str[log_type], msg, file_name, file_line);
