@@ -33,34 +33,34 @@ $ sudo ./src/rvcd -c [path of configuration file]
 1. show help
 
 ```
-$ ./src/rvc -h
+$ ./src/rvc help
 
 Usage: rvc [options]
     Options:
-	-l				show list of VPN connections
-	-c [all|connection name]	connect to VPN server with given name
-	-d [all|connection name]	disconnect from VPN server with given name
-	-s [all|connection name]	get status of VPN connection with given name
-	-j				print result using JSON format
+	list [--json]				show list of VPN connections
+	connect [all|connection name]		connect to VPN server with given name
+	disconnect [all|connection name]	disconnect from VPN server with given name
+	status [all|connection name]		get status of VPN connection with given name
+	help					print help message
 
 ```
 2. show VPN configuration list
 
 ```sh
-$ ./src/rvc -l [-j]
+$ ./src/rvc list [--json]
 ```
 3. Connect to VPN server
 
 ```sh
-$ ./src/rvc -c [all | connection name]
+$ ./src/rvc connect [all | connection name]
 ```
 4. Disconnect from VPN server
 
 ```sh
-$ ./src/rvc -d [all | connection name]
+$ ./src/rvc disconnect [all | connection name]
 ```
 5. Get connection status
 
 ```sh
-$ ./src/rvc -s [all | connection name]
+$ ./src/rvc status [all | connection name]
 ```
