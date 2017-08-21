@@ -44,12 +44,15 @@ static char g_resp[RVCD_MAX_RESP_LEN + 1];
  * send command and print response
  */
 
-static const char *g_cmd_strs[] = {
-	"list",
-	"connect",
-	"disconnect",
-	"status",
-	NULL
+static struct {
+	enum RVCD_CMD_CODE code;
+	const char *name;
+} g_cmd_names[] = {
+	{RVCD_CMD_LIST, "list"},
+	{RVCD_CMD_CONNECT, "connect"},
+	{RVCD_CMD_DISCONNECT, "disconnect"},
+	{RVCD_CMD_STATUS, "status"},
+	{RVCD_CMD_UNKNOWN, NULL}
 };
 
 static void send_cmd(enum RVCD_CMD_CODE cmd_code, const char *cmd_param, bool use_json)
@@ -63,7 +66,7 @@ static void send_cmd(enum RVCD_CMD_CODE cmd_code, const char *cmd_param, bool us
 		return;
 	}
 
-	json_object_object_add(j_obj, "cmd", json_object_new_string(g_cmd_strs[cmd_code]));
+	json_object_object_add(j_obj, "cmd", json_object_new_string(g_cmd_names[cmd_code].name));
 
 	if (cmd_param)
 		json_object_object_add(j_obj, "name", json_object_new_string(cmd_param));
@@ -99,11 +102,10 @@ static void print_help(void)
 {
 	printf("Usage: rvc [options]\n"
 		"\tOptions:\n"
-		"\t -l\t\t\t\tshow list of VPN connections\n"
-		"\t -c [all|connection name]\tconnect to a VPN with given name\n"
-		"\t -d [all|connection name]\tdisconnect from VPN with given name\n"
-		"\t -s [all|connection name]\tget status of VPN connection with given name\n"
-		"\t -j\t\t\t\tprint output in JSON\n"
+		"\t list [--json]\t\t\t\tshow list of VPN connections\n"
+		"\t connect [all|connection name]\t\tconnect to a VPN with given name\n"
+		"\t disconnect [all|connection name]\tdisconnect from VPN with given name\n"
+		"\t status [all|connection name]\t\tget status of VPN connection with given name\n"
 		);
 }
 
@@ -137,8 +139,9 @@ int main(int argc, char *argv[])
 {
 	enum RVCD_CMD_CODE cmd_code = RVCD_CMD_UNKNOWN;
 	bool use_json = false;
+	bool opt_invalid = false;
 
-	int opt;
+	int opt, i;
 
 	const char *cmd_param = NULL;
 
@@ -148,40 +151,59 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
-	/* process commands */
-	while ((opt = getopt(argc, argv, "lc:d:s:jh")) != -1) {
-		switch (opt) {
-			case 'l':
-				cmd_code = RVCD_CMD_LIST;
-				break;
-
-			case 'c':
-				cmd_code = RVCD_CMD_CONNECT;
-				cmd_param = optarg;
-				break;
-
-			case 'd':
-				cmd_code = RVCD_CMD_DISCONNECT;
-				cmd_param = optarg;
-				break;
-
-			case 's':
-				cmd_code = RVCD_CMD_STATUS;
-				cmd_param = optarg;
-				break;
-
-			case 'j':
-				use_json = true;
-				break;
-
-			case 'h':
-				print_help();
-				exit(0);
-				break;
-
-			default:
-				break;
+	/* get command code */
+	for (i = 0; g_cmd_names[i].name != NULL; i++) {
+		if (strcmp(argv[1], g_cmd_names[i].name) == 0) {
+			cmd_code = g_cmd_names[i].code;
+			break;
 		}
+	}
+
+	/* check command code */
+	if (cmd_code == RVCD_CMD_UNKNOWN) {
+		fprintf(stderr, "Invalid command '%s'\n", argv[1]);
+		print_help();
+
+		exit(1);
+	}
+
+	switch (cmd_code) {
+	case RVCD_CMD_LIST:
+		if (argc == 3 && strcmp(argv[2], "--json") == 0)
+			use_json = true;
+		else if (argc != 2)
+			opt_invalid = true;
+
+		break;
+
+	case RVCD_CMD_CONNECT:
+	case RVCD_CMD_DISCONNECT:
+		if (argc == 3)
+			cmd_param = argv[2];
+		else
+			opt_invalid = true;
+
+		break;
+
+	case RVCD_CMD_STATUS:
+		if (argc == 2)
+			cmd_param = "all";
+		else if (argc == 3)
+			cmd_param = argv[2];
+		else
+			opt_invalid = true;
+
+		break;
+
+	default:
+		break;
+	}
+
+	if (opt_invalid) {
+		fprintf(stderr, "Invalid options\n");
+		print_help();
+
+		exit(1);
 	}
 
 	/* connect to rvcd */
@@ -191,8 +213,7 @@ int main(int argc, char *argv[])
 	}
 
 	/* send command to core */
-	if (cmd_code != RVCD_CMD_UNKNOWN)
-		send_cmd(cmd_code, cmd_param, use_json);
+	send_cmd(cmd_code, cmd_param, use_json);
 
 	/* close socket */
 	close(g_sock);
