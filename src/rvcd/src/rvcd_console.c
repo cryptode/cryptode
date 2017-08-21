@@ -106,6 +106,7 @@ static void print_help(void)
 		"\t connect [all|connection name]\t\tconnect to a VPN with given name\n"
 		"\t disconnect [all|connection name]\tdisconnect from VPN with given name\n"
 		"\t status [all|connection name]\t\tget status of VPN connection with given name\n"
+		"\t help\t\t\t\t\tshow help message\n"
 		);
 }
 
@@ -149,6 +150,11 @@ int main(int argc, char *argv[])
 	if (argc < 2) {
 		print_help();
 		exit(1);
+	}
+
+	if (argc == 2 && strcmp(argv[1], "help") == 0) {
+		print_help();
+		exit(0);
 	}
 
 	/* get command code */
