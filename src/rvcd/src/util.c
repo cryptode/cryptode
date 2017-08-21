@@ -155,8 +155,12 @@ int is_valid_conn_name(const char *conn_name)
 	while (conn_name[i] != '\0') {
 		char p = conn_name[i++];
 
+		/* check whether first character has alphabetic or digit */
+		if (i == 0 && !isalpha(p) && !isdigit(p))
+			return 0;
+
 		if (!isalpha(p) && !isdigit(p) &&
-			p != '-' && p != '_')
+			p != '-' && p != '_' && p != '.')
 			return 0;
 	}
 
