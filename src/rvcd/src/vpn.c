@@ -43,13 +43,41 @@
 #include "rvcd.h"
 
 /*
- * rvcd VPN connection monitor
+ * rvcd connection state strings
  */
 
-static void *rvcd_vpnconn_monitor(void *p)
-{
-	return 0;
-}
+struct rvcd_vpn_state {
+	enum RVCD_VPNCONN_STATE state;
+	const char *state_str;
+} g_rvcd_state[] = {
+	{RVCD_CONN_STATE_DISCONNECTED, "DISCONNECTED"},
+	{RVCD_CONN_STATE_CONNECTED, "CONNECTED"},
+	{RVCD_CONN_STATE_CONNECTING, "CONNECTING"},
+	{RVCD_CONN_STATE_DISCONNECTING, "DISCONNECTING"},
+	{RVCD_CONN_STATE_RECONNECTING, "RECONNECTING"},
+	{RVCD_CONN_STATE_UNKNOWN, NULL}
+};
+
+/*
+ * openvpn connection state strings
+ */
+
+struct rvcd_ovpn_state {
+	enum OVPN_CONN_STATE ovpn_state;
+	const char *ovpn_state_str;
+} g_ovpn_state[] = {
+	{OVPN_STATE_DISCONNECTED, "DISCONNECTED"},
+	{OVPN_STATE_CONNECTING, "TCP_CONNECT"},
+	{OVPN_STATE_WAIT, "WAIT"},
+	{OVPN_STATE_AUTH, "AUTH"},
+	{OVPN_STATE_GETCONFIG, "GET_CONFIG"},
+	{OVPN_STATE_ASSIGNIP, "ASSIGN_IP"},
+	{OVPN_STATE_ADDROUTES, "ADD_ROUTES"},
+	{OVPN_STATE_CONNECTED, "CONNECTED"},
+	{OVPN_STATE_RECONNECTING, "RECONNECTING"},
+	{OVPN_STATE_EXITING, "EXITING"},
+	{OVPN_STATE_UNKNOWN, NULL}
+};
 
 /*
  * add configuration item
@@ -367,23 +395,6 @@ static int run_openvpn_proc(struct rvcd_vpnconn *vpn_conn)
  * parse response from openvpn management socket
  */
 
-struct rvcd_ovpn_state {
-	enum OVPN_CONN_STATE ovpn_state;
-	const char *ovpn_state_str;
-} g_ovpn_state[] = {
-	{OVPN_STATE_DISCONNECTED, "DISCONNECTED"},
-	{OVPN_STATE_CONNECTING, "TCP_CONNECT"},
-	{OVPN_STATE_WAIT, "WAIT"},
-	{OVPN_STATE_AUTH, "AUTH"},
-	{OVPN_STATE_GETCONFIG, "GET_CONFIG"},
-	{OVPN_STATE_ASSIGNIP, "ASSIGN_IP"},
-	{OVPN_STATE_ADDROUTES, "ADD_ROUTES"},
-	{OVPN_STATE_CONNECTED, "CONNECTED"},
-	{OVPN_STATE_RECONNECTING, "RECONNECTING"},
-	{OVPN_STATE_EXITING, "EXITING"},
-	{OVPN_STATE_UNKNOWN, NULL}
-};
-
 static void parse_ovpn_mgm_resp(struct rvcd_vpnconn *vpn_conn, char *mgm_resp)
 {
 	char *tok, *p;
@@ -674,7 +685,8 @@ static void get_single_conn_status(struct rvcd_vpnconn *vpn_conn, char **status_
 
 	/* add fields */
 	json_object_object_add(j_obj, "name", json_object_new_string(vpn_conn->config.name));
-	json_object_object_add(j_obj, "status", json_object_new_string(g_ovpn_state[vpn_conn->ovpn_state].ovpn_state_str));
+	json_object_object_add(j_obj, "status", json_object_new_string(g_rvcd_state[vpn_conn->conn_state].state_str));
+	json_object_object_add(j_obj, "ovpn-status", json_object_new_string(g_ovpn_state[vpn_conn->ovpn_state].ovpn_state_str));
 
 	if (vpn_conn->conn_state == RVCD_CONN_STATE_CONNECTED) {
 		json_object_object_add(j_obj, "connected-time", json_object_new_int64(vpn_conn->connected_tm));
