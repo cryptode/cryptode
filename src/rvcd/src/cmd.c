@@ -304,18 +304,15 @@ struct rvcd_cmd {
 	{RVCD_CMD_UNKNOWN, NULL}
 };
 
-static void process_cmd(rvcd_cmd_proc_t *cmd_proc, int clnt_sock, const char *cmd)
+static int process_cmd(rvcd_cmd_proc_t *cmd_proc, int clnt_sock, const char *cmd,
+		char **resp_data, bool *json_format)
 {
 	json_object *j_obj, *j_cmd_obj;
 
 	enum RVCD_CMD_CODE cmd_code = RVCD_CMD_UNKNOWN;
 	const char *cmd_name, *conn_name = NULL;
-	bool json_format = false;
 
-	int i;
-
-	int resp_code;
-	char *resp_data = NULL;
+	int resp_code, i;
 
 	RVCD_DEBUG_MSG("CMD: Received command '%s'", cmd);
 
@@ -323,20 +320,22 @@ static void process_cmd(rvcd_cmd_proc_t *cmd_proc, int clnt_sock, const char *cm
 	j_obj = json_tokener_parse(cmd);
 	if (!j_obj) {
 		RVCD_DEBUG_ERR("CMD: Couln't parse command '%s'", cmd);
-		return;
+		return RVCD_RESP_INVALID_CMD;
 	}
 
 	/* get command string */
 	if (!json_object_object_get_ex(j_obj, "cmd", &j_cmd_obj)) {
 		RVCD_DEBUG_ERR("CMD: Couldn't find 'cmd' key from command '%s'", cmd);
-		return;
+		json_object_put(j_obj);
+
+		return RVCD_RESP_INVALID_CMD;
 	}
 
 	cmd_name = json_object_get_string(j_cmd_obj);
 
 	/* get format of list */
 	if (json_object_object_get_ex(j_obj, "json", &j_cmd_obj))
-		json_format = json_object_get_boolean(j_cmd_obj);
+		*json_format = json_object_get_boolean(j_cmd_obj);
 
 	/* get connection name */
 	if (json_object_object_get_ex(j_obj, "name", &j_cmd_obj))
@@ -356,24 +355,24 @@ static void process_cmd(rvcd_cmd_proc_t *cmd_proc, int clnt_sock, const char *cm
 		/* free json object */
 		json_object_put(j_obj);
 
-		return;
+		return RVCD_RESP_INVALID_CMD;
 	}
 
 	switch (cmd_code) {
 	case RVCD_CMD_LIST:
-		resp_code = process_cmd_list(cmd_proc, json_format, &resp_data);
+		resp_code = process_cmd_list(cmd_proc, *json_format, resp_data);
 		break;
 
 	case RVCD_CMD_CONNECT:
-		resp_code = process_cmd_connect(cmd_proc, conn_name, json_format);
+		resp_code = process_cmd_connect(cmd_proc, conn_name, *json_format);
 		break;
 
 	case RVCD_CMD_DISCONNECT:
-		resp_code = process_cmd_disconnect(cmd_proc, conn_name, json_format);
+		resp_code = process_cmd_disconnect(cmd_proc, conn_name, *json_format);
 		break;
 
 	case RVCD_CMD_STATUS:
-		resp_code = process_cmd_status(cmd_proc, conn_name, &resp_data);
+		resp_code = process_cmd_status(cmd_proc, conn_name, resp_data);
 		break;
 
 	default:
@@ -383,12 +382,7 @@ static void process_cmd(rvcd_cmd_proc_t *cmd_proc, int clnt_sock, const char *cm
 	/* free json object */
 	json_object_put(j_obj);
 
-	/* send response */
-	send_cmd_response(clnt_sock, resp_code, resp_data, json_format);
-
-	/* free response data */
-	if (resp_data)
-		free(resp_data);
+	return resp_code;
 }
 
 /*
@@ -460,7 +454,21 @@ static void *rvcd_cmd_proc(void *p)
 					memset(cmd_buf, 0, sizeof(cmd_buf));
 					ret = recv(i, cmd_buf, RVCD_MAX_CMD_LEN, 0);
 					if (ret > 0) {
-						process_cmd(cmd_proc, i, cmd_buf);
+						char *resp_data = NULL;
+						int resp_code;
+
+						bool json_format = false;
+
+						/* parse and process command */
+						resp_code = process_cmd(cmd_proc, i, cmd_buf, &resp_data, &json_format);
+
+						/* send response */
+						send_cmd_response(i, resp_code, resp_data, json_format);
+
+						/* free response data */
+						if (resp_data)
+							free(resp_data);
+
 						break;
 					}
 					else if (ret == 0)
