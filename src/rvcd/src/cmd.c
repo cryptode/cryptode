@@ -187,9 +187,6 @@ static int process_cmd_list(rvcd_cmd_proc_t *cmd_proc, bool json_format, char **
 
 static int process_cmd_connect(rvcd_cmd_proc_t *cmd_proc, const char *conn_name, char **status_jstr)
 {
-	json_object *j_sub_obj;
-	int ret;
-
 	RVCD_DEBUG_MSG("CMD: Processing 'connect' command");
 
 	/* check connection name */
@@ -227,9 +224,6 @@ static int process_cmd_connect(rvcd_cmd_proc_t *cmd_proc, const char *conn_name,
 
 static int process_cmd_disconnect(rvcd_cmd_proc_t *cmd_proc, const char *conn_name, char **status_jstr)
 {
-	json_object *j_sub_obj;
-	int ret;
-
 	RVCD_DEBUG_MSG("CMD: Processing 'disconnect' command");
 
 	/* check connection name */
@@ -268,9 +262,6 @@ static int process_cmd_disconnect(rvcd_cmd_proc_t *cmd_proc, const char *conn_na
 
 static int process_cmd_status(rvcd_cmd_proc_t *cmd_proc, const char *conn_name, char **status_jstr)
 {
-	json_object *j_sub_obj;
-	int ret;
-
 	RVCD_DEBUG_MSG("CMD: Processing 'status' command");
 
 	/* check connection name */
@@ -296,6 +287,31 @@ static int process_cmd_status(rvcd_cmd_proc_t *cmd_proc, const char *conn_name, 
 }
 
 /*
+ * process 'script-security' command
+ */
+
+static int process_cmd_script_security(rvcd_cmd_proc_t *cmd_proc, const char *param)
+{
+	bool enable_script_security = false;
+
+	RVCD_DEBUG_MSG("CMD: Processing 'script-security' command");
+
+	if (strcmp(param, "enable") == 0)
+		enable_script_security = true;
+	else if (strcmp(param, "disable") == 0)
+		enable_script_security = false;
+	else {
+		RVCD_DEBUG_ERR("CMD: Unknown command parameter '%s'", param);
+		return RVCD_RESP_INVALID_CMD;
+	}
+
+	/* enable/disable script security */
+	rvcd_vpnconn_enable_script_sec(&cmd_proc->c->vpnconn_mgr, enable_script_security);
+
+	return RVCD_RESP_OK;
+}
+
+/*
  * process commands
  */
 
@@ -307,18 +323,19 @@ struct rvcd_cmd {
 	{RVCD_CMD_CONNECT, "connect"},
 	{RVCD_CMD_DISCONNECT, "disconnect"},
 	{RVCD_CMD_STATUS, "status"},
+	{RVCD_CMD_SCRIPT_SECURITY, "script-security"},
 	{RVCD_CMD_UNKNOWN, NULL}
 };
 
-static int process_cmd(rvcd_cmd_proc_t *cmd_proc, int clnt_sock, const char *cmd,
+static int process_cmd(rvcd_cmd_proc_t *cmd_proc, const char *cmd,
 		char **resp_data, bool *json_format)
 {
 	json_object *j_obj, *j_cmd_obj;
 
 	enum RVCD_CMD_CODE cmd_code = RVCD_CMD_UNKNOWN;
-	const char *cmd_name, *conn_name = NULL;
+	const char *cmd_name, *cmd_param = NULL;
 
-	int resp_code, i;
+	int resp_code = RVCD_RESP_INVALID_CMD, i;
 
 	RVCD_DEBUG_MSG("CMD: Received command '%s'", cmd);
 
@@ -344,8 +361,8 @@ static int process_cmd(rvcd_cmd_proc_t *cmd_proc, int clnt_sock, const char *cmd
 		*json_format = json_object_get_boolean(j_cmd_obj);
 
 	/* get connection name */
-	if (json_object_object_get_ex(j_obj, "name", &j_cmd_obj))
-		conn_name = json_object_get_string(j_cmd_obj);
+	if (json_object_object_get_ex(j_obj, "param", &j_cmd_obj))
+		cmd_param = json_object_get_string(j_cmd_obj);
 
 	/* get command code */
 	for (i = 0; g_rvcd_cmds[i].name != NULL; i++) {
@@ -370,15 +387,19 @@ static int process_cmd(rvcd_cmd_proc_t *cmd_proc, int clnt_sock, const char *cmd
 		break;
 
 	case RVCD_CMD_CONNECT:
-		resp_code = process_cmd_connect(cmd_proc, conn_name, resp_data);
+		resp_code = process_cmd_connect(cmd_proc, cmd_param, resp_data);
 		break;
 
 	case RVCD_CMD_DISCONNECT:
-		resp_code = process_cmd_disconnect(cmd_proc, conn_name, resp_data);
+		resp_code = process_cmd_disconnect(cmd_proc, cmd_param, resp_data);
 		break;
 
 	case RVCD_CMD_STATUS:
-		resp_code = process_cmd_status(cmd_proc, conn_name, resp_data);
+		resp_code = process_cmd_status(cmd_proc, cmd_param, resp_data);
+		break;
+
+	case RVCD_CMD_SCRIPT_SECURITY:
+		resp_code = process_cmd_script_security(cmd_proc, cmd_param);
 		break;
 
 	default:
@@ -400,7 +421,6 @@ static void *rvcd_cmd_proc(void *p)
 	rvcd_cmd_proc_t *cmd_proc = (rvcd_cmd_proc_t *) p;
 
 	fd_set fds;
-	struct timeval tv;
 	int max_fd = cmd_proc->listen_sock;
 
 	RVCD_DEBUG_MSG("CMD: Starting rvcd command processing thread");
@@ -466,7 +486,7 @@ static void *rvcd_cmd_proc(void *p)
 						bool json_format = false;
 
 						/* parse and process command */
-						resp_code = process_cmd(cmd_proc, i, cmd_buf, &resp_data, &json_format);
+						resp_code = process_cmd(cmd_proc, cmd_buf, &resp_data, &json_format);
 
 						/* send response */
 						send_cmd_response(i, resp_code, resp_data, json_format);

@@ -1,5 +1,5 @@
 
-AM_CFLAGS = $(JSONC_INCLUDES)
+AM_CFLAGS = $(JSONC_INCLUDES) -Wall -Wextra
 
 bin_PROGRAMS = rvcd rvc
 

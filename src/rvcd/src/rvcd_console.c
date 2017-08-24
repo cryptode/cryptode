@@ -52,6 +52,7 @@ static struct {
 	{RVCD_CMD_CONNECT, "connect"},
 	{RVCD_CMD_DISCONNECT, "disconnect"},
 	{RVCD_CMD_STATUS, "status"},
+	{RVCD_CMD_SCRIPT_SECURITY, "script-security"},
 	{RVCD_CMD_UNKNOWN, NULL}
 };
 
@@ -69,7 +70,7 @@ static void send_cmd(enum RVCD_CMD_CODE cmd_code, const char *cmd_param, bool us
 	json_object_object_add(j_obj, "cmd", json_object_new_string(g_cmd_names[cmd_code].name));
 
 	if (cmd_param)
-		json_object_object_add(j_obj, "name", json_object_new_string(cmd_param));
+		json_object_object_add(j_obj, "param", json_object_new_string(cmd_param));
 
 	json_object_object_add(j_obj, "json", json_object_new_boolean(use_json ? 1 : 0));
 
@@ -106,6 +107,7 @@ static void print_help(void)
 		"\t connect [all|connection name]\t\tconnect to a VPN with given name\n"
 		"\t disconnect [all|connection name]\tdisconnect from VPN with given name\n"
 		"\t status [all|connection name]\t\tget status of VPN connection with given name\n"
+		"\t script-security [enable|disable]\tenable/disable script security\n"
 		"\t help\t\t\t\t\tshow help message\n"
 		);
 }
@@ -142,7 +144,7 @@ int main(int argc, char *argv[])
 	bool use_json = true;
 	bool opt_invalid = false;
 
-	int opt, i;
+	int i;
 
 	const char *cmd_param = NULL;
 
@@ -196,6 +198,15 @@ int main(int argc, char *argv[])
 		if (argc == 2)
 			cmd_param = "all";
 		else if (argc == 3)
+			cmd_param = argv[2];
+		else
+			opt_invalid = true;
+
+		break;
+
+	case RVCD_CMD_SCRIPT_SECURITY:
+		if (argc == 3 && (strcmp(argv[2], "enable") == 0 ||
+			(strcmp(argv[2], "disable")) == 0))
 			cmd_param = argv[2];
 		else
 			opt_invalid = true;
