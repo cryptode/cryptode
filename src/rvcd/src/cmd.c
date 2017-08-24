@@ -185,7 +185,7 @@ static int process_cmd_list(rvcd_cmd_proc_t *cmd_proc, bool json_format, char **
  * process 'connect' command
  */
 
-static int process_cmd_connect(rvcd_cmd_proc_t *cmd_proc, const char *conn_name, bool json_format)
+static int process_cmd_connect(rvcd_cmd_proc_t *cmd_proc, const char *conn_name, char **status_jstr)
 {
 	json_object *j_sub_obj;
 	int ret;
@@ -215,6 +215,9 @@ static int process_cmd_connect(rvcd_cmd_proc_t *cmd_proc, const char *conn_name,
 	/* connect to rvcd servers */
 	rvcd_vpnconn_connect(&cmd_proc->c->vpnconn_mgr, conn_name);
 
+	/* get connection status */
+	rvcd_vpnconn_getstatus(&cmd_proc->c->vpnconn_mgr, conn_name, status_jstr);
+
 	return RVCD_RESP_OK;
 }
 
@@ -222,7 +225,7 @@ static int process_cmd_connect(rvcd_cmd_proc_t *cmd_proc, const char *conn_name,
  * process 'disconnect' command
  */
 
-static int process_cmd_disconnect(rvcd_cmd_proc_t *cmd_proc, const char *conn_name, bool json_format)
+static int process_cmd_disconnect(rvcd_cmd_proc_t *cmd_proc, const char *conn_name, char **status_jstr)
 {
 	json_object *j_sub_obj;
 	int ret;
@@ -252,6 +255,9 @@ static int process_cmd_disconnect(rvcd_cmd_proc_t *cmd_proc, const char *conn_na
 
 	/* disconnect from rvcd servers */
 	rvcd_vpnconn_disconnect(&cmd_proc->c->vpnconn_mgr, conn_name);
+
+	/* get connection status */
+	rvcd_vpnconn_getstatus(&cmd_proc->c->vpnconn_mgr, conn_name, status_jstr);
 
 	return RVCD_RESP_OK;
 }
@@ -364,11 +370,11 @@ static int process_cmd(rvcd_cmd_proc_t *cmd_proc, int clnt_sock, const char *cmd
 		break;
 
 	case RVCD_CMD_CONNECT:
-		resp_code = process_cmd_connect(cmd_proc, conn_name, *json_format);
+		resp_code = process_cmd_connect(cmd_proc, conn_name, resp_data);
 		break;
 
 	case RVCD_CMD_DISCONNECT:
-		resp_code = process_cmd_disconnect(cmd_proc, conn_name, *json_format);
+		resp_code = process_cmd_disconnect(cmd_proc, conn_name, resp_data);
 		break;
 
 	case RVCD_CMD_STATUS:
