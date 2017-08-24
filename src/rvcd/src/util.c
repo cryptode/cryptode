@@ -115,7 +115,7 @@ void get_token_by_comma(char **pp, char *token, size_t size)
 
 	/* set buffer until comma is exist */
 	while (*p != ',' && *p != '\0' && *p != '\n' && !isspace(*p)) {
-		if (i == (size - 1))
+		if (i == (int) (size - 1))
 			break;
 
 		token[i++] = *p;
@@ -134,7 +134,7 @@ void get_token_by_comma(char **pp, char *token, size_t size)
 
 int set_non_blocking(int sock)
 {
-	int ret, on = 1;
+	int on = 1;
 
 	/* set socket option as reusable */
 	if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (char *) &on, sizeof(on)) < 0)
@@ -150,7 +150,7 @@ int set_non_blocking(int sock)
 /* check whether connection name is valid */
 int is_valid_conn_name(const char *conn_name)
 {
-	int i;
+	int i = 0;
 
 	while (conn_name[i] != '\0') {
 		char p = conn_name[i++];

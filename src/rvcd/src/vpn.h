@@ -62,6 +62,7 @@ struct rvcd_vpnconn {
 	time_t connected_tm;
 
 	pid_t ovpn_pid;
+	bool enable_script_sec;
 
 	int ovpn_mgm_port;
 	int ovpn_mgm_sock;
@@ -101,5 +102,7 @@ void rvcd_vpnconn_getstatus(rvcd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_na
 
 void rvcd_vpnconn_list_to_buffer(rvcd_vpnconn_mgr_t *vpnconn_mgr, bool json_format, char **buffer);
 struct rvcd_vpnconn *rvcd_vpnconn_get_byname(rvcd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name);
+
+void rvcd_vpnconn_enable_script_sec(rvcd_vpnconn_mgr_t *vpnconn_mgr, bool enable_script_security);
 
 #endif /* __RVCD_VPN_H__ */

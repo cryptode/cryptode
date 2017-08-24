@@ -165,7 +165,7 @@ static int send_cmd_to_ovpn_mgm(struct rvcd_vpnconn *vpn_conn, const char *cmd)
 	char resp[512];
 
 	/* send command via management socket */
-	if (send(vpn_conn->ovpn_mgm_sock, cmd, strlen(cmd), 0) != strlen(cmd)) {
+	if (send(vpn_conn->ovpn_mgm_sock, cmd, strlen(cmd), 0) <= 0) {
 		RVCD_DEBUG_ERR("VPN: Couldn't send '%s' command to OpenVPN management socket(err:%d)", cmd, errno);
 		return -1;
 	}
@@ -369,14 +369,33 @@ static int run_openvpn_proc(struct rvcd_vpnconn *vpn_conn)
 	/* create openvpn process */
 	ovpn_pid = fork();
 	if (ovpn_pid == 0) {
-		char *const ovpn_params[] = {OPENVPN_BINARY_PATH, "--config", vpn_conn->config.ovpn_profile_path,
-			"--management", "127.0.0.1", mgm_port_str, "--log", ovpn_log_fpath, NULL};
-
 		/* set new session */
 		setsid();
 
-		/* child process */
-		execv(OPENVPN_BINARY_PATH, ovpn_params);
+		if (vpn_conn->enable_script_sec ||
+		    (strlen(vpn_conn->config.up_script) == 0 &&
+		    strlen(vpn_conn->config.down_script) == 0)) {
+			char *const ovpn_params[] = {OPENVPN_BINARY_PATH,
+				    "--config", vpn_conn->config.ovpn_profile_path,
+				    "--management", "127.0.0.1", mgm_port_str,
+				    "--log", ovpn_log_fpath,
+				    NULL};
+
+			/* child process */
+			execv(OPENVPN_BINARY_PATH, ovpn_params);
+		} else {
+			char *const ovpn_params[] = {OPENVPN_BINARY_PATH,
+				    "--config", vpn_conn->config.ovpn_profile_path,
+				    "--management", "127.0.0.1", mgm_port_str,
+				    "--log", ovpn_log_fpath,
+				    "--script-security", "2",
+				    "--up", vpn_conn->config.up_script,
+				    "--down", vpn_conn->config.down_script,
+				    NULL};
+
+			/* child process */
+			execv(OPENVPN_BINARY_PATH, ovpn_params);
+		}
 
 		/* if failed, then exit child with error */
 		exit(1);
@@ -452,7 +471,7 @@ static void parse_ovpn_mgm_resp(struct rvcd_vpnconn *vpn_conn, char *mgm_resp)
  * get connection state from openvpn management socket
  */
 
-static int get_vpn_conn_state(struct rvcd_vpnconn *vpn_conn, time_t *tm)
+static int get_vpn_conn_state(struct rvcd_vpnconn *vpn_conn)
 {
 	int failed_count = 0;
 
@@ -495,7 +514,6 @@ static int get_vpn_conn_state(struct rvcd_vpnconn *vpn_conn, time_t *tm)
 static void *start_vpn_conn(void *p)
 {
 	struct rvcd_vpnconn *vpn_conn = (struct rvcd_vpnconn *) p;
-	time_t tm;
 
 	RVCD_DEBUG_MSG("VPN: Starting VPN connection with name '%s'", vpn_conn->config.name);
 
@@ -511,10 +529,9 @@ static void *start_vpn_conn(void *p)
 	sleep(1);
 
 	/* connect to openvpn process via management console */
-	if (connect_to_ovpn_mgm(vpn_conn) == 0 && get_vpn_conn_state(vpn_conn, &tm) == 0) {
+	if (connect_to_ovpn_mgm(vpn_conn) == 0 && get_vpn_conn_state(vpn_conn) == 0) {
 		RVCD_DEBUG_MSG("VPN: VPN connection with name '%s' has been succeeded", vpn_conn->config.name);
 		vpn_conn->conn_state = RVCD_CONN_STATE_CONNECTED;
-		vpn_conn->connected_tm = tm;
 	} else {
 		/* check end flag */
 		if (vpn_conn->end_flag || vpn_conn->conn_cancel)
@@ -827,9 +844,7 @@ static void finalize_vpn_conns(rvcd_vpnconn_mgr_t *vpnconn_mgr)
 static int parse_config(rvcd_vpnconn_mgr_t *vpnconn_mgr, const char *config_buffer)
 {
 	json_object *j_obj;
-
-	int i;
-	size_t count;
+	size_t i, count;
 
 	/* parse json object */
 	j_obj = json_tokener_parse(config_buffer);
@@ -1095,9 +1110,6 @@ static void *monitor_vpn_conn(void *p)
 	RVCD_DEBUG_MSG("VPN: Starting VPN connection monitoring thread with name '%s'", vpn_conn->config.name);
 
 	while (!vpn_conn->end_flag) {
-		int ovpn_state;
-		time_t tm;
-
 		fd_set tmp_fds;
 		struct timeval tv;
 
@@ -1171,6 +1183,22 @@ static void *monitor_vpn_conn(void *p)
 }
 
 /*
+ * enable/disable script security
+ */
+
+void rvcd_vpnconn_enable_script_sec(rvcd_vpnconn_mgr_t *vpnconn_mgr, bool enable_script_sec)
+{
+	struct rvcd_vpnconn *vpn_conn = vpnconn_mgr->vpn_conns;
+
+	RVCD_DEBUG_MSG("VPN: %s script security", enable_script_sec ? "Enable" : "Disable");
+
+	while (vpn_conn) {
+		vpn_conn->enable_script_sec = enable_script_sec;
+		vpn_conn = vpn_conn->next;
+	}
+}
+
+/*
  * initialize rvcd VPN connection manager
  */
 
@@ -1178,8 +1206,6 @@ int rvcd_vpnconn_mgr_init(struct rvcd_ctx *c)
 {
 	rvcd_vpnconn_mgr_t *vpnconn_mgr = &c->vpnconn_mgr;
 	struct rvcd_vpnconn *vpn_conn;
-
-	const char *config_path;
 
 	RVCD_DEBUG_MSG("VPN: Initializing VPN connection manager");
 
