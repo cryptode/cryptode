@@ -139,7 +139,7 @@ static int connect_to_rvcd(void)
 int main(int argc, char *argv[])
 {
 	enum RVCD_CMD_CODE cmd_code = RVCD_CMD_UNKNOWN;
-	bool use_json = false;
+	bool use_json = true;
 	bool opt_invalid = false;
 
 	int opt, i;
@@ -175,6 +175,7 @@ int main(int argc, char *argv[])
 
 	switch (cmd_code) {
 	case RVCD_CMD_LIST:
+		use_json = false;
 		if (argc == 3 && strcmp(argv[2], "--json") == 0)
 			use_json = true;
 		else if (argc != 2)
