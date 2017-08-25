@@ -332,10 +332,10 @@ static int process_cmd(rvcd_cmd_proc_t *cmd_proc, const char *cmd,
 {
 	json_object *j_obj, *j_cmd_obj;
 
-	enum RVCD_CMD_CODE cmd_code = RVCD_CMD_UNKNOWN;
-	const char *cmd_name, *cmd_param = NULL;
+	int cmd_code = RVCD_CMD_UNKNOWN;
+	const char *cmd_param = NULL;
 
-	int resp_code = RVCD_RESP_INVALID_CMD, i;
+	int resp_code = RVCD_RESP_INVALID_CMD;
 
 	RVCD_DEBUG_MSG("CMD: Received command '%s'", cmd);
 
@@ -354,24 +354,7 @@ static int process_cmd(rvcd_cmd_proc_t *cmd_proc, const char *cmd,
 		return RVCD_RESP_INVALID_CMD;
 	}
 
-	cmd_name = json_object_get_string(j_cmd_obj);
-
-	/* get format of list */
-	if (json_object_object_get_ex(j_obj, "json", &j_cmd_obj))
-		*json_format = json_object_get_boolean(j_cmd_obj);
-
-	/* get connection name */
-	if (json_object_object_get_ex(j_obj, "param", &j_cmd_obj))
-		cmd_param = json_object_get_string(j_cmd_obj);
-
-	/* get command code */
-	for (i = 0; g_rvcd_cmds[i].name != NULL; i++) {
-		if (strcmp(cmd_name, g_rvcd_cmds[i].name) == 0) {
-			cmd_code = g_rvcd_cmds[i].code;
-			break;
-		}
-	}
-
+	cmd_code = json_object_get_int(j_cmd_obj);
 	if (cmd_code == RVCD_CMD_UNKNOWN) {
 		RVCD_DEBUG_ERR("CMD: Unknown command '%s'", cmd);
 
@@ -380,6 +363,14 @@ static int process_cmd(rvcd_cmd_proc_t *cmd_proc, const char *cmd,
 
 		return RVCD_RESP_INVALID_CMD;
 	}
+
+	/* get format of list */
+	if (json_object_object_get_ex(j_obj, "json", &j_cmd_obj))
+		*json_format = json_object_get_boolean(j_cmd_obj);
+
+	/* get connection name */
+	if (json_object_object_get_ex(j_obj, "param", &j_cmd_obj))
+		cmd_param = json_object_get_string(j_cmd_obj);
 
 	switch (cmd_code) {
 	case RVCD_CMD_LIST:

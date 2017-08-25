@@ -67,7 +67,7 @@ static void send_cmd(enum RVCD_CMD_CODE cmd_code, const char *cmd_param, bool us
 		return;
 	}
 
-	json_object_object_add(j_obj, "cmd", json_object_new_string(g_cmd_names[cmd_code].name));
+	json_object_object_add(j_obj, "cmd", json_object_new_int(cmd_code));
 
 	if (cmd_param)
 		json_object_object_add(j_obj, "param", json_object_new_string(cmd_param));
