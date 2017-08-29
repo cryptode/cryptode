@@ -1,7 +1,7 @@
 
 # Description
 
-rvcd is OpenVPN connection management daemon running on MacOS system.
+rvd is Ribose VPN Daemon, OpenVPN connection management daemon running on MacOS system.
 
 # Prerequirements
 
@@ -17,15 +17,15 @@ $ brew install openvpn
 $ brew install automake autoconf libtool json-c
 ```
 
-# Run rvcd and rvc utility
+# Run rvd and rvc utility
 
-## Run rvcd daemon
+## Run rvd daemon
 
 ```sh
 $ ./autogen.sh
 $ ./configure
 $ make
-$ sudo ./src/rvcd -c [path of configuration file]
+$ sudo ./src/rvd -c [path of configuration file]
 ```
 
 ## Run rvc utility

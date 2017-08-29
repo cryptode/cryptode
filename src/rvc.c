@@ -37,26 +37,26 @@
 
 static int g_sock;
 
-static char g_cmd[RVCD_MAX_CMD_LEN + 1];
-static char g_resp[RVCD_MAX_RESP_LEN + 1];
+static char g_cmd[RVD_MAX_CMD_LEN + 1];
+static char g_resp[RVD_MAX_RESP_LEN + 1];
 
 /*
  * send command and print response
  */
 
 static struct {
-	enum RVCD_CMD_CODE code;
+	enum RVD_CMD_CODE code;
 	const char *name;
 } g_cmd_names[] = {
-	{RVCD_CMD_LIST, "list"},
-	{RVCD_CMD_CONNECT, "connect"},
-	{RVCD_CMD_DISCONNECT, "disconnect"},
-	{RVCD_CMD_STATUS, "status"},
-	{RVCD_CMD_SCRIPT_SECURITY, "script-security"},
-	{RVCD_CMD_UNKNOWN, NULL}
+	{RVD_CMD_LIST, "list"},
+	{RVD_CMD_CONNECT, "connect"},
+	{RVD_CMD_DISCONNECT, "disconnect"},
+	{RVD_CMD_STATUS, "status"},
+	{RVD_CMD_SCRIPT_SECURITY, "script-security"},
+	{RVD_CMD_UNKNOWN, NULL}
 };
 
-static void send_cmd(enum RVCD_CMD_CODE cmd_code, const char *cmd_param, bool use_json)
+static void send_cmd(enum RVD_CMD_CODE cmd_code, const char *cmd_param, bool use_json)
 {
 	json_object *j_obj;
 
@@ -113,10 +113,10 @@ static void print_help(void)
 }
 
 /*
- * connect to rvcd
+ * connect to rvd
  */
 
-static int connect_to_rvcd(void)
+static int connect_to_rvd(void)
 {
 	struct sockaddr_un addr;
 
@@ -128,9 +128,9 @@ static int connect_to_rvcd(void)
 	/* set server address */
 	memset(&addr, 0, sizeof(struct sockaddr_un));
 	addr.sun_family = AF_UNIX;
-	strcpy(addr.sun_path, RVCD_CMD_LISTEN_SOCK);
+	strcpy(addr.sun_path, RVD_CMD_LISTEN_SOCK);
 
-	/* connect to rvcd */
+	/* connect to rvd */
 	return connect(g_sock, (struct sockaddr *) &addr, sizeof(struct sockaddr_un));
 }
 
@@ -140,7 +140,7 @@ static int connect_to_rvcd(void)
 
 int main(int argc, char *argv[])
 {
-	enum RVCD_CMD_CODE cmd_code = RVCD_CMD_UNKNOWN;
+	enum RVD_CMD_CODE cmd_code = RVD_CMD_UNKNOWN;
 	bool use_json = true;
 	bool opt_invalid = false;
 
@@ -168,7 +168,7 @@ int main(int argc, char *argv[])
 	}
 
 	/* check command code */
-	if (cmd_code == RVCD_CMD_UNKNOWN) {
+	if (cmd_code == RVD_CMD_UNKNOWN) {
 		fprintf(stderr, "Invalid command '%s'\n", argv[1]);
 		print_help();
 
@@ -176,7 +176,7 @@ int main(int argc, char *argv[])
 	}
 
 	switch (cmd_code) {
-	case RVCD_CMD_LIST:
+	case RVD_CMD_LIST:
 		use_json = false;
 		if (argc == 3 && strcmp(argv[2], "--json") == 0)
 			use_json = true;
@@ -185,8 +185,8 @@ int main(int argc, char *argv[])
 
 		break;
 
-	case RVCD_CMD_CONNECT:
-	case RVCD_CMD_DISCONNECT:
+	case RVD_CMD_CONNECT:
+	case RVD_CMD_DISCONNECT:
 		if (argc == 3)
 			cmd_param = argv[2];
 		else
@@ -194,7 +194,7 @@ int main(int argc, char *argv[])
 
 		break;
 
-	case RVCD_CMD_STATUS:
+	case RVD_CMD_STATUS:
 		if (argc == 2)
 			cmd_param = "all";
 		else if (argc == 3)
@@ -204,7 +204,7 @@ int main(int argc, char *argv[])
 
 		break;
 
-	case RVCD_CMD_SCRIPT_SECURITY:
+	case RVD_CMD_SCRIPT_SECURITY:
 		if (argc == 3 && (strcmp(argv[2], "enable") == 0 ||
 			(strcmp(argv[2], "disable")) == 0))
 			cmd_param = argv[2];
@@ -224,9 +224,9 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
-	/* connect to rvcd */
-	if (connect_to_rvcd() != 0) {
-		fprintf(stderr, "Couldn't connect to rvcd process.\n");
+	/* connect to rvd */
+	if (connect_to_rvd() != 0) {
+		fprintf(stderr, "Couldn't connect to rvd process.\n");
 		exit(1);
 	}
 

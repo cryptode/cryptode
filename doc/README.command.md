@@ -1,32 +1,32 @@
 
-# Documentation for the interface between rvcd and UI
+# Documentation for the interface between rvd and UI
 
-The interface between rvcd and UI is a socket that takes commands and provides responses.
+The interface between rvd and UI is a socket that takes commands and provides responses.
 
-`rvcd daemon` listens on unix domain socket `/tmp/.rvcd_cmd`
+`rvd daemon` listens on unix domain socket `/tmp/.rvd_cmd`
 
 ## Command Codes
 
 ```
-RVCD_CMD_LIST = 0,
-RVCD_CMD_CONNECT = 1,
-RVCD_CMD_DISCONNECT = 2,
-RVCD_CMD_STATUS = 3,
-RVCD_CMD_SCRIPT_SECURITY = 4
+RVD_CMD_LIST = 0,
+RVD_CMD_CONNECT = 1,
+RVD_CMD_DISCONNECT = 2,
+RVD_CMD_STATUS = 3,
+RVD_CMD_SCRIPT_SECURITY = 4
 
 ```
 
 ## Response Codes
 
 ```
-RVCD_RESP_OK = 0,
-RVCD_RESP_INVALID_CMD  = 1,
-RVCD_RESP_NO_MEMORY = 2,
-RVCD_RESP_EMPTY_LIST = 3,
-RVCD_RESP_CONN_NOT_FOUND = 4,
-RVCD_RESP_CONN_ALREADY_CONNECTED = 5,
-RVCD_RESP_CONN_ALREADY_DISCONNECTED = 6,
-RVCD_RESP_CONN_IN_PROGRESS = 7,
+RVD_RESP_OK = 0,
+RVD_RESP_INVALID_CMD  = 1,
+RVD_RESP_NO_MEMORY = 2,
+RVD_RESP_EMPTY_LIST = 3,
+RVD_RESP_CONN_NOT_FOUND = 4,
+RVD_RESP_CONN_ALREADY_CONNECTED = 5,
+RVD_RESP_CONN_ALREADY_DISCONNECTED = 6,
+RVD_RESP_CONN_IN_PROGRESS = 7,
 
 ```
 
@@ -38,7 +38,7 @@ RVCD_RESP_CONN_IN_PROGRESS = 7,
 
 ```
 {
-    "cmd": RVCD_CMD_LIST(0),
+    "cmd": RVD_CMD_LIST(0),
     "json": true | false,
 }
 
@@ -75,7 +75,7 @@ If json field is false, then print the response in general text format.
 
 ```
 {
-    "cmd": RVCD_CMD_CONNECT(1),
+    "cmd": RVD_CMD_CONNECT(1),
     "param": all | connection name
 }
 
@@ -97,7 +97,7 @@ If json field is false, then print the response in general text format.
 
 ```
 {
-    "cmd": RVCD_CMD_DISCONNECT(2),
+    "cmd": RVD_CMD_DISCONNECT(2),
     "param": all | connection name
 }
 
@@ -105,7 +105,7 @@ If json field is false, then print the response in general text format.
 
 - Response
 
-Same as RVCD_CMD_CONNECT
+Same as RVD_CMD_CONNECT
 
 ### STATUS command and response
 
@@ -113,7 +113,7 @@ Same as RVCD_CMD_CONNECT
 
 ```
 {
-    "cmd": RVCD_CMD_STATUS(3),
+    "cmd": RVD_CMD_STATUS(3),
     "param": all | connection name
 }
 
@@ -135,8 +135,8 @@ Same as RVCD_CMD_CONNECT
             "network": {
                 "in-current": IN bytes in current connection,
                 "out-current": OUT bytes in current connection,
-                "in-total": total IN bytes since rvcd started,
-                "out-total": total OUT bytes since rvcd started
+                "in-total": total IN bytes since rvd started,
+                "out-total": total OUT bytes since rvd started
             }
         }
 
@@ -152,7 +152,7 @@ Same as RVCD_CMD_CONNECT
 
 ```
 {
-    "cmd": RVCD_CMD_SCRIPT_SECURITY(4),
+    "cmd": RVD_CMD_SCRIPT_SECURITY(4),
     "param": enable | disable
 }
 

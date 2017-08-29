@@ -32,7 +32,7 @@
 #include <signal.h>
 #include <unistd.h>
 
-#include "rvcd.h"
+#include "rvd.h"
 
 static bool g_end_flag;
 
@@ -43,7 +43,7 @@ static bool g_end_flag;
 static void print_help(void)
 {
 	printf("Usage:"
-		"\trvcd [options]\n"
+		"\trvd [options]\n"
 		"\tOptions:\n"
 		"\t -c [config file] set configuration file\n"
 		"\t -v print version\n");
@@ -58,7 +58,7 @@ static void print_help(void)
 static void
 signal_handler(const int signum)
 {
-	RVCD_DEBUG_MSG("Main: Received signal %d", signum);
+	RVD_DEBUG_MSG("Main: Received signal %d", signum);
 
 	/* set end flag */
 	g_end_flag = true;
@@ -77,7 +77,7 @@ init_signal()
 }
 
 /*
- * check if rvcd process is running
+ * check if rvd process is running
  */
 
 static pid_t
@@ -89,7 +89,7 @@ check_process_running()
 	pid_t pid = 0;
 
 	/* open pid file */
-	pid_fp = fopen(RVCD_PID_FPATH, "r");
+	pid_fp = fopen(RVD_PID_FPATH, "r");
 	if (!pid_fp)
 		return 0;
 
@@ -136,10 +136,10 @@ write_pid_file()
 	pid = getpid();
 
 	/* remove old pid file */
-	remove(RVCD_PID_FPATH);
+	remove(RVD_PID_FPATH);
 
 	/* open pid file and write */
-	fd = open(RVCD_PID_FPATH, O_CREAT | O_WRONLY);
+	fd = open(RVD_PID_FPATH, O_CREAT | O_WRONLY);
 	if (fd < 0)
 		return;
 
@@ -162,27 +162,27 @@ write_pid_file()
 static void
 remove_pid_file()
 {
-	remove(RVCD_PID_FPATH);
+	remove(RVD_PID_FPATH);
 }
 
 /*
- * initialize rvcd context
+ * initialize rvd context
  */
 
 static int
-rvcd_ctx_init(rvcd_ctx_t *c)
+rvd_ctx_init(rvd_ctx_t *c)
 {
-	RVCD_DEBUG_MSG("Main: Initializing rvcd context");
+	RVD_DEBUG_MSG("Main: Initializing rvd context");
 
 	/* initialize command manager */
-	if (rvcd_cmd_proc_init(c) != 0) {
-		RVCD_DEBUG_ERR("Main: Couldn't initialize command processor");
+	if (rvd_cmd_proc_init(c) != 0) {
+		RVD_DEBUG_ERR("Main: Couldn't initialize command processor");
 		return -1;
 	}
 
 	/* initialize VPN connection manager */
-	if (rvcd_vpnconn_mgr_init(c) != 0) {
-		RVCD_DEBUG_ERR("Main: Couldn't initialize VPN connection manager");
+	if (rvd_vpnconn_mgr_init(c) != 0) {
+		RVD_DEBUG_ERR("Main: Couldn't initialize VPN connection manager");
 		return -1;
 	}
 
@@ -190,19 +190,19 @@ rvcd_ctx_init(rvcd_ctx_t *c)
 }
 
 /*
- * finalize rvcd context
+ * finalize rvd context
  */
 
 static void
-rvcd_ctx_finalize(rvcd_ctx_t *c)
+rvd_ctx_finalize(rvd_ctx_t *c)
 {
-	RVCD_DEBUG_MSG("Main: Finalizing rvcd context");
+	RVD_DEBUG_MSG("Main: Finalizing rvd context");
 
 	/* finalize VPN connection manager */
-	rvcd_vpnconn_mgr_finalize(&c->vpnconn_mgr);
+	rvd_vpnconn_mgr_finalize(&c->vpnconn_mgr);
 
 	/* finalize command manager */
-	rvcd_cmd_proc_finalize(&c->cmd_proc);
+	rvd_cmd_proc_finalize(&c->cmd_proc);
 }
 
 /*
@@ -212,11 +212,11 @@ rvcd_ctx_finalize(rvcd_ctx_t *c)
 int
 main(int argc, char *argv[])
 {
-	rvcd_ctx_t ctx;
+	rvd_ctx_t ctx;
 	pid_t pid;
 
-	/* initialize rvcd context */
-	memset(&ctx, 0, sizeof(rvcd_ctx_t));
+	/* initialize rvd context */
+	memset(&ctx, 0, sizeof(rvd_ctx_t));
 
 	/* check UID */
 	if (getuid() != 0) {
@@ -247,7 +247,7 @@ main(int argc, char *argv[])
 
 	/* check if the process is already running */
 	if ((pid = check_process_running()) > 0) {
-		fprintf(stderr, "The rvcd process is already running with PID %d. Exiting...\n", pid);
+		fprintf(stderr, "The rvd process is already running with PID %d. Exiting...\n", pid);
 		exit(-1);
 	}
 
@@ -258,16 +258,16 @@ main(int argc, char *argv[])
 	init_signal();
 
 	/* initialize logging */
-	if (rvcd_log_init() != 0) {
+	if (rvd_log_init() != 0) {
 		fprintf(stderr, "Couldn't initialize logging.\n");
 		exit(-1);
 	}
 
-	/* initialize rvcd context */
-	if (rvcd_ctx_init(&ctx) != 0) {
-		RVCD_DEBUG_ERR("Main: Failed initializing rvcd context.");
+	/* initialize rvd context */
+	if (rvd_ctx_init(&ctx) != 0) {
+		RVD_DEBUG_ERR("Main: Failed initializing rvd context.");
 
-		rvcd_ctx_finalize(&ctx);
+		rvd_ctx_finalize(&ctx);
 		exit(-1);
 	}
 
@@ -275,8 +275,8 @@ main(int argc, char *argv[])
 		sleep(1);
 	}
 
-	/* finalize rvcd context */
-	rvcd_ctx_finalize(&ctx);
+	/* finalize rvd context */
+	rvd_ctx_finalize(&ctx);
 
 	/* remove PID file */
 	remove_pid_file();

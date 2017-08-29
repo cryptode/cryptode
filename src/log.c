@@ -56,15 +56,15 @@ static int create_log_file()
 	}
 
 	/* backup old log file */
-	rename(RVCD_LOG_FPATH, RVCD_LOG_BACKUP_FPATH);
+	rename(RVD_LOG_FPATH, RVD_LOG_BACKUP_FPATH);
 
 	/* open log file */
-	fd = open(RVCD_LOG_FPATH, O_CREAT | O_WRONLY);
+	fd = open(RVD_LOG_FPATH, O_CREAT | O_WRONLY);
 	if (fd > 0)
 		g_log_fp = fdopen(fd, "w");
 
 	if (fd < 0 || !g_log_fp) {
-		fprintf(stderr, "Couldn't open log file '%s' for writing.\n", RVCD_LOG_FPATH);
+		fprintf(stderr, "Couldn't open log file '%s' for writing.\n", RVD_LOG_FPATH);
 
 		if (fd > 0)
 			close(fd);
@@ -76,10 +76,10 @@ static int create_log_file()
 }
 
 /*
- * initialize rvcd logging
+ * initialize rvd logging
  */
 
-int rvcd_log_init()
+int rvd_log_init()
 {
 	/* open log file */
 	if (create_log_file() != 0)
@@ -95,10 +95,10 @@ int rvcd_log_init()
 }
 
 /*
- * finalize rvcd logging
+ * finalize rvd logging
  */
 
-void rvcd_log_finalize()
+void rvd_log_finalize()
 {
 	/* close syslog */
 	closelog();
@@ -119,7 +119,7 @@ static const char *log_type_str[] = {
 	"INFO", "WARN", "ERR"
 };
 
-void rvcd_debug_log(enum LOG_TYPE log_type, const char *file_name, int file_line, const char *format, ...)
+void rvd_debug_log(enum LOG_TYPE log_type, const char *file_name, int file_line, const char *format, ...)
 {
 	va_list va_args;
 
@@ -127,7 +127,7 @@ void rvcd_debug_log(enum LOG_TYPE log_type, const char *file_name, int file_line
 	struct tm *tm;
 	char time_str[64];
 
-	char msg[RVCD_MAX_LOGMSG_LEN + 1];
+	char msg[RVD_MAX_LOGMSG_LEN + 1];
 	int written_log_bytes;
 
 	/* check log file pointer */
@@ -138,7 +138,7 @@ void rvcd_debug_log(enum LOG_TYPE log_type, const char *file_name, int file_line
 	pthread_mutex_lock(&g_log_mt);
 
 	/* check log file size */
-	if (!g_log_fp || g_log_fsize > RVCD_MAX_LOG_FSIZE) {
+	if (!g_log_fp || g_log_fsize > RVD_MAX_LOG_FSIZE) {
 		create_log_file();
 		g_log_fsize = 0;
 	}
