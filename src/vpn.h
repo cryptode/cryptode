@@ -1,5 +1,5 @@
-#ifndef __RVCD_VPN_H__
-#define __RVCD_VPN_H__
+#ifndef __RVD_VPN_H__
+#define __RVD_VPN_H__
 
 #define OVPN_MGM_PORT_START			6001
 
@@ -10,8 +10,8 @@
 #define OVPN_MGM_RESP_BYTECOUNT			">BYTECOUNT:"
 #define OVPN_MGM_RESP_STATE			">STATE:"
 
-#define RVCD_OVPN_CONN_TIMEOUT			20
-#define RVCD_OVPN_STOP_TIMEOUT			15
+#define RVD_OVPN_CONN_TIMEOUT			20
+#define RVD_OVPN_STOP_TIMEOUT			15
 
 /* OpenVPN connection state */
 enum OVPN_CONN_STATE {
@@ -29,34 +29,34 @@ enum OVPN_CONN_STATE {
 };
 
 /* VPN connection state */
-enum RVCD_VPNCONN_STATE {
-	RVCD_CONN_STATE_DISCONNECTED = 0,
-	RVCD_CONN_STATE_CONNECTED,
-	RVCD_CONN_STATE_CONNECTING,
-	RVCD_CONN_STATE_DISCONNECTING,
-	RVCD_CONN_STATE_RECONNECTING,
-	RVCD_CONN_STATE_UNKNOWN
+enum RVD_VPNCONN_STATE {
+	RVD_CONN_STATE_DISCONNECTED = 0,
+	RVD_CONN_STATE_CONNECTED,
+	RVD_CONN_STATE_CONNECTING,
+	RVD_CONN_STATE_DISCONNECTING,
+	RVD_CONN_STATE_RECONNECTING,
+	RVD_CONN_STATE_UNKNOWN
 };
 
 /* vpn configuration structure */
-struct rvcd_vpnconfig {
-	char name[RVCD_MAX_CONN_NAME_LEN + 1];
-	char ovpn_profile_path[RVCD_MAX_PATH];
+struct rvd_vpnconfig {
+	char name[RVD_MAX_CONN_NAME_LEN + 1];
+	char ovpn_profile_path[RVD_MAX_PATH];
 
 	bool auto_connect;
 
-	char up_script[RVCD_MAX_PATH];
-	char down_script[RVCD_MAX_PATH];
+	char up_script[RVD_MAX_PATH];
+	char down_script[RVD_MAX_PATH];
 };
 
 /* vpn connection structure */
-struct rvcd_vpnconn {
+struct rvd_vpnconn {
 	bool end_flag;
 	bool conn_cancel;
 
-	struct rvcd_vpnconfig config;
+	struct rvd_vpnconfig config;
 
-	enum RVCD_VPNCONN_STATE conn_state;
+	enum RVD_VPNCONN_STATE conn_state;
 	enum OVPN_CONN_STATE ovpn_state;
 
 	time_t connected_tm;
@@ -74,35 +74,35 @@ struct rvcd_vpnconn {
 	pthread_t pt_conn;
 	pthread_t pt_conn_mon;
 
-	struct rvcd_vpnconn *next;
-	struct rvcd_vpnconn *prev;
+	struct rvd_vpnconn *next;
+	struct rvd_vpnconn *prev;
 };
 
-/* rvcd VPN connection manager structure */
-typedef struct rvcd_vpnconn_mgr {
+/* rvd VPN connection manager structure */
+typedef struct rvd_vpnconn_mgr {
 	bool init_flag;
 	bool end_flag;
 
 	int vpn_conns_count;
-	struct rvcd_vpnconn *vpn_conns;
+	struct rvd_vpnconn *vpn_conns;
 
 	pthread_mutex_t conn_mt;
 
-	struct rvcd_ctx *c;
-} rvcd_vpnconn_mgr_t;
+	struct rvd_ctx *c;
+} rvd_vpnconn_mgr_t;
 
-/* rvcd VPN connection manager functions */
-int rvcd_vpnconn_mgr_init(struct rvcd_ctx *c);
-void rvcd_vpnconn_mgr_finalize(rvcd_vpnconn_mgr_t *vpnconn_mgr);
+/* rvd VPN connection manager functions */
+int rvd_vpnconn_mgr_init(struct rvd_ctx *c);
+void rvd_vpnconn_mgr_finalize(rvd_vpnconn_mgr_t *vpnconn_mgr);
 
-void rvcd_vpnconn_connect(rvcd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name);
-void rvcd_vpnconn_disconnect(rvcd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name);
+void rvd_vpnconn_connect(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name);
+void rvd_vpnconn_disconnect(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name);
 
-void rvcd_vpnconn_getstatus(rvcd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name, char **state_jstr);
+void rvd_vpnconn_getstatus(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name, char **state_jstr);
 
-void rvcd_vpnconn_list_to_buffer(rvcd_vpnconn_mgr_t *vpnconn_mgr, bool json_format, char **buffer);
-struct rvcd_vpnconn *rvcd_vpnconn_get_byname(rvcd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name);
+void rvd_vpnconn_list_to_buffer(rvd_vpnconn_mgr_t *vpnconn_mgr, bool json_format, char **buffer);
+struct rvd_vpnconn *rvd_vpnconn_get_byname(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name);
 
-void rvcd_vpnconn_enable_script_sec(rvcd_vpnconn_mgr_t *vpnconn_mgr, bool enable_script_security);
+void rvd_vpnconn_enable_script_sec(rvd_vpnconn_mgr_t *vpnconn_mgr, bool enable_script_security);
 
-#endif /* __RVCD_VPN_H__ */
+#endif /* __RVD_VPN_H__ */

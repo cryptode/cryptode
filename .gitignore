@@ -20,4 +20,10 @@ ar-lib
 test-driver
 autom4te.cache/
 rvc
-rvcd
+rvd
+Makefile.in
+aclocal.m4
+config.h.in
+m4/*.m4
+src/.deps
+src/rvcd.dSYM
