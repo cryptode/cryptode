@@ -6,16 +6,23 @@
 #define RVD_MAX_PATH				256
 #define RVD_MAX_LINE				512
 #define RVD_MAX_LOGMSG_LEN			1024
-#define RVD_MAX_CMD_LEN			2048
+#define RVD_MAX_CMD_LEN				2048
 #define RVD_MAX_RESP_LEN			2048
 #define RVD_MAX_CONN_NAME_LEN			128
 #define RVD_MAX_CONN_INFO_LEN			2048
 
-/* rvd command listen socket path */
-#define RVD_CMD_LISTEN_SOCK			"/tmp/.rvd_cmd"
-
 /* rvd default configuration path */
-#define RVD_CONFIG_DEFAULT_PATH		"~/.setup/vpn/vpn.json"
+#define RVD_DEFAULT_CONFIG_PATH			"/opt/rvc/etc/rvd.json"
+
+/* rvd default command listen socket path */
+#define RVD_DEFAULT_LISTEN_SOCK			"/tmp/.rvd_cmd"
+
+/* rvd default log file path */
+#define RVD_DEFAULT_LOG_PATH			"/var/log/rvd.log"
+
+/* rvd default UID for writting to rvd socket */
+#define RVD_DEFAULT_UID				501
+
 
 /* rvd command codes */
 enum RVD_CMD_CODE {

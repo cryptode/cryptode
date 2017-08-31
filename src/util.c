@@ -38,7 +38,199 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+#include <json-c/json.h>
+
 #include "util.h"
+
+/* parse JSON string */
+int rvd_json_parse(const char *jbuf, rvd_json_object_t *objs, int objs_count)
+{
+	json_object *j_obj;
+	int i, ret = -1;
+
+	/* parse json object */
+	j_obj = json_tokener_parse(jbuf);
+	if (!j_obj)
+		return -1;
+
+	for (i = 0; i < objs_count; i++) {
+		json_object *j_sub_obj;
+		rvd_json_object_t *obj = &objs[i];
+
+		/* check whether the object is exist */
+		if (!json_object_object_get_ex(j_obj, obj->key, &j_sub_obj)) {
+			if (!obj->mondatory)
+				continue;
+
+			break;
+		}
+
+		json_type j_type = json_object_get_type(j_sub_obj);
+
+		switch (obj->type) {
+		case RVD_JTYPE_STR:
+			if (j_type != json_type_string)
+				break;
+
+			snprintf((char *)obj->val, obj->size, "%s", json_object_get_string(j_sub_obj));
+			ret = 0;
+
+			break;
+
+		case RVD_JTYPE_BOOL:
+			if (j_type != json_type_boolean)
+				break;
+
+			*((bool *)obj->val) = json_object_get_boolean(j_sub_obj) ? true : false;
+			ret = 0;
+
+			break;
+
+		case RVD_JTYPE_UID:
+			if (j_type != json_type_int)
+				break;
+
+			*((uid_t *)obj->val) = json_object_get_int(j_sub_obj);
+			ret = 0;
+
+			break;
+
+		case RVD_JTYPE_INT:
+			if (j_type != json_type_int)
+				break;
+
+			*((int *)obj->val) = json_object_get_int(j_sub_obj);
+			ret = 0;
+
+			break;
+
+		case RVD_JTYPE_STR_ARRAY:
+			if (j_type == json_type_array) {
+				struct rvd_json_array *arr_val;
+				int arr_idx, arr_len;
+
+				/* allocate memory for array */
+				arr_val = (struct rvd_json_array *)malloc(sizeof(struct rvd_json_array));
+				if (!arr_val)
+					break;
+
+				memset(arr_val, 0, sizeof(struct rvd_json_array));
+
+				arr_len = json_object_array_length(j_sub_obj);
+				if (arr_len <= 0)
+					break;
+
+				arr_val->val = (char **) malloc(arr_len * sizeof(char **));
+				if (!arr_val->val)
+					break;
+
+				for (arr_idx = 0; arr_idx < arr_len; arr_idx++) {
+					json_object *j_arr_obj;
+					const char *str;
+
+					/* get string item in array */
+					j_arr_obj = json_object_array_get_idx(j_sub_obj, arr_idx);
+					if (!j_arr_obj)
+						continue;
+
+					str = json_object_get_string(j_arr_obj);
+					if (strlen(str) == 0)
+						continue;
+
+					arr_val->val[arr_idx] = (char *) malloc(strlen(str) + 1);
+					if (!arr_val->val[arr_idx])
+						continue;
+
+					strcpy(arr_val->val[arr_idx], str);
+					arr_val->val[arr_idx][strlen(str)] = '\0';
+
+					/* increase array size */
+					arr_val->arr_size++;
+				}
+
+				*((struct rvd_json_array **)obj->val) = arr_val;
+				ret = 0;
+			}
+
+			break;
+
+		default:
+			break;
+		}
+	}
+
+	/* free json object */
+	json_object_put(j_obj);
+
+	return ret;
+}
+
+/*
+ * build JSON string
+ */
+
+int rvd_json_build(rvd_json_object_t *objs, int objs_count, char **jbuf)
+{
+	json_object *j_obj;
+	int i;
+
+	const char *p;
+
+	int ret = -1;
+
+	/* create new json object */
+	j_obj = json_object_new_object();
+	if (!j_obj)
+		return -1;
+
+	for (i = 0; i < objs_count; i++) {
+		rvd_json_object_t *obj = &objs[i];
+		json_object *j_sub_obj = NULL;
+
+		switch (obj->type) {
+		case RVD_JTYPE_STR:
+			j_sub_obj = json_object_new_string((char *)obj->val);
+			break;
+
+		case RVD_JTYPE_BOOL:
+			j_sub_obj = json_object_new_boolean(*((bool *)(obj->val)));
+			break;
+
+		case RVD_JTYPE_UID:
+		case RVD_JTYPE_INT:
+			j_sub_obj = json_object_new_int(*(int *)(obj->val));
+			break;
+
+		case RVD_JTYPE_OBJ:
+			if (obj->val)
+				j_sub_obj = json_tokener_parse((char *)obj->val);
+
+			break;
+
+		default:
+			break;
+		}
+
+		if (j_sub_obj)
+			json_object_object_add(j_obj, obj->key, j_sub_obj);
+	}
+
+	p = json_object_get_string(j_obj);
+	if (p && strlen(p) > 0) {
+		*jbuf = (char *) malloc(strlen(p) + 1);
+		if (*jbuf) {
+			strcpy(*jbuf, p);
+			(*jbuf)[strlen(p)] = '\0';
+
+			ret = 0;
+		}
+	}
+
+	/* free json object */
+	json_object_put(j_obj);
+
+	return ret;
+}
 
 /*
  * get maximum fd from fd_set

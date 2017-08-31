@@ -38,6 +38,7 @@
 #include "log.h"
 
 static FILE *g_log_fp;
+static const char *g_log_path;
 static int g_log_fsize;
 static pthread_mutex_t g_log_mt = PTHREAD_MUTEX_INITIALIZER;
 
@@ -48,6 +49,7 @@ static pthread_mutex_t g_log_mt = PTHREAD_MUTEX_INITIALIZER;
 static int create_log_file()
 {
 	int fd;
+	char backup_log_path[RVD_MAX_PATH];
 
 	/* check whether file pointer is exist */
 	if (g_log_fp) {
@@ -56,15 +58,16 @@ static int create_log_file()
 	}
 
 	/* backup old log file */
-	rename(RVD_LOG_FPATH, RVD_LOG_BACKUP_FPATH);
+	snprintf(backup_log_path, sizeof(backup_log_path), "%s.0", g_log_path);
+	rename(g_log_path, backup_log_path);
 
 	/* open log file */
-	fd = open(RVD_LOG_FPATH, O_CREAT | O_WRONLY);
+	fd = open(g_log_path, O_CREAT | O_WRONLY);
 	if (fd > 0)
 		g_log_fp = fdopen(fd, "w");
 
 	if (fd < 0 || !g_log_fp) {
-		fprintf(stderr, "Couldn't open log file '%s' for writing.\n", RVD_LOG_FPATH);
+		fprintf(stderr, "Couldn't open log file '%s' for writing.\n", g_log_path);
 
 		if (fd > 0)
 			close(fd);
@@ -79,8 +82,10 @@ static int create_log_file()
  * initialize rvd logging
  */
 
-int rvd_log_init()
+int rvd_log_init(const char *log_path)
 {
+	g_log_path = log_path;
+
 	/* open log file */
 	if (create_log_file() != 0)
 		return -1;

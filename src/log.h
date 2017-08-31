@@ -19,7 +19,7 @@ enum LOG_TYPE {
 };
 
 /* rvd log functions */
-int rvd_log_init();
+int rvd_log_init(const char *log_path);
 void rvd_log_finalize();
 
 void rvd_debug_log(enum LOG_TYPE log_type, const char *file_name, int file_line, const char *format, ...);

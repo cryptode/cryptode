@@ -49,7 +49,7 @@
  * create listen socket
  */
 
-static int create_listen_socket()
+static int create_listen_socket(rvd_ctx_opt_t *op)
 {
 	int listen_sock;
 	struct sockaddr_un listen_addr;
@@ -64,28 +64,32 @@ static int create_listen_socket()
 	/* set listen address */
 	memset(&listen_addr, 0, sizeof(struct sockaddr_un));
 	listen_addr.sun_family = AF_UNIX;
-	strcpy(listen_addr.sun_path, RVD_CMD_LISTEN_SOCK);
+	strcpy(listen_addr.sun_path, op->listen_sock_path);
 
 	/* remove socket at first */
-	remove(RVD_CMD_LISTEN_SOCK);
+	remove(op->listen_sock_path);
 
 	/* bind and listen socket */
 	if (bind(listen_sock, (struct sockaddr *) &listen_addr, sizeof(struct sockaddr_un)) != 0) {
-		RVD_DEBUG_ERR("CMD: Couldn't bind on unix domain socket '%s'(err:%d)", RVD_CMD_LISTEN_SOCK, errno);
+		RVD_DEBUG_ERR("CMD: Couldn't bind on unix domain socket '%s'(err:%d)", op->listen_sock_path, errno);
 		close(listen_sock);
 
 		return -1;
 	}
 
 	if (listen(listen_sock, 5) != 0) {
-		RVD_DEBUG_ERR("CMD: Couldn't listen on unix domain socket '%s'(err:%d)", RVD_CMD_LISTEN_SOCK, errno);
+		RVD_DEBUG_ERR("CMD: Couldn't listen on unix domain socket '%s'(err:%d)", op->listen_sock_path, errno);
 		close(listen_sock);
 
 		return -1;
 	}
 
 	/* set permission of socket */
-	chmod(RVD_CMD_LISTEN_SOCK, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+	if (op->restrict_cmd_sock) {
+		chown(op->listen_sock_path, op->allowed_uid, 0);
+		chmod(op->listen_sock_path, S_IRUSR | S_IWUSR);
+	} else
+		chmod(op->listen_sock_path, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 
 	return listen_sock;
 }
@@ -110,53 +114,36 @@ struct rvd_resp_errs {
 
 static void send_cmd_response(int clnt_sock, int resp_code, const char *buffer, bool use_json)
 {
-	const char *resp_buffer;
-	json_object *j_obj = NULL;
+	char *resp_buffer = NULL;
 
 	RVD_DEBUG_MSG("CMD: Sending response");
 
 	if (!use_json) {
-		if (resp_code == RVD_RESP_OK) {
-			resp_buffer = buffer ? buffer : g_rvd_resp_errs[0].err_msg;
-		} else {
-			resp_buffer = g_rvd_resp_errs[resp_code].err_msg;
-		}
+		if (resp_code == RVD_RESP_OK)
+			resp_buffer = strdup(buffer ? buffer : g_rvd_resp_errs[0].err_msg);
+		else
+			resp_buffer = strdup(g_rvd_resp_errs[resp_code].err_msg);
 	} else {
-		/* create new json object */
-		j_obj = json_object_new_object();
-		if (!j_obj) {
-			RVD_DEBUG_ERR("CMD: Couldn't create json object for response");
-			resp_buffer = g_rvd_resp_errs[RVD_RESP_NO_MEMORY].err_msg;
-		} else {
-			/* add response code */
-			json_object_object_add(j_obj, "code", json_object_new_int(resp_code));
+		rvd_json_object_t resp_jobjs[] = {
+			{"code", RVD_JTYPE_INT, &resp_code, 0, false},
+			{"data", RVD_JTYPE_OBJ, &buffer, 0, false}
+		};
 
-			/* add json string as parameter */
-			if (buffer) {
-				json_object *j_buf_obj;
+		rvd_json_build(resp_jobjs, sizeof(resp_jobjs) / sizeof(rvd_json_object_t), &resp_buffer);
+	}
 
-				/* get json object from buffer */
-				j_buf_obj = json_tokener_parse(buffer);
-				if (!j_buf_obj) {
-					RVD_DEBUG_ERR("CMD: Invalid JSON response data '%s'", buffer);
-				} else {
-					json_object_object_add(j_obj, "data", j_buf_obj);
-				}
-			}
-
-			resp_buffer = json_object_get_string(j_obj);
-		}
+	if (!resp_buffer) {
+		RVD_DEBUG_ERR("CMD: Coudln't send response. Out of memory");
 	}
 
 	RVD_DEBUG_MSG("CMD: Response string is \n'%s'\n(code: %d)", resp_buffer, resp_code);
 
-	if (send(clnt_sock, resp_buffer, strlen(resp_buffer), 0) < 0) {
+	if (send(clnt_sock, resp_buffer, strlen(resp_buffer), 0) <= 0) {
 		RVD_DEBUG_ERR("CMD: Failed sending response(err: %d)", errno);
 	}
 
-	/* free json object */
-	if (j_obj)
-		json_object_put(j_obj);
+	/* free response buffer */
+	free(resp_buffer);
 }
 
 /*
@@ -527,7 +514,7 @@ int rvd_cmd_proc_init(struct rvd_ctx *c)
 	RVD_DEBUG_MSG("CMD: Initializing rvd command processor");
 
 	/* create listening unix domain socket */
-	listen_sock = create_listen_socket();
+	listen_sock = create_listen_socket(&c->ops);
 	if (listen_sock < 0)
 		return -1;
 
@@ -585,5 +572,5 @@ void rvd_cmd_proc_finalize(rvd_cmd_proc_t *cmd_proc)
 	close(cmd_proc->listen_sock);
 
 	/* remove socket */
-	remove(RVD_CMD_LISTEN_SOCK);
+	remove(RVD_DEFAULT_LISTEN_SOCK);
 }
