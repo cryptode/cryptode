@@ -19,14 +19,22 @@ The main configuration file for `rvd` is located in `/opt/rvc/etc/rvd.json`.
 }
 ```
 
-`openvpn_bin`: the path of the OpenVPN executable
-`openvpn_root_check`: check whether the OpenVPN executable is owned by `root:wheel`
-`ovpn_up_down_scripts`: ignore the up and down scripts set in the `.ovpn` files
-`user_id`: the UID of the user to which the rvd socket is writable
-`restrict_socket`: make the socket writable to others or only the user_id
-`socket_path`: the path of the socket
-`log`: the location of the log file
-`paths`: the directories in which the `.ovpn/.json` files are located
+`openvpn_bin`: the path of the OpenVPN executable.
+
+`openvpn_root_check`: check whether the OpenVPN executable is owned by `root:wheel`.
+
+`ovpn_up_down_scripts`: ignore the up and down scripts set in the `.ovpn` files.
+
+`user_id`: the UID of the user to which the rvd socket is writable.
+
+`restrict_socket`: make the socket writable to others or only the user_id.
+
+`socket_path`: the path of the socket.
+
+`log`: the location of the log file.
+
+`paths`: the directories in which the `.ovpn/.json` files are located.
+
 
 `rvd` will scan the paths[] in `rvd.json` for OpenVPN files: `.ovpn` and rvc configuration `.json` files.
 Example:
@@ -45,7 +53,11 @@ Example:
 }
 ```
 `pre-connect-exec`: is something that will be executed before a connection is made.
+
 The executing user should be the UID that is defined in the main configuration `user_id`.
+
 In case this is not defined then `pre-connect-exec` should be ignored and a message in the `console/log` should be shown.
+
 And please implement a timeout of something like 60 seconds for the execution (`kill -9` after 60 seconds).
+
 The `pre-connect-exec` is used to perform pre authentication actions such as launching a 2FA program.
