@@ -37,6 +37,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <dirent.h>
 
 #include <json-c/json.h>
 
@@ -342,6 +343,58 @@ static void *stop_vpn_conn(void *p)
 	return 0;
 }
 
+/*
+ * run pre-connect command
+ */
+
+static int run_preconn_cmd(struct rvd_vpnconn *vpn_conn)
+{
+	int w, status = -1;
+	int timeout = 0;
+
+	pid_t pre_cmd_pid;
+
+	/* check whether pre-connect command is exist */
+	if (strlen(vpn_conn->config.pre_exec_cmd) == 0)
+		return 0;
+
+	RVD_DEBUG_MSG("VPN: Running pre-connect command '%s' with uid '%d'",
+			vpn_conn->config.pre_exec_cmd, vpn_conn->config.pre_exec_uid);
+
+	/* create pre fork exec process */
+	pre_cmd_pid = fork();
+	if (pre_cmd_pid == 0) {
+		int ret;
+
+		/* set UID */
+		setuid(vpn_conn->config.pre_exec_uid);
+
+		/* run command */
+		ret = system(vpn_conn->config.pre_exec_cmd);
+		exit(ret);
+	} else if (pre_cmd_pid < 0) {
+		RVD_DEBUG_ERR("VPN: Forking new process for pre-connect-exec has failed(err:%d)", errno);
+		return -1;
+	}
+
+	/* wait until pre-connect command has finished */
+	do {
+		w = waitpid(pre_cmd_pid, &status, 0);
+		if (w < 0)
+			break;
+
+		if (WIFEXITED(status))
+			break;
+
+		/* check timeout */
+		if (timeout == RVD_PRE_EXEC_TIMEOUT)
+			break;
+
+		timeout++;
+	} while(1);
+
+	return status;
+}
 
 /*
  * Run openvpn process
@@ -356,6 +409,15 @@ static int run_openvpn_proc(struct rvd_vpnconn *vpn_conn)
 
 	RVD_DEBUG_MSG("VPN: Running OpenVPN process for connection '%s'", vpn_conn->config.name);
 
+	if (run_preconn_cmd(vpn_conn) != 0) {
+		RVD_DEBUG_ERR("VPN: Failed exit code from running pre-connect command");
+		return -1;
+	}
+
+	/* check connection cancel flag */
+	if (vpn_conn->conn_cancel)
+		return -1;
+
 	/* get openvpn management port */
 	vpn_conn->ovpn_mgm_port = get_free_listen_port(OVPN_MGM_PORT_START);
 	if (vpn_conn->ovpn_mgm_port < 0) {
@@ -369,33 +431,14 @@ static int run_openvpn_proc(struct rvd_vpnconn *vpn_conn)
 	/* create openvpn process */
 	ovpn_pid = fork();
 	if (ovpn_pid == 0) {
-		/* set new session */
-		setsid();
+		char *const ovpn_params[] = {OPENVPN_BINARY_PATH,
+			    "--config", vpn_conn->config.ovpn_profile_path,
+			    "--management", "127.0.0.1", mgm_port_str,
+			    "--log", ovpn_log_fpath,
+			    NULL};
 
-		if (vpn_conn->enable_script_sec ||
-		    (strlen(vpn_conn->config.up_script) == 0 &&
-		    strlen(vpn_conn->config.down_script) == 0)) {
-			char *const ovpn_params[] = {OPENVPN_BINARY_PATH,
-				    "--config", vpn_conn->config.ovpn_profile_path,
-				    "--management", "127.0.0.1", mgm_port_str,
-				    "--log", ovpn_log_fpath,
-				    NULL};
-
-			/* child process */
-			execv(OPENVPN_BINARY_PATH, ovpn_params);
-		} else {
-			char *const ovpn_params[] = {OPENVPN_BINARY_PATH,
-				    "--config", vpn_conn->config.ovpn_profile_path,
-				    "--management", "127.0.0.1", mgm_port_str,
-				    "--log", ovpn_log_fpath,
-				    "--script-security", "2",
-				    "--up", vpn_conn->config.up_script,
-				    "--down", vpn_conn->config.down_script,
-				    NULL};
-
-			/* child process */
-			execv(OPENVPN_BINARY_PATH, ovpn_params);
-		}
+		/* child process */
+		execv(OPENVPN_BINARY_PATH, ovpn_params);
 
 		/* if failed, then exit child with error */
 		exit(1);
@@ -492,14 +535,10 @@ static int get_vpn_conn_state(struct rvd_vpnconn *vpn_conn)
 			return 0;
 
 		/* check if connection is failed for timeout */
-		if (ovpn_state == OVPN_STATE_CONNECTING || ovpn_state == OVPN_STATE_WAIT || ovpn_state == OVPN_STATE_RECONNECTING) {
-			if (failed_count == RVD_OVPN_CONN_TIMEOUT)
-				break;
+		if (failed_count == RVD_OVPN_CONN_TIMEOUT)
+			break;
 
-			failed_count++;
-		}
-		else
-			failed_count = 0;
+		failed_count++;
 
 		sleep(1);
 	} while(1);
@@ -529,7 +568,8 @@ static void *start_vpn_conn(void *p)
 	sleep(1);
 
 	/* connect to openvpn process via management console */
-	if (connect_to_ovpn_mgm(vpn_conn) == 0 && get_vpn_conn_state(vpn_conn) == 0) {
+	if (connect_to_ovpn_mgm(vpn_conn) == 0 && get_vpn_conn_state(vpn_conn) == 0 &&
+			!vpn_conn->conn_cancel) {
 		RVD_DEBUG_MSG("VPN: VPN connection with name '%s' has been succeeded", vpn_conn->config.name);
 		vpn_conn->conn_state = RVD_CONN_STATE_CONNECTED;
 	} else {
@@ -841,111 +881,35 @@ static void finalize_vpn_conns(rvd_vpnconn_mgr_t *vpnconn_mgr)
  * parse configuration
  */
 
-static int parse_config(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *config_buffer)
+static void parse_config(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *config_path, const char *ovpn_profile_path)
 {
-	json_object *j_obj;
-	size_t i, count;
-
-	/* parse json object */
-	j_obj = json_tokener_parse(config_buffer);
-	if (!j_obj) {
-		RVD_DEBUG_ERR("VPN: Invalid configuration JSON buffer");
-		return -1;
-	}
-
-	/* check if the type of json object is array */
-	if (json_object_get_type(j_obj) != json_type_array) {
-		RVD_DEBUG_ERR("VPN: Invalid configuration JSON array");
-		json_object_put(j_obj);
-		return -1;
-	}
-
-	/* get configuration item count */
-	count = json_object_array_length(j_obj);
-	for (i = 0; i < count; i++) {
-		json_object *j_item_obj, *j_sub_obj;
-
-		struct rvd_vpnconfig config;
-
-		/* get json object for item */
-		j_item_obj = json_object_array_get_idx(j_obj, i);
-		if (!j_item_obj)
-			continue;
-
-		/* init config item */
-		memset(&config, 0, sizeof(config));
-
-		/* get name object */
-		if (!json_object_object_get_ex(j_item_obj, "name", &j_sub_obj)) {
-			RVD_DEBUG_WARN("VPN: Couldn't find object with key 'name' at index:%d", i);
-			continue;
-		}
-
-		snprintf(config.name, sizeof(config.name), "%s", json_object_get_string(j_sub_obj));
-		if (!is_valid_conn_name(config.name)) {
-			RVD_DEBUG_ERR("VPN: Invalid VPN connection name '%s'. The name should contain only alphabetic characters.",
-				config.name);
-			continue;
-		}
-
-		/* get ovpn object */
-		if (!json_object_object_get_ex(j_item_obj, "ovpn", &j_sub_obj)) {
-			RVD_DEBUG_WARN("VPN: Couldn't find object with key 'ovpn' at index:%d", i);
-			continue;
-		}
-
-		snprintf(config.ovpn_profile_path, sizeof(config.ovpn_profile_path), "%s", json_object_get_string(j_sub_obj));
-
-		/* get autoconnect flag */
-		if (json_object_object_get_ex(j_item_obj, "auto-connect", &j_sub_obj))
-			config.auto_connect = json_object_get_boolean(j_sub_obj);
-
-		/* get up/down script path */
-		if (json_object_object_get_ex(j_item_obj, "up-script", &j_sub_obj))
-			snprintf(config.up_script, sizeof(config.up_script), "%s", json_object_get_string(j_sub_obj));
-
-		if (json_object_object_get_ex(j_item_obj, "down-script", &j_sub_obj))
-			snprintf(config.down_script, sizeof(config.down_script), "%s", json_object_get_string(j_sub_obj));
-
-		/* add vpn connection */
-		add_vpn_conn(vpnconn_mgr, &config);
-	}
-
-	/* free json object */
-	json_object_put(j_obj);
-
-	return 0;
-}
-
-/*
- * read configuration
- */
-
-static int read_config(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *config_path)
-{
-	struct stat st;
-	char *config_buf = NULL;
-
 	int fd;
 	FILE *fp;
+
+	struct stat st;
+
+	char *config_buf;
 	size_t read_len;
 
-	int ret = -1;
+	struct rvd_vpnconfig config;
+	rvd_json_object_t vpn_config[] = {
+		{"name", RVD_JTYPE_STR, config.name, sizeof(config.name), true},
+		{"auto-connect", RVD_JTYPE_BOOL, &config.auto_connect, 0, false},
+		{"pre-connect-exec", RVD_JTYPE_STR, config.pre_exec_cmd, sizeof(config.pre_exec_cmd), false}
+	};
 
-	RVD_DEBUG_MSG("VPN: Reading configuration from '%s'", config_path);
+	RVD_DEBUG_MSG("VPN: Parsing configuration file '%s'", config_path);
 
-	/* get size of configuration file */
-	if (stat(config_path, &st) != 0)
-		return -1;
-
-	if (!S_ISREG(st.st_mode) || st.st_size == 0)
-		return -1;
+	if (stat(config_path, &st) != 0) {
+		RVD_DEBUG_ERR("VPN: Couldn't get stat of config file '%s'", config_path);
+		return;
+	}
 
 	/* open configuration file */
 	fd = open(config_path, O_RDONLY);
 	if (fd < 0) {
 		RVD_DEBUG_ERR("VPN: Couldn't open configuration file '%s' for reading(err:%d)", config_path, errno);
-		return -1;
+		return;
 	}
 
 	fp = fdopen(fd, "r");
@@ -953,29 +917,113 @@ static int read_config(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *config_path)
 		RVD_DEBUG_ERR("VPN: Couldn't open configuration file '%s' for reading(err:%d)", config_path, errno);
 		close(fd);
 
-		return -1;
+		return;
 	}
 
 	/* read config buffer */
 	config_buf = (char *) malloc(st.st_size + 1);
 	if (!config_buf) {
 		fclose(fp);
-		return -1;
+		return;
 	}
 
 	memset(config_buf, 0, st.st_size + 1);
-
 	read_len = fread(config_buf, 1, st.st_size, fp);
-	if (read_len > 0)
-		ret = parse_config(vpnconn_mgr, config_buf);
-
-	/* free buffer */
-	free(config_buf);
 
 	/* close file */
 	fclose(fp);
 
-	return ret;
+	if (read_len <= 0) {
+		RVD_DEBUG_ERR("VPN: Invalid the configuration file '%s'", config_path);
+		free(config_buf);
+
+		return;
+	}
+
+	/* parse configuration */
+	memset(&config, 0, sizeof(config));
+
+	/* parse json object */
+	if (rvd_json_parse(config_buf, vpn_config, sizeof(vpn_config) / sizeof(rvd_json_object_t)) == 0) {
+		config.pre_exec_uid = vpnconn_mgr->c->ops.allowed_uid;
+		strcpy(config.ovpn_profile_path, ovpn_profile_path);
+
+		add_vpn_conn(vpnconn_mgr, &config);
+	} else {
+		RVD_DEBUG_ERR("VPN: Couldn't parse configuration file '%s'", config_path);
+	}
+
+	/* free configuration buffer */
+	free(config_buf);
+}
+
+/*
+ * read configuration
+ */
+
+static void read_config(rvd_vpnconn_mgr_t *vpnconn_mgr, struct rvd_json_array *vpn_config_dirs)
+{
+	int i;
+
+	for (i = 0; i < vpn_config_dirs->arr_size; i++) {
+		DIR *dir;
+		struct dirent *dp;
+		const char *dir_path = vpn_config_dirs->val[i];
+
+		RVD_DEBUG_MSG("VPN: Reading configuration files in '%s'", dir_path);
+
+		/* open config directory */
+		dir = opendir(dir_path);
+		if (!dir) {
+			RVD_DEBUG_ERR("VPN: Couldn't open directory '%s'", dir_path);
+			continue;
+		}
+
+		while ((dp = readdir(dir)) != NULL) {
+			char conf_json_path[RVD_MAX_PATH];
+			char ovpn_profile_path[RVD_MAX_PATH];
+
+			struct stat st;
+			const char *p;
+
+			/* init paths */
+			memset(conf_json_path, 0, sizeof(conf_json_path));
+			memset(ovpn_profile_path, 0, sizeof(ovpn_profile_path));
+
+			strcpy(conf_json_path, dir_path);
+			strcpy(ovpn_profile_path, dir_path);
+
+			if (dir_path[strlen(dir_path) - 1] != '/') {
+				strcat(conf_json_path, "/");
+				strcat(ovpn_profile_path, "/");
+			}
+
+			/* check whether the file is config file */
+			p = strstr(dp->d_name, ".json");
+			if (!p || strlen(p) != 5)
+				continue;
+
+			/* set openvpn profile path */
+			strncat(ovpn_profile_path, dp->d_name, strlen(dp->d_name) - strlen(p));
+			strcat(ovpn_profile_path, ".ovpn");
+
+			/* check whether openvpn profile is exist */
+			if (stat(ovpn_profile_path, &st) != 0 || !S_ISREG(st.st_mode)
+				|| st.st_size == 0)
+				continue;
+
+			/* set json configuration path */
+			strncat(conf_json_path, dp->d_name, strlen(dp->d_name) - strlen(p));
+			strcat(conf_json_path, ".json");
+
+			parse_config(vpnconn_mgr, conf_json_path, ovpn_profile_path);
+		}
+
+		/* close directory */
+		closedir(dir);
+	}
+
+	return;
 }
 
 /*
@@ -1006,11 +1054,8 @@ static void add_conninfo_to_buffer(struct rvd_vpnconn *vpn_conn, char **buffer)
 	/* set config buffer */
 	snprintf(config_buffer, sizeof(config_buffer), "name: %s\n"
 					"\t\tprofile: %s\n"
-					"\t\tauto-connect: %s\n"
-					"\t\tup-script: %s\n\t\tdown-script:%s\n",
-					config->name, config->ovpn_profile_path, config->auto_connect ? "Enabled" : "Disabled",
-					strlen(config->up_script) > 0 ? config->up_script : "none",
-					strlen(config->down_script) > 0 ? config->down_script : "none");
+					"\t\tauto-connect: %s\n",
+					config->name, config->ovpn_profile_path, config->auto_connect ? "Enabled" : "Disabled");
 
 	/* allocate and set new buffer */
 	if (!p)
@@ -1041,12 +1086,6 @@ static void add_conninfo_to_json(struct rvd_vpnconn *vpn_conn, json_object *j_ob
 	json_object_object_add(j_sub_obj, "name", json_object_new_string(config->name));
 	json_object_object_add(j_sub_obj, "profile", json_object_new_string(config->ovpn_profile_path));
 	json_object_object_add(j_sub_obj, "auto-connect", json_object_new_boolean(config->auto_connect));
-
-	if (strlen(config->up_script) > 0)
-		json_object_object_add(j_sub_obj, "up-script", json_object_new_string(config->up_script));
-
-	if (strlen(config->down_script) > 0)
-		json_object_object_add(j_sub_obj, "down-script", json_object_new_string(config->down_script));
 
 	json_object_array_add(j_obj, j_sub_obj);
 }
@@ -1209,11 +1248,14 @@ int rvd_vpnconn_mgr_init(struct rvd_ctx *c)
 
 	RVD_DEBUG_MSG("VPN: Initializing VPN connection manager");
 
+	/* set context object */
+	vpnconn_mgr->c = c;
+
 	/* initialize mutex */
 	pthread_mutex_init(&vpnconn_mgr->conn_mt, NULL);
 
 	/* set configuration path */
-	read_config(vpnconn_mgr, c->config_path ? c->config_path : RVD_CONFIG_DEFAULT_PATH);
+	read_config(vpnconn_mgr, c->ops.vpn_config_dirs);
 
 	/* create thread for monitoring vpn connections */
 	vpn_conn = vpnconn_mgr->vpn_conns;
@@ -1233,9 +1275,6 @@ int rvd_vpnconn_mgr_init(struct rvd_ctx *c)
 
 	/* set init status */
 	vpnconn_mgr->init_flag = true;
-
-	/* set context object */
-	vpnconn_mgr->c = c;
 
 	return 0;
 }

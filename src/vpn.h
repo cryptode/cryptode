@@ -12,6 +12,7 @@
 
 #define RVD_OVPN_CONN_TIMEOUT			20
 #define RVD_OVPN_STOP_TIMEOUT			15
+#define RVD_PRE_EXEC_TIMEOUT			60
 
 /* OpenVPN connection state */
 enum OVPN_CONN_STATE {
@@ -45,8 +46,8 @@ struct rvd_vpnconfig {
 
 	bool auto_connect;
 
-	char up_script[RVD_MAX_PATH];
-	char down_script[RVD_MAX_PATH];
+	uid_t pre_exec_uid;
+	char pre_exec_cmd[512];
 };
 
 /* vpn connection structure */

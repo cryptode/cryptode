@@ -30,11 +30,27 @@
 #include <stdlib.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <errno.h>
 #include <unistd.h>
+
+#include <sys/stat.h>
+#include <json-c/json.h>
 
 #include "rvd.h"
 
 static bool g_end_flag;
+
+/* rvd default configuration */
+static rvd_ctx_opt_t g_default_opts = {
+	OPENVPN_BINARY_PATH,
+	true,
+	false,
+	RVD_DEFAULT_UID,
+	true,
+	RVD_DEFAULT_LISTEN_SOCK,
+	RVD_DEFAULT_LOG_PATH,
+	NULL
+};
 
 /*
  * print help message
@@ -166,6 +182,96 @@ remove_pid_file()
 }
 
 /*
+ * read configuration
+ */
+
+static int
+parse_config(rvd_ctx_t *c)
+{
+	int fd;
+
+	char buf[2048];
+	ssize_t buf_len = 0;
+
+	struct stat st;
+
+	const char *config_path = c->config_path ? c->config_path : RVD_DEFAULT_CONFIG_PATH;
+	rvd_ctx_opt_t *opt = &c->ops;
+
+	struct rvd_json_object config_jobjs[] = {
+		{"openvpn_bin", RVD_JTYPE_STR, opt->ovpn_bin_path, sizeof(opt->ovpn_bin_path), false},
+		{"openvpn_root_check", RVD_JTYPE_BOOL, &opt->ovpn_root_check, 0, false},
+		{"openvpn_up_down_scripts", RVD_JTYPE_BOOL, &opt->ovpn_use_scripts, 0, false},
+		{"user_id", RVD_JTYPE_UID, &opt->allowed_uid, 0, false},
+		{"restrict_socket", RVD_JTYPE_BOOL, &opt->restrict_cmd_sock, 0, false},
+		{"socket_path", RVD_JTYPE_STR, opt->listen_sock_path, sizeof(opt->listen_sock_path), false},
+		{"log", RVD_JTYPE_STR, opt->log_path, sizeof(opt->log_path), false},
+		{"vpn_config_paths", RVD_JTYPE_STR_ARRAY, &opt->vpn_config_dirs, 0, true}
+	};
+
+	/* open configuration file */
+	fd = open(config_path, O_RDONLY);
+	if (fd < 0) {
+		fprintf(stderr, "Couldn't open configuration file '%s' for reading(err:%d)\n", config_path, errno);
+		return -1;
+	}
+
+	/* get file stat */
+	if (stat(config_path, &st) != 0 || st.st_size <= 0) {
+		close(fd);
+		return -1;
+	}
+
+	/* read buffer */
+	while (buf_len < st.st_size) {
+		ssize_t read_len;
+
+		read_len = read(fd, &buf[buf_len], sizeof(buf) - buf_len);
+		if (read_len <= 0) {
+			close(fd);
+			return -1;
+		}
+
+		buf_len += read_len;
+	}
+
+	buf[buf_len] = '\0';
+
+	/* close file */
+	close(fd);
+
+	/* set default options */
+	memcpy(opt, &g_default_opts, sizeof(rvd_ctx_opt_t));
+
+	/* parse configuration json */
+	if (rvd_json_parse(buf, config_jobjs, sizeof(config_jobjs) / sizeof(struct rvd_json_object)) != 0) {
+		fprintf(stderr, "Couldn't parse json configuration from config file\n");
+		return -1;
+	}
+
+	return 0;
+}
+
+/*
+ * free config
+ */
+
+static void free_config(rvd_ctx_opt_t *op)
+{
+	struct rvd_json_array *vpn_configs = op->vpn_config_dirs;
+	int i;
+
+	if (!vpn_configs)
+		return;
+
+	/* free vpn configs */
+	for (i = 0; i < vpn_configs->arr_size; i++)
+		free(vpn_configs->val[i]);
+
+	free(vpn_configs);
+}
+
+/*
  * initialize rvd context
  */
 
@@ -257,8 +363,16 @@ main(int argc, char *argv[])
 	/* init signal */
 	init_signal();
 
+	/* read configruation */
+	if (parse_config(&ctx) != 0) {
+		fprintf(stderr, "Failed to parse the configurations from '%s'\n",
+			ctx.config_path ? ctx.config_path : RVD_DEFAULT_CONFIG_PATH);
+
+		exit(-1);
+	}
+
 	/* initialize logging */
-	if (rvd_log_init() != 0) {
+	if (rvd_log_init(ctx.ops.log_path) != 0) {
 		fprintf(stderr, "Couldn't initialize logging.\n");
 		exit(-1);
 	}
@@ -280,6 +394,9 @@ main(int argc, char *argv[])
 
 	/* remove PID file */
 	remove_pid_file();
+
+	/* free config */
+	free_config(&ctx.ops);
 
 	return 0;
 }
