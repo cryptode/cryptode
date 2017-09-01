@@ -428,6 +428,9 @@ static int run_openvpn_proc(struct rvd_vpnconn *vpn_conn)
 	snprintf(mgm_port_str, sizeof(mgm_port_str), "%d", vpn_conn->ovpn_mgm_port);
 	snprintf(ovpn_log_fpath, sizeof(ovpn_log_fpath), "/tmp/%s.ovpn.log", vpn_conn->config.name);
 
+	/* remove log path */
+	remove(ovpn_log_fpath);
+
 	/* create openvpn process */
 	ovpn_pid = fork();
 	if (ovpn_pid == 0) {
