@@ -722,57 +722,42 @@ void rvd_vpnconn_disconnect(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_nam
 
 static void get_single_conn_status(struct rvd_vpnconn *vpn_conn, char **status_jstr)
 {
-	json_object *j_obj, *j_sub_obj;
-	const char *p;
-
 	char *ret_jstr;
+
+	time_t ts = time(NULL);
 
 	RVD_DEBUG_MSG("VPN: Getting status of VPN connection with name '%s'", vpn_conn->config.name);
 
+	rvd_json_object_t conn_status_objs[] = {
+		{"name", RVD_JTYPE_STR, vpn_conn->config.name, 0, false, NULL},
+		{"status", RVD_JTYPE_STR, (void *)g_rvd_state[vpn_conn->conn_state].state_str, 0, false, NULL},
+		{"ovpn-status", RVD_JTYPE_STR, (void *)g_ovpn_state[vpn_conn->ovpn_state].ovpn_state_str, 0, false, NULL},
+		{"in-total", RVD_JTYPE_INT64, &vpn_conn->total_bytes_in, 0, false, NULL},
+		{"out-total", RVD_JTYPE_INT64, &vpn_conn->total_bytes_out, 0, false, NULL},
+		{"timestamp", RVD_JTYPE_INT64, &ts, 0, false, NULL}
+	};
+
 	/* create json object */
-	j_obj = json_object_new_object();
-	if (!j_obj)
+	if (rvd_json_build(conn_status_objs, sizeof(conn_status_objs) / sizeof(rvd_json_object_t), &ret_jstr) != 0)
 		return;
-
-	j_sub_obj = json_object_new_object();
-	if (!j_sub_obj) {
-		json_object_put(j_obj);
-		return;
-	}
-
-	/* add fields */
-	json_object_object_add(j_obj, "name", json_object_new_string(vpn_conn->config.name));
-	json_object_object_add(j_obj, "status", json_object_new_string(g_rvd_state[vpn_conn->conn_state].state_str));
-	json_object_object_add(j_obj, "ovpn-status", json_object_new_string(g_ovpn_state[vpn_conn->ovpn_state].ovpn_state_str));
 
 	if (vpn_conn->conn_state == RVD_CONN_STATE_CONNECTED) {
-		json_object_object_add(j_obj, "connected-time", json_object_new_int64(vpn_conn->connected_tm));
+		char *tmp_jstr;
 
-		json_object_object_add(j_sub_obj, "in-current", json_object_new_int64(vpn_conn->curr_bytes_in));
-		json_object_object_add(j_sub_obj, "out-current", json_object_new_int64(vpn_conn->curr_bytes_out));
-	}
+		rvd_json_object_t conn_objs[] = {
+			{"network", RVD_JTYPE_OBJ, NULL, 0, false, NULL},
+			{"connected-time", RVD_JTYPE_INT64, &vpn_conn->connected_tm, 0, false, "network"},
+			{"in-current", RVD_JTYPE_INT64, &vpn_conn->curr_bytes_in, 0, false, "network"},
+			{"out-current", RVD_JTYPE_INT64, &vpn_conn->curr_bytes_out, 0, false, "network"},
+		};
 
-	json_object_object_add(j_sub_obj, "in-total", json_object_new_int64(vpn_conn->total_bytes_in + vpn_conn->curr_bytes_in));
-	json_object_object_add(j_sub_obj, "out-total", json_object_new_int64(vpn_conn->total_bytes_out + vpn_conn->curr_bytes_out));
-
-	json_object_object_add(j_obj, "timestamp", json_object_new_int64(time(NULL)));
-
-	json_object_object_add(j_obj, "network", j_sub_obj);
-
-	/* get json buffer from json object */
-	p = json_object_get_string(j_obj);
-	if (p) {
-		ret_jstr = (char *) malloc(strlen(p) + 1);
-		if (ret_jstr) {
-			strncpy(ret_jstr, p, strlen(p));
-			ret_jstr[strlen(p)] = '\0';
-
-			*status_jstr = ret_jstr;
+		if (rvd_json_add(ret_jstr, conn_objs, sizeof(conn_objs) / sizeof(rvd_json_object_t), &tmp_jstr) == 0) {
+			free(ret_jstr);
+			ret_jstr = tmp_jstr;
 		}
 	}
 
-	/* free json object */
-	json_object_put(j_obj);
+	*status_jstr = ret_jstr;
 }
 
 /*
@@ -893,9 +878,9 @@ static void parse_config(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *config_path
 
 	struct rvd_vpnconfig config;
 	rvd_json_object_t vpn_config[] = {
-		{"name", RVD_JTYPE_STR, config.name, sizeof(config.name), true},
-		{"auto-connect", RVD_JTYPE_BOOL, &config.auto_connect, 0, false},
-		{"pre-connect-exec", RVD_JTYPE_STR, config.pre_exec_cmd, sizeof(config.pre_exec_cmd), false}
+		{"name", RVD_JTYPE_STR, config.name, sizeof(config.name), true, NULL},
+		{"auto-connect", RVD_JTYPE_BOOL, &config.auto_connect, 0, false, NULL},
+		{"pre-connect-exec", RVD_JTYPE_STR, config.pre_exec_cmd, sizeof(config.pre_exec_cmd), false, NULL}
 	};
 
 	RVD_DEBUG_MSG("VPN: Parsing configuration file '%s'", config_path);
@@ -1054,8 +1039,11 @@ static void add_conninfo_to_buffer(struct rvd_vpnconn *vpn_conn, char **buffer)
 	/* set config buffer */
 	snprintf(config_buffer, sizeof(config_buffer), "name: %s\n"
 					"\t\tprofile: %s\n"
-					"\t\tauto-connect: %s\n",
-					config->name, config->ovpn_profile_path, config->auto_connect ? "Enabled" : "Disabled");
+					"\t\tauto-connect: %s\n"
+					"\t\tpre-exec-cmd: %s\n",
+					config->name, config->ovpn_profile_path,
+					config->auto_connect ? "Enabled" : "Disabled",
+					config->pre_exec_cmd);
 
 	/* allocate and set new buffer */
 	if (!p)
@@ -1078,16 +1066,24 @@ static void add_conninfo_to_json(struct rvd_vpnconn *vpn_conn, json_object *j_ob
 	struct rvd_vpnconfig *config = &vpn_conn->config;
 	json_object *j_sub_obj;
 
+	char *p = NULL;
+
+	rvd_json_object_t conn_info_objs[] = {
+		{"name", RVD_JTYPE_STR, config->name, 0, false, NULL},
+		{"profile", RVD_JTYPE_STR, config->ovpn_profile_path, 0, false, NULL},
+		{"auto-connect", RVD_JTYPE_BOOL, &config->auto_connect, 0, false, NULL},
+		{"pre-exec-cmd", RVD_JTYPE_STR, config->pre_exec_cmd, 0, false, NULL}
+	};
+
 	/* create new json object */
-	j_sub_obj = json_object_new_object();
-	if (!j_sub_obj)
+	if (rvd_json_build(conn_info_objs, sizeof(conn_info_objs) / sizeof(rvd_json_object_t), &p) != 0)
 		return;
 
-	json_object_object_add(j_sub_obj, "name", json_object_new_string(config->name));
-	json_object_object_add(j_sub_obj, "profile", json_object_new_string(config->ovpn_profile_path));
-	json_object_object_add(j_sub_obj, "auto-connect", json_object_new_boolean(config->auto_connect));
+	j_sub_obj = json_tokener_parse(p);
+	if (j_sub_obj)
+		json_object_array_add(j_obj, j_sub_obj);
 
-	json_object_array_add(j_obj, j_sub_obj);
+	free(p);
 }
 
 /*
@@ -1129,8 +1125,8 @@ void rvd_vpnconn_list_to_buffer(rvd_vpnconn_mgr_t *vpnconn_mgr, bool json_format
 
 		*buffer = (char *) malloc(strlen(p) + 1);
 		if (*buffer) {
-			memset(*buffer, 0, strlen(p) + 1);
 			strcpy(*buffer, p);
+			(*buffer)[strlen(p)] = '\0';
 		}
 
 		/* free json object */

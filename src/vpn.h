@@ -10,8 +10,8 @@
 #define OVPN_MGM_RESP_BYTECOUNT			">BYTECOUNT:"
 #define OVPN_MGM_RESP_STATE			">STATE:"
 
-#define RVD_OVPN_CONN_TIMEOUT			20
-#define RVD_OVPN_STOP_TIMEOUT			15
+#define RVD_OVPN_CONN_TIMEOUT			10
+#define RVD_OVPN_STOP_TIMEOUT			10
 #define RVD_PRE_EXEC_TIMEOUT			60
 
 /* OpenVPN connection state */

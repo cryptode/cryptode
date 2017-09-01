@@ -199,14 +199,14 @@ parse_config(rvd_ctx_t *c)
 	rvd_ctx_opt_t *opt = &c->ops;
 
 	struct rvd_json_object config_jobjs[] = {
-		{"openvpn_bin", RVD_JTYPE_STR, opt->ovpn_bin_path, sizeof(opt->ovpn_bin_path), false},
-		{"openvpn_root_check", RVD_JTYPE_BOOL, &opt->ovpn_root_check, 0, false},
-		{"openvpn_up_down_scripts", RVD_JTYPE_BOOL, &opt->ovpn_use_scripts, 0, false},
-		{"user_id", RVD_JTYPE_UID, &opt->allowed_uid, 0, false},
-		{"restrict_socket", RVD_JTYPE_BOOL, &opt->restrict_cmd_sock, 0, false},
-		{"socket_path", RVD_JTYPE_STR, opt->listen_sock_path, sizeof(opt->listen_sock_path), false},
-		{"log", RVD_JTYPE_STR, opt->log_path, sizeof(opt->log_path), false},
-		{"vpn_config_paths", RVD_JTYPE_STR_ARRAY, &opt->vpn_config_dirs, 0, true}
+		{"openvpn_bin", RVD_JTYPE_STR, opt->ovpn_bin_path, sizeof(opt->ovpn_bin_path), false, NULL},
+		{"openvpn_root_check", RVD_JTYPE_BOOL, &opt->ovpn_root_check, 0, false, NULL},
+		{"openvpn_up_down_scripts", RVD_JTYPE_BOOL, &opt->ovpn_use_scripts, 0, false, NULL},
+		{"user_id", RVD_JTYPE_UID, &opt->allowed_uid, 0, false, NULL},
+		{"restrict_socket", RVD_JTYPE_BOOL, &opt->restrict_cmd_sock, 0, false, NULL},
+		{"socket_path", RVD_JTYPE_STR, opt->listen_sock_path, sizeof(opt->listen_sock_path), false, NULL},
+		{"log", RVD_JTYPE_STR, opt->log_path, sizeof(opt->log_path), false, NULL},
+		{"vpn_config_paths", RVD_JTYPE_STR_ARRAY, &opt->vpn_config_dirs, 0, true, NULL}
 	};
 
 	/* open configuration file */
@@ -218,6 +218,8 @@ parse_config(rvd_ctx_t *c)
 
 	/* get file stat */
 	if (stat(config_path, &st) != 0 || st.st_size <= 0) {
+		fprintf(stderr, "Invalid configuration file '%s'\n", config_path);
+
 		close(fd);
 		return -1;
 	}
@@ -364,12 +366,8 @@ main(int argc, char *argv[])
 	init_signal();
 
 	/* read configruation */
-	if (parse_config(&ctx) != 0) {
-		fprintf(stderr, "Failed to parse the configurations from '%s'\n",
-			ctx.config_path ? ctx.config_path : RVD_DEFAULT_CONFIG_PATH);
-
+	if (parse_config(&ctx) != 0)
 		exit(-1);
-	}
 
 	/* initialize logging */
 	if (rvd_log_init(ctx.ops.log_path) != 0) {
