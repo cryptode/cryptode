@@ -1039,8 +1039,11 @@ static void add_conninfo_to_buffer(struct rvd_vpnconn *vpn_conn, char **buffer)
 	/* set config buffer */
 	snprintf(config_buffer, sizeof(config_buffer), "name: %s\n"
 					"\t\tprofile: %s\n"
-					"\t\tauto-connect: %s\n",
-					config->name, config->ovpn_profile_path, config->auto_connect ? "Enabled" : "Disabled");
+					"\t\tauto-connect: %s\n"
+					"\t\tpre-exec-cmd: %s\n",
+					config->name, config->ovpn_profile_path,
+					config->auto_connect ? "Enabled" : "Disabled",
+					config->pre_exec_cmd);
 
 	/* allocate and set new buffer */
 	if (!p)

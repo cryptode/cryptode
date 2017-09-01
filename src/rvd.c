@@ -218,6 +218,8 @@ parse_config(rvd_ctx_t *c)
 
 	/* get file stat */
 	if (stat(config_path, &st) != 0 || st.st_size <= 0) {
+		fprintf(stderr, "Invalid configuration file '%s'\n", config_path);
+
 		close(fd);
 		return -1;
 	}
@@ -364,12 +366,8 @@ main(int argc, char *argv[])
 	init_signal();
 
 	/* read configruation */
-	if (parse_config(&ctx) != 0) {
-		fprintf(stderr, "Failed to parse the configurations from '%s'\n",
-			ctx.config_path ? ctx.config_path : RVD_DEFAULT_CONFIG_PATH);
-
+	if (parse_config(&ctx) != 0)
 		exit(-1);
-	}
 
 	/* initialize logging */
 	if (rvd_log_init(ctx.ops.log_path) != 0) {
