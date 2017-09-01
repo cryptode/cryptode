@@ -866,6 +866,29 @@ static void finalize_vpn_conns(rvd_vpnconn_mgr_t *vpnconn_mgr)
 }
 
 /*
+ * check whether VPN configuration is valid
+ */
+
+static bool check_vpn_config(struct rvd_vpnconfig *config)
+{
+	/* check whether connection name is valid */
+	if (!is_valid_conn_name(config->name)) {
+		RVD_DEBUG_ERR("VPN: Invalid VPN connection name '%s'", config->name);
+		return false;
+	}
+
+	/* check whether VPN profile has valid owner and permission */
+	if (!is_owned_by_user(config->ovpn_profile_path, "root") ||
+	    !is_valid_permission(config->ovpn_profile_path, S_IRUSR | S_IWUSR)) {
+		RVD_DEBUG_ERR("VPN: Invalid owner or permission for VPN configuration file '%s'",
+				config->ovpn_profile_path);
+		return false;
+	}
+
+	return true;
+}
+
+/*
  * parse configuration
  */
 
@@ -933,14 +956,11 @@ static void parse_config(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *config_path
 
 	/* parse json object */
 	if (rvd_json_parse(config_buf, vpn_config, sizeof(vpn_config) / sizeof(rvd_json_object_t)) == 0) {
-		if (!is_valid_conn_name(config.name)) {
-			RVD_DEBUG_ERR("VPN: Invalid connection name '%s'", config.name);
-		} else {
-			config.pre_exec_uid = vpnconn_mgr->c->ops.allowed_uid;
-			strcpy(config.ovpn_profile_path, ovpn_profile_path);
+		config.pre_exec_uid = vpnconn_mgr->c->ops.allowed_uid;
+		strcpy(config.ovpn_profile_path, ovpn_profile_path);
 
+		if (check_vpn_config(&config))
 			add_vpn_conn(vpnconn_mgr, &config);
-		}
 	} else {
 		RVD_DEBUG_ERR("VPN: Couldn't parse configuration file '%s'", config_path);
 	}

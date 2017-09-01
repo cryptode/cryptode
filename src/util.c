@@ -35,8 +35,11 @@
 #include <sys/socket.h>
 #include <sys/select.h>
 #include <sys/ioctl.h>
+#include <sys/stat.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <pwd.h>
+#include <uuid/uuid.h>
 
 #include <json-c/json.h>
 
@@ -450,6 +453,64 @@ int is_valid_conn_name(const char *conn_name)
 			p != '-' && p != '_' && p != '.')
 			return 0;
 	}
+
+	return 1;
+}
+
+/* check whether the file is owned by specified user */
+int is_owned_by_user(const char *path, const char *uname)
+{
+	struct stat st;
+
+	char *buf;
+	int bufsize;
+
+	struct passwd pwd, *res;
+
+	uid_t uid;
+
+	/* allocate buffer for getpwnam_r */
+	bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
+	if (bufsize < 0)
+		return 0;
+
+	buf = (char *) malloc(bufsize + 1);
+	if (!buf)
+		return 0;
+
+	/* get user id */
+	if (getpwnam_r(uname, &pwd, buf, bufsize, &res) != 0 || !res) {
+		free(buf);
+		return 0;
+	}
+
+	uid = pwd.pw_uid;
+
+	/* free buffer */
+	free(buf);
+
+	/* get file stat */
+	if (stat(path, &st) != 0)
+		return 0;
+
+	if (st.st_uid != uid)
+		return 0;
+
+	return 1;
+}
+
+/* check whether the file has valid permission */
+int is_valid_permission(const char *path, mode_t mode)
+{
+	struct stat st;
+
+	/* get file stat */
+	if (stat(path, &st) != 0)
+		return 0;
+
+	st.st_mode &= 0777;
+	if ((st.st_mode & mode) != st.st_mode)
+		return 0;
 
 	return 1;
 }

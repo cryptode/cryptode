@@ -34,6 +34,9 @@
 #include <pthread.h>
 #include <syslog.h>
 
+#include <sys/types.h>
+#include <sys/stat.h>
+
 #include "common.h"
 #include "log.h"
 
@@ -74,6 +77,9 @@ static int create_log_file()
 
 		return -1;
 	}
+
+	/* set permission */
+	chmod(g_log_path, S_IRUSR | S_IWUSR);
 
 	return 0;
 }

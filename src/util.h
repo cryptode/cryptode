@@ -50,4 +50,10 @@ int set_non_blocking(int sock);
 /* check whether connection name is valid */
 int is_valid_conn_name(const char *conn_name);
 
+/* check whether the file is owned by specified user */
+int is_owned_by_user(const char *path, const char *uname);
+
+/* check whether the file has valid permission */
+int is_valid_permission(const char *path, mode_t mode);
+
 #endif /* __RVD_UTIL_H__ */
