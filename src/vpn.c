@@ -945,10 +945,14 @@ static void parse_config(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *config_path
 
 	/* parse json object */
 	if (rvd_json_parse(config_buf, vpn_config, sizeof(vpn_config) / sizeof(rvd_json_object_t)) == 0) {
-		config.pre_exec_uid = vpnconn_mgr->c->ops.allowed_uid;
-		strcpy(config.ovpn_profile_path, ovpn_profile_path);
+		if (!is_valid_conn_name(config.name)) {
+			RVD_DEBUG_ERR("VPN: Invalid connection name '%s'", config.name);
+		} else {
+			config.pre_exec_uid = vpnconn_mgr->c->ops.allowed_uid;
+			strcpy(config.ovpn_profile_path, ovpn_profile_path);
 
-		add_vpn_conn(vpnconn_mgr, &config);
+			add_vpn_conn(vpnconn_mgr, &config);
+		}
 	} else {
 		RVD_DEBUG_ERR("VPN: Couldn't parse configuration file '%s'", config_path);
 	}
