@@ -10,6 +10,7 @@ enum RVD_JOBJ_TYPES {
 	RVD_JTYPE_BOOL,
 	RVD_JTYPE_UID,
 	RVD_JTYPE_INT,
+	RVD_JTYPE_INT64,
 	RVD_JTYPE_STR_ARRAY,
 	RVD_JTYPE_OBJ
 };
@@ -26,11 +27,13 @@ typedef struct rvd_json_object {
 	void *val;
 	size_t size;
 	bool mondatory;
+	const char *parent_key;
 } rvd_json_object_t;
 
 /* rvd json object API functions */
 int rvd_json_parse(const char *jbuf, rvd_json_object_t *objs, int objs_count);
 int rvd_json_build(rvd_json_object_t *objs, int objs_count, char **jbuf);
+int rvd_json_add(const char *jbuf, rvd_json_object_t *objs, int objs_count, char **ret);
 
 /* get maximum fd from fd_set */
 int get_max_fd(int orig_max_fd, fd_set *fds);

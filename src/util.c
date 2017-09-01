@@ -104,6 +104,15 @@ int rvd_json_parse(const char *jbuf, rvd_json_object_t *objs, int objs_count)
 
 			break;
 
+		case RVD_JTYPE_INT64:
+			if (j_type != json_type_int)
+				break;
+
+			*((int64_t *)obj->val) = json_object_get_int64(j_sub_obj);
+			ret = 0;
+
+			break;
+
 		case RVD_JTYPE_STR_ARRAY:
 			if (j_type == json_type_array) {
 				struct rvd_json_array *arr_val;
@@ -201,9 +210,15 @@ int rvd_json_build(rvd_json_object_t *objs, int objs_count, char **jbuf)
 			j_sub_obj = json_object_new_int(*(int *)(obj->val));
 			break;
 
+		case RVD_JTYPE_INT64:
+			j_sub_obj = json_object_new_int64(*(int64_t *)(obj->val));
+			break;
+
 		case RVD_JTYPE_OBJ:
 			if (obj->val)
 				j_sub_obj = json_tokener_parse((char *)obj->val);
+			else
+				j_sub_obj = json_object_new_object();
 
 			break;
 
@@ -231,6 +246,86 @@ int rvd_json_build(rvd_json_object_t *objs, int objs_count, char **jbuf)
 
 	return ret;
 }
+
+/*
+ * add json buffer
+ */
+
+int rvd_json_add(const char *jbuf, rvd_json_object_t *objs, int objs_count, char **ret_jbuf)
+{
+	json_object *j_obj;
+	int i;
+
+	const char *p;
+
+	int ret = -1;
+
+	/* create new json object */
+	j_obj = json_tokener_parse(jbuf);
+	if (!j_obj)
+		return -1;
+
+	for (i = 0; i < objs_count; i++) {
+		rvd_json_object_t *obj = &objs[i];
+		json_object *j_sub_obj = NULL;
+
+		json_object *j_par_obj = NULL;
+
+		/* get parent object by key if object has parent */
+		if (obj->parent_key && !json_object_object_get_ex(j_obj, obj->parent_key, &j_par_obj))
+			continue;
+
+		switch (obj->type) {
+		case RVD_JTYPE_STR:
+			j_sub_obj = json_object_new_string((char *)obj->val);
+			break;
+
+		case RVD_JTYPE_BOOL:
+			j_sub_obj = json_object_new_boolean(*((bool *)(obj->val)));
+			break;
+
+		case RVD_JTYPE_UID:
+		case RVD_JTYPE_INT:
+			j_sub_obj = json_object_new_int(*(int *)(obj->val));
+			break;
+
+		case RVD_JTYPE_INT64:
+			j_sub_obj = json_object_new_int64(*(int64_t *)(obj->val));
+			break;
+
+		case RVD_JTYPE_OBJ:
+			if (obj->val)
+				j_sub_obj = json_tokener_parse((char *)obj->val);
+			else
+				j_sub_obj = json_object_new_object();
+
+			break;
+
+		default:
+			break;
+		}
+
+		if (j_sub_obj)
+			json_object_object_add(j_par_obj ? j_par_obj : j_obj, obj->key, j_sub_obj);
+	}
+
+	p = json_object_get_string(j_obj);
+	if (p && strlen(p) > 0) {
+		*ret_jbuf = (char *) malloc(strlen(p) + 1);
+		if (*ret_jbuf) {
+			strcpy(*ret_jbuf, p);
+			(*ret_jbuf)[strlen(p)] = '\0';
+
+			ret = 0;
+		}
+	}
+
+	/* free json object */
+	json_object_put(j_obj);
+
+	return ret;
+}
+
 
 /*
  * get maximum fd from fd_set
