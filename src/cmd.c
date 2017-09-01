@@ -125,8 +125,8 @@ static void send_cmd_response(int clnt_sock, int resp_code, const char *buffer, 
 			resp_buffer = strdup(g_rvd_resp_errs[resp_code].err_msg);
 	} else {
 		rvd_json_object_t resp_jobjs[] = {
-			{"code", RVD_JTYPE_INT, &resp_code, 0, false},
-			{"data", RVD_JTYPE_OBJ, &buffer, 0, false}
+			{"code", RVD_JTYPE_INT, &resp_code, 0, false, NULL},
+			{"data", RVD_JTYPE_OBJ, (void *)buffer, 0, false, NULL}
 		};
 
 		rvd_json_build(resp_jobjs, sizeof(resp_jobjs) / sizeof(rvd_json_object_t), &resp_buffer);
@@ -317,47 +317,29 @@ struct rvd_cmd {
 static int process_cmd(rvd_cmd_proc_t *cmd_proc, const char *cmd,
 		char **resp_data, bool *json_format)
 {
-	json_object *j_obj, *j_cmd_obj;
-
 	int cmd_code = RVD_CMD_UNKNOWN;
-	const char *cmd_param = NULL;
+	char cmd_param[512];
 
 	int resp_code = RVD_RESP_INVALID_CMD;
 
+	rvd_json_object_t cmd_objs[] = {
+		{"cmd", RVD_JTYPE_INT, &cmd_code, 0, true, NULL},
+		{"json", RVD_JTYPE_BOOL, json_format, 0, false, NULL},
+		{"param", RVD_JTYPE_STR, cmd_param, sizeof(cmd_param), false, NULL}
+	};
+
 	RVD_DEBUG_MSG("CMD: Received command '%s'", cmd);
 
-	/* parse command json string */
-	j_obj = json_tokener_parse(cmd);
-	if (!j_obj) {
+	/* parse json command */
+	if (rvd_json_parse(cmd, cmd_objs, sizeof(cmd_objs) / sizeof(rvd_json_object_t)) != 0) {
 		RVD_DEBUG_ERR("CMD: Couln't parse command '%s'", cmd);
 		return RVD_RESP_INVALID_CMD;
 	}
 
-	/* get command string */
-	if (!json_object_object_get_ex(j_obj, "cmd", &j_cmd_obj)) {
-		RVD_DEBUG_ERR("CMD: Couldn't find 'cmd' key from command '%s'", cmd);
-		json_object_put(j_obj);
-
-		return RVD_RESP_INVALID_CMD;
-	}
-
-	cmd_code = json_object_get_int(j_cmd_obj);
 	if (cmd_code == RVD_CMD_UNKNOWN) {
 		RVD_DEBUG_ERR("CMD: Unknown command '%s'", cmd);
-
-		/* free json object */
-		json_object_put(j_obj);
-
 		return RVD_RESP_INVALID_CMD;
 	}
-
-	/* get format of list */
-	if (json_object_object_get_ex(j_obj, "json", &j_cmd_obj))
-		*json_format = json_object_get_boolean(j_cmd_obj);
-
-	/* get connection name */
-	if (json_object_object_get_ex(j_obj, "param", &j_cmd_obj))
-		cmd_param = json_object_get_string(j_cmd_obj);
 
 	switch (cmd_code) {
 	case RVD_CMD_LIST:
@@ -383,9 +365,6 @@ static int process_cmd(rvd_cmd_proc_t *cmd_proc, const char *cmd,
 	default:
 		break;
 	}
-
-	/* free json object */
-	json_object_put(j_obj);
 
 	return resp_code;
 }

@@ -199,14 +199,14 @@ parse_config(rvd_ctx_t *c)
 	rvd_ctx_opt_t *opt = &c->ops;
 
 	struct rvd_json_object config_jobjs[] = {
-		{"openvpn_bin", RVD_JTYPE_STR, opt->ovpn_bin_path, sizeof(opt->ovpn_bin_path), false},
-		{"openvpn_root_check", RVD_JTYPE_BOOL, &opt->ovpn_root_check, 0, false},
-		{"openvpn_up_down_scripts", RVD_JTYPE_BOOL, &opt->ovpn_use_scripts, 0, false},
-		{"user_id", RVD_JTYPE_UID, &opt->allowed_uid, 0, false},
-		{"restrict_socket", RVD_JTYPE_BOOL, &opt->restrict_cmd_sock, 0, false},
-		{"socket_path", RVD_JTYPE_STR, opt->listen_sock_path, sizeof(opt->listen_sock_path), false},
-		{"log", RVD_JTYPE_STR, opt->log_path, sizeof(opt->log_path), false},
-		{"vpn_config_paths", RVD_JTYPE_STR_ARRAY, &opt->vpn_config_dirs, 0, true}
+		{"openvpn_bin", RVD_JTYPE_STR, opt->ovpn_bin_path, sizeof(opt->ovpn_bin_path), false, NULL},
+		{"openvpn_root_check", RVD_JTYPE_BOOL, &opt->ovpn_root_check, 0, false, NULL},
+		{"openvpn_up_down_scripts", RVD_JTYPE_BOOL, &opt->ovpn_use_scripts, 0, false, NULL},
+		{"user_id", RVD_JTYPE_UID, &opt->allowed_uid, 0, false, NULL},
+		{"restrict_socket", RVD_JTYPE_BOOL, &opt->restrict_cmd_sock, 0, false, NULL},
+		{"socket_path", RVD_JTYPE_STR, opt->listen_sock_path, sizeof(opt->listen_sock_path), false, NULL},
+		{"log", RVD_JTYPE_STR, opt->log_path, sizeof(opt->log_path), false, NULL},
+		{"vpn_config_paths", RVD_JTYPE_STR_ARRAY, &opt->vpn_config_dirs, 0, true, NULL}
 	};
 
 	/* open configuration file */
