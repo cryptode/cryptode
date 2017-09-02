@@ -209,18 +209,23 @@ parse_config(rvd_ctx_t *c)
 		{"vpn_config_paths", RVD_JTYPE_STR_ARRAY, &opt->vpn_config_dirs, 0, true, NULL}
 	};
 
+	/* check whether configuration file has valid permission */
+	if (stat(config_path, &st) != 0 || st.st_size <= 0) {
+		fprintf(stderr, "Invalid configuration file '%s'\n", config_path);
+		return -1;
+	}
+
+	if (!is_owned_by_user(config_path, "root") ||
+	    !is_valid_permission(config_path, S_IRUSR | S_IWUSR)) {
+		fprintf(stderr, "The configuration file '%s' isn't owned by root or has the leak permission\n",
+			config_path);
+		return -1;
+	}
+
 	/* open configuration file */
 	fd = open(config_path, O_RDONLY);
 	if (fd < 0) {
 		fprintf(stderr, "Couldn't open configuration file '%s' for reading(err:%d)\n", config_path, errno);
-		return -1;
-	}
-
-	/* get file stat */
-	if (stat(config_path, &st) != 0 || st.st_size <= 0) {
-		fprintf(stderr, "Invalid configuration file '%s'\n", config_path);
-
-		close(fd);
 		return -1;
 	}
 
