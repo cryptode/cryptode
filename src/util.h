@@ -56,4 +56,7 @@ int is_owned_by_user(const char *path, const char *uname);
 /* check whether the file has valid permission */
 int is_valid_permission(const char *path, mode_t mode);
 
+/* get group ID from user ID */
+int get_gid_by_uid(uid_t uid, gid_t *gid);
+
 #endif /* __RVD_UTIL_H__ */

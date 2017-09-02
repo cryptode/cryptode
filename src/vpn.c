@@ -358,9 +358,14 @@ static int run_preconn_cmd(struct rvd_vpnconn *vpn_conn)
 	pre_cmd_pid = fork();
 	if (pre_cmd_pid == 0) {
 		int ret;
+		gid_t gid;
 
 		/* set UID */
 		setuid(vpn_conn->config.pre_exec_uid);
+
+		/* set gid */
+		if (get_gid_by_uid(vpn_conn->config.pre_exec_uid, &gid) == 0)
+			setgid(gid);
 
 		/* run command */
 		ret = system(vpn_conn->config.pre_exec_cmd);

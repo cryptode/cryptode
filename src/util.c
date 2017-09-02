@@ -514,3 +514,34 @@ int is_valid_permission(const char *path, mode_t mode)
 
 	return 1;
 }
+
+/* get gid by user id */
+int get_gid_by_uid(uid_t uid, gid_t *gid)
+{
+	int bufsize;
+	char *buffer;
+
+	struct passwd pwd, *result = NULL;
+
+	int ret = 0;
+
+	/* get buffer size */
+	bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
+	if (bufsize <= 0)
+		return -1;
+
+	buffer = (char *) malloc(bufsize + 1);
+	if (!buffer)
+		return -1;
+
+	if (getpwuid_r(uid, &pwd, buffer, bufsize, &result) != 0 || !result)
+		ret = -1;
+
+	/* free buffer */
+	free(buffer);
+
+	if (ret == 0)
+		*gid = pwd.pw_gid;
+
+	return ret;
+}
