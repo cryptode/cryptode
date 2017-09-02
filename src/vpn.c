@@ -187,9 +187,6 @@ static int send_cmd_to_ovpn_mgm(struct rvd_vpnconn *vpn_conn, const char *cmd)
 
 static void close_ovpn_mgm_sock(struct rvd_vpnconn *vpn_conn)
 {
-	/* remove socket from fds */
-	FD_ZERO(&vpn_conn->fds);
-
 	/* close socket */
 	close(vpn_conn->ovpn_mgm_sock);
 	vpn_conn->ovpn_mgm_sock = -1;
@@ -239,10 +236,6 @@ static int connect_to_ovpn_mgm(struct rvd_vpnconn *vpn_conn)
 	/* set management socket */
 	vpn_conn->ovpn_mgm_sock = sock;
 
-	/* add management socket into fdset */
-	FD_ZERO(&vpn_conn->fds);
-	FD_SET(sock, &vpn_conn->fds);
-
 	/* send command to openvpn management */
 	if (send_cmd_to_ovpn_mgm(vpn_conn, OVPN_MGM_CMD_BYTECOUNT) != 0 ||
 		send_cmd_to_ovpn_mgm(vpn_conn, OVPN_MGM_CMD_STATE) != 0) {
@@ -263,7 +256,7 @@ static int send_sigterm_to_ovpn(struct rvd_vpnconn *vpn_conn)
 	int ret = 0;
 
 	/* check if management socket is valid */
-	if (vpn_conn->ovpn_mgm_sock < 0)
+	if (vpn_conn->ovpn_mgm_sock <= 0)
 		return -1;
 
 	RVD_DEBUG_MSG("VPN: Sending SIGTERM signal to OpenVPN process with connection name '%s'", vpn_conn->config.name);
@@ -1172,7 +1165,7 @@ static void *monitor_vpn_conn(void *p)
 	RVD_DEBUG_MSG("VPN: Starting VPN connection monitoring thread with name '%s'", vpn_conn->config.name);
 
 	while (!vpn_conn->end_flag) {
-		fd_set tmp_fds;
+		fd_set fds;
 		struct timeval tv;
 
 		int ret;
@@ -1181,26 +1174,27 @@ static void *monitor_vpn_conn(void *p)
 		bool failed = false;
 
 		/* check openvpn management socket has been created */
-		if (vpn_conn->ovpn_mgm_sock < 0) {
+		if (vpn_conn->ovpn_mgm_sock <= 0) {
 			sleep(1);
 			continue;
 		}
 
 		/* copy fd set */
-		FD_COPY(&vpn_conn->fds, &tmp_fds);
+		FD_ZERO(&fds);
+		FD_SET(vpn_conn->ovpn_mgm_sock, &fds);
 
 		/* set timeout */
 		tv.tv_sec = 0;
 		tv.tv_usec = 50;
 
 		/* get notifications from openvpn client */
-		ret = select(vpn_conn->ovpn_mgm_sock + 1, &tmp_fds, NULL, NULL, &tv);
+		ret = select(vpn_conn->ovpn_mgm_sock + 1, &fds, NULL, NULL, &tv);
 		if (ret < 0) {
 			RVD_DEBUG_ERR("VPN: Exception has occurred on openvpn management socket(errno: %d)", errno);
 			break;
 		}
 
-		if (!FD_ISSET(vpn_conn->ovpn_mgm_sock, &vpn_conn->fds)) {
+		if (!FD_ISSET(vpn_conn->ovpn_mgm_sock, &fds)) {
 			sleep(1);
 			continue;
 		}
