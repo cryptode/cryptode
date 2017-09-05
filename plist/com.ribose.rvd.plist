@@ -8,7 +8,7 @@
       <false/>
     </dict>
     <key>Label</key>
-    <string>rvd</string>
+    <string>com.ribose.rvd</string>
     <key>ProgramArguments</key>
     <array>
       <string>/opt/rvc/bin/rvd</string>
