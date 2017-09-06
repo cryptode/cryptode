@@ -890,81 +890,99 @@ static bool check_vpn_config(struct rvd_vpnconfig *config)
  * parse configuration
  */
 
-static void parse_config(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *config_path, const char *ovpn_profile_path)
+static void parse_config(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *config_path,
+	const char *conf_name, const char *ovpn_profile_path)
 {
-	int fd;
-	FILE *fp;
-
-	struct stat st;
-
-	char *config_buf;
-	size_t read_len;
-
 	struct rvd_vpnconfig config;
-	rvd_json_object_t vpn_config[] = {
-		{"name", RVD_JTYPE_STR, config.name, sizeof(config.name), true, NULL},
-		{"auto-connect", RVD_JTYPE_BOOL, &config.auto_connect, 0, false, NULL},
-		{"pre-connect-exec", RVD_JTYPE_STR, config.pre_exec_cmd, sizeof(config.pre_exec_cmd), false, NULL}
-	};
+	bool add_config = true;
 
-	RVD_DEBUG_MSG("VPN: Parsing configuration file '%s'", config_path);
-
-	if (stat(config_path, &st) != 0) {
-		RVD_DEBUG_ERR("VPN: Couldn't get stat of config file '%s'", config_path);
-		return;
-	}
-
-	/* open configuration file */
-	fd = open(config_path, O_RDONLY);
-	if (fd < 0) {
-		RVD_DEBUG_ERR("VPN: Couldn't open configuration file '%s' for reading(err:%d)", config_path, errno);
-		return;
-	}
-
-	fp = fdopen(fd, "r");
-	if (!fp) {
-		RVD_DEBUG_ERR("VPN: Couldn't open configuration file '%s' for reading(err:%d)", config_path, errno);
-		close(fd);
-
-		return;
-	}
-
-	/* read config buffer */
-	config_buf = (char *) malloc(st.st_size + 1);
-	if (!config_buf) {
-		fclose(fp);
-		return;
-	}
-
-	memset(config_buf, 0, st.st_size + 1);
-	read_len = fread(config_buf, 1, st.st_size, fp);
-
-	/* close file */
-	fclose(fp);
-
-	if (read_len <= 0) {
-		RVD_DEBUG_ERR("VPN: Invalid the configuration file '%s'", config_path);
-		free(config_buf);
-
-		return;
-	}
-
-	/* parse configuration */
+	/* init configuration */
 	memset(&config, 0, sizeof(config));
 
-	/* parse json object */
-	if (rvd_json_parse(config_buf, vpn_config, sizeof(vpn_config) / sizeof(rvd_json_object_t)) == 0) {
-		config.pre_exec_uid = vpnconn_mgr->c->ops.allowed_uid;
-		strcpy(config.ovpn_profile_path, ovpn_profile_path);
+	/* set VPN profile path */
+	strcpy(config.ovpn_profile_path, ovpn_profile_path);
 
-		if (check_vpn_config(&config))
-			add_vpn_conn(vpnconn_mgr, &config);
-	} else {
-		RVD_DEBUG_ERR("VPN: Couldn't parse configuration file '%s'", config_path);
-	}
+	if (config_path) {
+		int fd;
+		FILE *fp;
 
-	/* free configuration buffer */
-	free(config_buf);
+		struct stat st;
+
+		char *config_buf;
+		size_t read_len;
+
+		rvd_json_object_t vpn_config[] = {
+			{"name", RVD_JTYPE_STR, config.name, sizeof(config.name), true, NULL},
+			{"auto-connect", RVD_JTYPE_BOOL, &config.auto_connect, 0, false, NULL},
+			{"pre-connect-exec", RVD_JTYPE_STR, config.pre_exec_cmd, sizeof(config.pre_exec_cmd), false, NULL}
+		};
+
+		RVD_DEBUG_MSG("VPN: Parsing configuration file '%s'", config_path);
+
+		if (stat(config_path, &st) != 0 || !S_ISREG(st.st_mode) ||
+			st.st_size == 0) {
+			RVD_DEBUG_ERR("VPN: Couldn't get state of configuration file '%s'", config_path);
+			return;
+		}
+
+		/* open configuration file */
+		fd = open(config_path, O_RDONLY);
+		if (fd < 0) {
+			RVD_DEBUG_ERR("VPN: Couldn't open configuration file '%s' for reading(err:%d)", config_path, errno);
+			return;
+		}
+
+		fp = fdopen(fd, "r");
+		if (!fp) {
+			RVD_DEBUG_ERR("VPN: Couldn't open configuration file '%s' for reading(err:%d)", config_path, errno);
+			close(fd);
+
+			return;
+		}
+
+		/* read config buffer */
+		config_buf = (char *) malloc(st.st_size + 1);
+		if (!config_buf) {
+			fclose(fp);
+			return;
+		}
+
+		memset(config_buf, 0, st.st_size + 1);
+		read_len = fread(config_buf, 1, st.st_size, fp);
+
+		/* close file */
+		fclose(fp);
+
+		if (read_len <= 0) {
+			RVD_DEBUG_ERR("VPN: Invalid the configuration file '%s'", config_path);
+			free(config_buf);
+
+			return;
+		}
+
+		/* parse json object */
+		if (rvd_json_parse(config_buf, vpn_config, sizeof(vpn_config) / sizeof(rvd_json_object_t)) == 0)
+			config.pre_exec_uid = vpnconn_mgr->c->ops.allowed_uid;
+		else {
+			RVD_DEBUG_ERR("VPN: Couldn't parse configuration file '%s'", config_path);
+			add_config = false;
+		}
+
+		/* free configuration buffer */
+		free(config_buf);
+	} else
+		strcpy(config.name, conf_name);
+
+	/* check the flag whether add a config */
+	if (!add_config)
+		return;
+
+	/* check VPN configuration */
+	if (!check_vpn_config(&config))
+		return;
+
+	/* add VPN connection */
+	add_vpn_conn(vpnconn_mgr, &config);
 }
 
 /*
@@ -990,32 +1008,36 @@ static void read_config(rvd_vpnconn_mgr_t *vpnconn_mgr, struct rvd_json_array *v
 		}
 
 		while ((dp = readdir(dir)) != NULL) {
-			char conf_json_path[RVD_MAX_PATH];
 			char ovpn_profile_path[RVD_MAX_PATH];
+			char conf_json_path[RVD_MAX_PATH];
+
+			char conf_name[RVD_MAX_CONN_NAME_LEN];
 
 			struct stat st;
 			const char *p;
 
-			/* init paths */
-			memset(conf_json_path, 0, sizeof(conf_json_path));
-			memset(ovpn_profile_path, 0, sizeof(ovpn_profile_path));
+			bool conf_exist = true;
 
-			strcpy(conf_json_path, dir_path);
+			/* init paths */
+			memset(ovpn_profile_path, 0, sizeof(ovpn_profile_path));
+			memset(conf_json_path, 0, sizeof(conf_json_path));
+			memset(conf_name, 0, sizeof(conf_name));
+
 			strcpy(ovpn_profile_path, dir_path);
+			strcpy(conf_json_path, dir_path);
 
 			if (dir_path[strlen(dir_path) - 1] != '/') {
 				strcat(conf_json_path, "/");
 				strcat(ovpn_profile_path, "/");
 			}
 
-			/* check whether the file is config file */
-			p = strstr(dp->d_name, ".json");
+			/* check whether the file is ovpn file */
+			p = strstr(dp->d_name, ".ovpn");
 			if (!p || strlen(p) != 5)
 				continue;
 
 			/* set openvpn profile path */
-			strncat(ovpn_profile_path, dp->d_name, strlen(dp->d_name) - strlen(p));
-			strcat(ovpn_profile_path, ".ovpn");
+			strcat(ovpn_profile_path, dp->d_name);
 
 			/* check whether openvpn profile is exist */
 			if (stat(ovpn_profile_path, &st) != 0 || !S_ISREG(st.st_mode)
@@ -1026,7 +1048,16 @@ static void read_config(rvd_vpnconn_mgr_t *vpnconn_mgr, struct rvd_json_array *v
 			strncat(conf_json_path, dp->d_name, strlen(dp->d_name) - strlen(p));
 			strcat(conf_json_path, ".json");
 
-			parse_config(vpnconn_mgr, conf_json_path, ovpn_profile_path);
+			/* check whether configuration file is exist */
+			if (stat(conf_json_path, &st) != 0 || !S_ISREG(st.st_mode) ||
+				st.st_size == 0) {
+				/* set connection name */
+				strncpy(conf_name, dp->d_name, strlen(dp->d_name) - 5);
+				conf_exist = false;
+			}
+
+			/* parse configuration file */
+			parse_config(vpnconn_mgr, conf_exist ? conf_json_path : NULL, conf_name, ovpn_profile_path);
 		}
 
 		/* close directory */
