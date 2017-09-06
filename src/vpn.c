@@ -1214,7 +1214,7 @@ static void *monitor_vpn_conn(void *p)
 			/* check if openvpn connection has abnormally disconnected */
 			if (vpn_conn->conn_state == RVD_CONN_STATE_CONNECTED && vpn_conn->ovpn_state != OVPN_STATE_CONNECTED)
 				vpn_conn->conn_state = RVD_CONN_STATE_RECONNECTING;
-			else if (vpn_conn->conn_state == RVD_CONN_STATE_RECONNECTING && vpn_conn->conn_state == OVPN_STATE_CONNECTED)
+			else if (vpn_conn->conn_state == RVD_CONN_STATE_RECONNECTING && vpn_conn->ovpn_state == OVPN_STATE_CONNECTED)
 				vpn_conn->conn_state = RVD_CONN_STATE_CONNECTED;
 		} else if (ret == 0) {
 			failed = true;
