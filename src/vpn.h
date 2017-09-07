@@ -14,6 +14,8 @@
 #define RVD_OVPN_STOP_TIMEOUT			10
 #define RVD_PRE_EXEC_TIMEOUT			60
 
+struct rvd_vpnconn_mgr;
+
 /* OpenVPN connection state */
 enum OVPN_CONN_STATE {
 	OVPN_STATE_DISCONNECTED = 0,
@@ -74,6 +76,8 @@ struct rvd_vpnconn {
 
 	pthread_t pt_conn;
 	pthread_t pt_conn_mon;
+
+	struct rvd_vpnconn_mgr *vpnconn_mgr;
 
 	struct rvd_vpnconn *next;
 	struct rvd_vpnconn *prev;

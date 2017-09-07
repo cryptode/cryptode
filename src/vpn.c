@@ -114,6 +114,9 @@ static void add_vpn_conn(rvd_vpnconn_mgr_t *vpnconn_mgr, struct rvd_vpnconfig *c
 
 	RVD_DEBUG_MSG("VPN: Added VPN configuration with name '%s', openvpn path '%s'", config->name, config->ovpn_profile_path);
 
+	/* set vpnconn_mgr pointer */
+	vpn_conn->vpnconn_mgr = vpnconn_mgr;
+
 	/* increase configuration items count */
 	vpnconn_mgr->vpn_conns_count++;
 }
@@ -405,6 +408,8 @@ static int run_openvpn_proc(struct rvd_vpnconn *vpn_conn)
 	char mgm_port_str[32];
 	char ovpn_log_fpath[RVD_MAX_PATH];
 
+	uid_t uid;
+
 	RVD_DEBUG_MSG("VPN: Running OpenVPN process for connection '%s'", vpn_conn->config.name);
 
 	if (run_preconn_cmd(vpn_conn) != 0) {
@@ -450,6 +455,18 @@ static int run_openvpn_proc(struct rvd_vpnconn *vpn_conn)
 
 	/* set openvpn process ID */
 	vpn_conn->ovpn_pid = ovpn_pid;
+
+	/* sleep for 1 sec due to initialization delay */
+	sleep(1);
+
+	/* set owner of openvpn log file */
+	uid = vpn_conn->vpnconn_mgr->c->ops.allowed_uid;
+	if (uid > 0) {
+		gid_t gid;
+
+		if (get_gid_by_uid(uid, &gid) == 0)
+			chown(ovpn_log_fpath, uid, gid);
+	}
 
 	return 0;
 }
@@ -565,8 +582,6 @@ static void *start_vpn_conn(void *p)
 		vpn_conn->conn_state = RVD_CONN_STATE_DISCONNECTED;
 		return 0;
 	}
-
-	sleep(1);
 
 	/* connect to openvpn process via management console */
 	if (connect_to_ovpn_mgm(vpn_conn) == 0 && get_vpn_conn_state(vpn_conn) == 0 &&
