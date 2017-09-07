@@ -58,11 +58,10 @@ static rvd_ctx_opt_t g_default_opts = {
 
 static void print_help(void)
 {
-	printf("Usage:"
-		"\trvd [options]\n"
-		"\tOptions:\n"
-		"\t -c [config file] set configuration file\n"
-		"\t -v print version\n");
+	printf("usage: rvd <options>\n"
+		"  Options:\n"
+		"    -c <config file>\tset configuration file\n"
+		"    -h\t\t\tprint help message\n");
 
 	exit(0);
 }

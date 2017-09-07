@@ -127,7 +127,7 @@ void rvd_log_finalize()
  */
 
 static const char *log_type_str[] = {
-	"INFO", "WARN", "ERR"
+	"INFO", "ERR", "WARN"
 };
 
 void rvd_debug_log(enum LOG_TYPE log_type, const char *file_name, int file_line, const char *format, ...)
