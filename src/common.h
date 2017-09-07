@@ -10,6 +10,7 @@
 #define RVD_MAX_RESP_LEN			2048
 #define RVD_MAX_CONN_NAME_LEN			128
 #define RVD_MAX_CONN_INFO_LEN			2048
+#define RVD_MAX_CONN_STATUS_LEN			2048
 
 /* rvd default configuration path */
 #define RVD_DEFAULT_CONFIG_PATH			"/opt/rvc/etc/rvd.json"
