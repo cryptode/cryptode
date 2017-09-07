@@ -101,14 +101,14 @@ static void send_cmd(enum RVD_CMD_CODE cmd_code, const char *cmd_param, bool use
 
 static void print_help(void)
 {
-	printf("Usage: rvc [options]\n"
-		"\tOptions:\n"
-		"\t list [--json]\t\t\t\t\tshow list of VPN connections\n"
-		"\t connect [all|connection name] [--json]\t\tconnect to a VPN with given name\n"
-		"\t disconnect [all|connection name] [--json]\tdisconnect from VPN with given name\n"
-		"\t status [all|connection name] [--json]\t\tget status of VPN connection with given name\n"
-		"\t script-security [enable|disable]\t\tenable/disable script security\n"
-		"\t help\t\t\t\t\t\tshow help message\n"
+	printf("usage: rvc <options>\n"
+		"  options:\n"
+		"    list [--json]\t\t\t\tshow list of VPN connections\n"
+		"    connect <all|connection name> [--json]\tconnect to a VPN with given name\n"
+		"    disconnect <all|connection name> [--json]\tdisconnect from VPN with given name\n"
+		"    status [all|connection name] [--json]\tget status of VPN connection with given name\n"
+		"    script-security <enable|disable>\t\tenable/disable script security\n"
+		"    help\t\t\t\t\tshow help message\n"
 		);
 }
 
