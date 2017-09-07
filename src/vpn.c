@@ -736,96 +736,163 @@ void rvd_vpnconn_disconnect(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_nam
  * get status of single connection
  */
 
-static void get_single_conn_status(struct rvd_vpnconn *vpn_conn, char **status_jstr)
+static void get_single_conn_status(struct rvd_vpnconn *vpn_conn, bool json_format, char **status_str)
 {
-	char *ret_jstr;
+	char *ret_str;
 
 	time_t ts = time(NULL);
 
 	RVD_DEBUG_MSG("VPN: Getting status of VPN connection with name '%s'", vpn_conn->config.name);
 
-	rvd_json_object_t conn_status_objs[] = {
-		{"name", RVD_JTYPE_STR, vpn_conn->config.name, 0, false, NULL},
-		{"status", RVD_JTYPE_STR, (void *)g_rvd_state[vpn_conn->conn_state].state_str, 0, false, NULL},
-		{"ovpn-status", RVD_JTYPE_STR, (void *)g_ovpn_state[vpn_conn->ovpn_state].ovpn_state_str, 0, false, NULL},
-		{"in-total", RVD_JTYPE_INT64, &vpn_conn->total_bytes_in, 0, false, NULL},
-		{"out-total", RVD_JTYPE_INT64, &vpn_conn->total_bytes_out, 0, false, NULL},
-		{"timestamp", RVD_JTYPE_INT64, &ts, 0, false, NULL}
-	};
-
-	/* create json object */
-	if (rvd_json_build(conn_status_objs, sizeof(conn_status_objs) / sizeof(rvd_json_object_t), &ret_jstr) != 0)
-		return;
-
-	if (vpn_conn->conn_state == RVD_CONN_STATE_CONNECTED) {
-		char *tmp_jstr;
-
-		rvd_json_object_t conn_objs[] = {
-			{"network", RVD_JTYPE_OBJ, NULL, 0, false, NULL},
-			{"connected-time", RVD_JTYPE_INT64, &vpn_conn->connected_tm, 0, false, "network"},
-			{"in-current", RVD_JTYPE_INT64, &vpn_conn->curr_bytes_in, 0, false, "network"},
-			{"out-current", RVD_JTYPE_INT64, &vpn_conn->curr_bytes_out, 0, false, "network"},
+	if (json_format) {
+		rvd_json_object_t conn_status_objs[] = {
+			{"name", RVD_JTYPE_STR, vpn_conn->config.name, 0, false, NULL},
+			{"status", RVD_JTYPE_STR, (void *)g_rvd_state[vpn_conn->conn_state].state_str, 0, false, NULL},
+			{"ovpn-status", RVD_JTYPE_STR, (void *)g_ovpn_state[vpn_conn->ovpn_state].ovpn_state_str, 0, false, NULL},
+			{"in-total", RVD_JTYPE_INT64, &vpn_conn->total_bytes_in, 0, false, NULL},
+			{"out-total", RVD_JTYPE_INT64, &vpn_conn->total_bytes_out, 0, false, NULL},
+			{"timestamp", RVD_JTYPE_INT64, &ts, 0, false, NULL}
 		};
 
-		if (rvd_json_add(ret_jstr, conn_objs, sizeof(conn_objs) / sizeof(rvd_json_object_t), &tmp_jstr) == 0) {
-			free(ret_jstr);
-			ret_jstr = tmp_jstr;
+		/* create json object */
+		if (rvd_json_build(conn_status_objs, sizeof(conn_status_objs) / sizeof(rvd_json_object_t), &ret_str) != 0)
+			return;
+
+		if (vpn_conn->conn_state == RVD_CONN_STATE_CONNECTED) {
+			char *tmp_jstr;
+
+			rvd_json_object_t conn_objs[] = {
+				{"network", RVD_JTYPE_OBJ, NULL, 0, false, NULL},
+				{"connected-time", RVD_JTYPE_INT64, &vpn_conn->connected_tm, 0, false, "network"},
+				{"in-current", RVD_JTYPE_INT64, &vpn_conn->curr_bytes_in, 0, false, "network"},
+				{"out-current", RVD_JTYPE_INT64, &vpn_conn->curr_bytes_out, 0, false, "network"},
+			};
+
+			if (rvd_json_add(ret_str, conn_objs, sizeof(conn_objs) / sizeof(rvd_json_object_t), &tmp_jstr) == 0) {
+				free(ret_str);
+				ret_str = tmp_jstr;
+			}
+		}
+	} else {
+		char status_buffer[RVD_MAX_CONN_STATUS_LEN];
+
+		/* set status buffer by plain format */
+		if (vpn_conn->conn_state == RVD_CONN_STATE_CONNECTED)
+			snprintf(status_buffer, sizeof(status_buffer), "name: %s\n"
+				"\tstatus: %s\n"
+				"\topenvpn-status: %s\n"
+				"\tin-total: %lu\n"
+				"\tout-total: %lu\n"
+				"\tconnected-time: %lu\n"
+				"\tin-current: %lu\n"
+				"\tout-current: %lu\n"
+				"\ttimestamp: %lu\n",
+				vpn_conn->config.name,
+				g_rvd_state[vpn_conn->conn_state].state_str,
+				g_ovpn_state[vpn_conn->ovpn_state].ovpn_state_str,
+				vpn_conn->total_bytes_in, vpn_conn->curr_bytes_out,
+				vpn_conn->connected_tm,
+				vpn_conn->curr_bytes_in, vpn_conn->curr_bytes_out,
+				ts);
+		else
+			snprintf(status_buffer, sizeof(status_buffer), "name: %s\n"
+				"\tstatus: %s\n"
+				"\topenvpn-status: %s\n"
+				"\tin-total: %lu\n"
+				"\tout-total: %lu\n"
+				"\ttimestamp: %lu\n",
+				vpn_conn->config.name,
+				g_rvd_state[vpn_conn->conn_state].state_str,
+				g_ovpn_state[vpn_conn->ovpn_state].ovpn_state_str,
+				vpn_conn->total_bytes_in, vpn_conn->curr_bytes_out,
+				ts);
+
+		/* allocate buffer for ret_str */
+		ret_str = (char *) malloc(strlen(status_buffer) + 1);
+		if (ret_str) {
+			strcpy(ret_str, status_buffer);
+			ret_str[strlen(status_buffer)] = '\0';
 		}
 	}
 
-	*status_jstr = ret_jstr;
+	*status_str = ret_str;
 }
 
 /*
  * get status of all connections
  */
 
-static void get_all_conn_status(rvd_vpnconn_mgr_t *vpnconn_mgr, char **status_jstr)
+static void get_all_conn_status(rvd_vpnconn_mgr_t *vpnconn_mgr, bool json_format, char **status_str)
 {
 	struct rvd_vpnconn *vpn_conn = vpnconn_mgr->vpn_conns;
+	char *ret_str = NULL;
 
-	json_object *j_obj;
-	const char *p;
-	char *ret_jstr = NULL;
+	if (json_format) {
+		json_object *j_obj;
+		const char *p;
 
-	/* create new json object */
-	j_obj = json_object_new_array();
+		/* create new json object */
+		j_obj = json_object_new_array();
 
-	while (vpn_conn) {
-		json_object *j_sub_obj;
-		char *conn_status_jstr = NULL;
+		while (vpn_conn) {
+			json_object *j_sub_obj;
+			char *conn_status_jstr = NULL;
 
-		/* get connection status */
-		get_single_conn_status(vpn_conn, &conn_status_jstr);
-		if (conn_status_jstr) {
-			j_sub_obj = json_tokener_parse(conn_status_jstr);
-			if (j_sub_obj)
-				json_object_array_add(j_obj, j_sub_obj);
+			/* get connection status */
+			get_single_conn_status(vpn_conn, true, &conn_status_jstr);
+			if (conn_status_jstr) {
+				j_sub_obj = json_tokener_parse(conn_status_jstr);
+				if (j_sub_obj)
+					json_object_array_add(j_obj, j_sub_obj);
+			}
+
+			vpn_conn = vpn_conn->next;
 		}
 
-		vpn_conn = vpn_conn->next;
+		/* set all status */
+		p = json_object_get_string(j_obj);
+
+		ret_str = (char *) malloc(strlen(p) + 1);
+		if (ret_str) {
+			strncpy(ret_str, p, strlen(p));
+			ret_str[strlen(p)] = '\0';
+		}
+
+		/* free json object */
+		json_object_put(j_obj);
+	} else {
+		while (vpn_conn) {
+			char *conn_status_str = NULL;
+
+			/* get single connection status */
+			get_single_conn_status(vpn_conn, false, &conn_status_str);
+			if (conn_status_str) {
+				size_t len = ret_str ? strlen(ret_str) : 0;
+
+				/* allocate and copy buffer */
+				ret_str = realloc(ret_str, len + strlen(conn_status_str) + 1);
+				if (ret_str) {
+					strcpy(&ret_str[len], conn_status_str);
+					ret_str[len + strlen(conn_status_str)] = '\0';
+				}
+
+				/* free buffer */
+				free(conn_status_str);
+			}
+
+			vpn_conn = vpn_conn->next;
+		}
 	}
 
-	/* set all status */
-	p = json_object_get_string(j_obj);
-
-	ret_jstr = (char *) malloc(strlen(p) + 1);
-	if (ret_jstr) {
-		strncpy(ret_jstr, p, strlen(p));
-		ret_jstr[strlen(p)] = '\0';
-
-		*status_jstr = ret_jstr;
-	}
-
-	/* free json object */
-	json_object_put(j_obj);
+	*status_str = ret_str;
 }
 
 /*
  * get VPN connection status
  */
 
-void rvd_vpnconn_getstatus(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name, char **status_str)
+void rvd_vpnconn_getstatus(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name,
+	bool json_format, char **status_str)
 {
 	struct rvd_vpnconn *vpn_conn;
 
@@ -833,7 +900,7 @@ void rvd_vpnconn_getstatus(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name
 
 	/* if connection name is 'all', then try get all connection info */
 	if (strcmp(conn_name, "all") == 0) {
-		get_all_conn_status(vpnconn_mgr, status_str);
+		get_all_conn_status(vpnconn_mgr, json_format, status_str);
 		return;
 	}
 
@@ -845,7 +912,7 @@ void rvd_vpnconn_getstatus(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name
 	}
 
 	/* stop VPN connection */
-	get_single_conn_status(vpn_conn, status_str);
+	get_single_conn_status(vpn_conn, json_format, status_str);
 }
 
 /*

@@ -172,7 +172,7 @@ static int process_cmd_list(rvd_cmd_proc_t *cmd_proc, bool json_format, char **r
  * process 'connect' command
  */
 
-static int process_cmd_connect(rvd_cmd_proc_t *cmd_proc, const char *conn_name, char **status_jstr)
+static int process_cmd_connect(rvd_cmd_proc_t *cmd_proc, const char *conn_name, bool json_format, char **status_jstr)
 {
 	RVD_DEBUG_MSG("CMD: Processing 'connect' command");
 
@@ -200,7 +200,7 @@ static int process_cmd_connect(rvd_cmd_proc_t *cmd_proc, const char *conn_name, 
 	rvd_vpnconn_connect(&cmd_proc->c->vpnconn_mgr, conn_name);
 
 	/* get connection status */
-	rvd_vpnconn_getstatus(&cmd_proc->c->vpnconn_mgr, conn_name, status_jstr);
+	rvd_vpnconn_getstatus(&cmd_proc->c->vpnconn_mgr, conn_name, json_format, status_jstr);
 
 	return RVD_RESP_OK;
 }
@@ -209,7 +209,7 @@ static int process_cmd_connect(rvd_cmd_proc_t *cmd_proc, const char *conn_name, 
  * process 'disconnect' command
  */
 
-static int process_cmd_disconnect(rvd_cmd_proc_t *cmd_proc, const char *conn_name, char **status_jstr)
+static int process_cmd_disconnect(rvd_cmd_proc_t *cmd_proc, const char *conn_name, bool json_format, char **status_jstr)
 {
 	RVD_DEBUG_MSG("CMD: Processing 'disconnect' command");
 
@@ -238,7 +238,7 @@ static int process_cmd_disconnect(rvd_cmd_proc_t *cmd_proc, const char *conn_nam
 	rvd_vpnconn_disconnect(&cmd_proc->c->vpnconn_mgr, conn_name);
 
 	/* get connection status */
-	rvd_vpnconn_getstatus(&cmd_proc->c->vpnconn_mgr, conn_name, status_jstr);
+	rvd_vpnconn_getstatus(&cmd_proc->c->vpnconn_mgr, conn_name, json_format, status_jstr);
 
 	return RVD_RESP_OK;
 }
@@ -247,7 +247,7 @@ static int process_cmd_disconnect(rvd_cmd_proc_t *cmd_proc, const char *conn_nam
  * process 'status' command
  */
 
-static int process_cmd_status(rvd_cmd_proc_t *cmd_proc, const char *conn_name, char **status_jstr)
+static int process_cmd_status(rvd_cmd_proc_t *cmd_proc, const char *conn_name, bool json_format, char **status_jstr)
 {
 	RVD_DEBUG_MSG("CMD: Processing 'status' command");
 
@@ -268,7 +268,7 @@ static int process_cmd_status(rvd_cmd_proc_t *cmd_proc, const char *conn_name, c
 	}
 
 	/* get status for vpn connection */
-	rvd_vpnconn_getstatus(&cmd_proc->c->vpnconn_mgr, conn_name, status_jstr);
+	rvd_vpnconn_getstatus(&cmd_proc->c->vpnconn_mgr, conn_name, json_format, status_jstr);
 
 	return RVD_RESP_OK;
 }
@@ -347,15 +347,15 @@ static int process_cmd(rvd_cmd_proc_t *cmd_proc, const char *cmd,
 		break;
 
 	case RVD_CMD_CONNECT:
-		resp_code = process_cmd_connect(cmd_proc, cmd_param, resp_data);
+		resp_code = process_cmd_connect(cmd_proc, cmd_param, *json_format, resp_data);
 		break;
 
 	case RVD_CMD_DISCONNECT:
-		resp_code = process_cmd_disconnect(cmd_proc, cmd_param, resp_data);
+		resp_code = process_cmd_disconnect(cmd_proc, cmd_param, *json_format, resp_data);
 		break;
 
 	case RVD_CMD_STATUS:
-		resp_code = process_cmd_status(cmd_proc, cmd_param, resp_data);
+		resp_code = process_cmd_status(cmd_proc, cmd_param, *json_format, resp_data);
 		break;
 
 	case RVD_CMD_SCRIPT_SECURITY:

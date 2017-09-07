@@ -103,12 +103,12 @@ static void print_help(void)
 {
 	printf("Usage: rvc [options]\n"
 		"\tOptions:\n"
-		"\t list [--json]\t\t\t\tshow list of VPN connections\n"
-		"\t connect [all|connection name]\t\tconnect to a VPN with given name\n"
-		"\t disconnect [all|connection name]\tdisconnect from VPN with given name\n"
-		"\t status [all|connection name]\t\tget status of VPN connection with given name\n"
-		"\t script-security [enable|disable]\tenable/disable script security\n"
-		"\t help\t\t\t\t\tshow help message\n"
+		"\t list [--json]\t\t\t\t\tshow list of VPN connections\n"
+		"\t connect [all|connection name] [--json]\t\tconnect to a VPN with given name\n"
+		"\t disconnect [all|connection name] [--json]\tdisconnect from VPN with given name\n"
+		"\t status [all|connection name] [--json]\t\tget status of VPN connection with given name\n"
+		"\t script-security [enable|disable]\t\tenable/disable script security\n"
+		"\t help\t\t\t\t\t\tshow help message\n"
 		);
 }
 
@@ -141,7 +141,7 @@ static int connect_to_rvd(void)
 int main(int argc, char *argv[])
 {
 	enum RVD_CMD_CODE cmd_code = RVD_CMD_UNKNOWN;
-	bool use_json = true;
+	bool use_json = false;
 	bool opt_invalid = false;
 
 	int i;
@@ -177,7 +177,6 @@ int main(int argc, char *argv[])
 
 	switch (cmd_code) {
 	case RVD_CMD_LIST:
-		use_json = false;
 		if (argc == 3 && strcmp(argv[2], "--json") == 0)
 			use_json = true;
 		else if (argc != 2)
@@ -189,7 +188,10 @@ int main(int argc, char *argv[])
 	case RVD_CMD_DISCONNECT:
 		if (argc == 3)
 			cmd_param = argv[2];
-		else
+		else if (argc == 4 && strcmp(argv[3], "--json") == 0) {
+			cmd_param = argv[2];
+			use_json = true;
+		} else
 			opt_invalid = true;
 
 		break;
@@ -197,9 +199,16 @@ int main(int argc, char *argv[])
 	case RVD_CMD_STATUS:
 		if (argc == 2)
 			cmd_param = "all";
-		else if (argc == 3)
+		else if (argc == 3) {
+			if (strcmp(argv[2], "--json") == 0) {
+				use_json = true;
+				cmd_param = "all";
+			} else
+				cmd_param = argv[2];
+		} else if (argc == 4 && strcmp(argv[3], "--json") == 0) {
+			use_json = true;
 			cmd_param = argv[2];
-		else
+		} else
 			opt_invalid = true;
 
 		break;
