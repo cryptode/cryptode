@@ -336,11 +336,6 @@ static int process_cmd(rvd_cmd_proc_t *cmd_proc, const char *cmd,
 		return RVD_RESP_INVALID_CMD;
 	}
 
-	if (cmd_code == RVD_CMD_UNKNOWN) {
-		RVD_DEBUG_ERR("CMD: Unknown command '%s'", cmd);
-		return RVD_RESP_INVALID_CMD;
-	}
-
 	switch (cmd_code) {
 	case RVD_CMD_LIST:
 		resp_code = process_cmd_list(cmd_proc, *json_format, resp_data);
@@ -492,8 +487,11 @@ int rvd_cmd_proc_init(struct rvd_ctx *c)
 
 	RVD_DEBUG_MSG("CMD: Initializing rvd command processor");
 
+	/* init command processor object */
+	memset(cmd_proc, 0, sizeof(rvd_cmd_proc_t));
+
 	/* create listening unix domain socket */
-	listen_sock = create_listen_socket(&c->ops);
+	listen_sock = create_listen_socket(&c->opt);
 	if (listen_sock < 0)
 		return -1;
 

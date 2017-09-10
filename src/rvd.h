@@ -15,9 +15,6 @@ struct rvd_ctx;
 #include "cmd.h"
 #include "vpn.h"
 
-/* macro constants */
-#define RVD_PID_FPATH				"/var/run/rvd.pid"
-
 /* rvd context options */
 typedef struct rvd_ctx_option {
 	char ovpn_bin_path[RVD_MAX_PATH];
@@ -37,7 +34,7 @@ typedef struct rvd_ctx_option {
 typedef struct rvd_ctx {
 	const char *config_path;
 
-	rvd_ctx_opt_t ops;
+	rvd_ctx_opt_t opt;
 
 	rvd_cmd_proc_t cmd_proc;
 	rvd_vpnconn_mgr_t vpnconn_mgr;

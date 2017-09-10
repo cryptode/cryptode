@@ -54,6 +54,10 @@ static int create_log_file()
 	int fd;
 	char backup_log_path[RVD_MAX_PATH];
 
+	/* check whether log path is set */
+	if (!g_log_path)
+		return -1;
+
 	/* check whether file pointer is exist */
 	if (g_log_fp) {
 		fclose(g_log_fp);
@@ -141,24 +145,6 @@ void rvd_debug_log(enum LOG_TYPE log_type, const char *file_name, int file_line,
 	char msg[RVD_MAX_LOGMSG_LEN + 1];
 	int written_log_bytes;
 
-	/* check log file pointer */
-	if (!g_log_fp)
-		return;
-
-	/* mutex lock */
-	pthread_mutex_lock(&g_log_mt);
-
-	/* check log file size */
-	if (!g_log_fp || g_log_fsize > RVD_MAX_LOG_FSIZE) {
-		create_log_file();
-		g_log_fsize = 0;
-	}
-
-	if (!g_log_fp) {
-		pthread_mutex_unlock(&g_log_mt);
-		return;
-	}
-
 	/* build log string */
 	va_start(va_args, format);
 	vsnprintf(msg, sizeof(msg), format, va_args);
@@ -169,17 +155,28 @@ void rvd_debug_log(enum LOG_TYPE log_type, const char *file_name, int file_line,
 
 	strftime(time_str, sizeof(time_str), "%FT%T%Z", tm);
 
-	/* write log */
-	written_log_bytes = fprintf(g_log_fp, "%s\t%s : %s(at %s:%d)\n", time_str, log_type_str[log_type], msg, file_name, file_line);
-	if (written_log_bytes > 0)
-		g_log_fsize += written_log_bytes;
+	/* mutex lock */
+	pthread_mutex_lock(&g_log_mt);
 
-	fflush(g_log_fp);
+	/* check log file size */
+	if (!g_log_fp || g_log_fsize > RVD_MAX_LOG_FSIZE) {
+		create_log_file();
+		g_log_fsize = 0;
+	}
+
+	/* write log */
+	if (g_log_fp) {
+		written_log_bytes = fprintf(g_log_fp, "%s\t%s : %s(at %s:%d)\n", time_str, log_type_str[log_type], msg, file_name, file_line);
+		if (written_log_bytes > 0)
+			g_log_fsize += written_log_bytes;
+
+		fflush(g_log_fp);
+
+		/* write syslog */
+		syslog(LOG_INFO, "%s\t%s : %s\n", time_str, log_type_str[log_type], msg);
+	}
 
 	fprintf(stderr, "%s\t%s : %s(at %s:%d)\n", time_str, log_type_str[log_type], msg, file_name, file_line);
-
-	/* write syslog */
-	syslog(LOG_INFO, "%s\t%s : %s\n", time_str, log_type_str[log_type], msg);
 
 	/* unlock mutex */
 	pthread_mutex_unlock(&g_log_mt);

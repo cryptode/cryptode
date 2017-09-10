@@ -23,7 +23,8 @@ rvc
 rvd
 Makefile.in
 aclocal.m4
-config.h.in
+config.h.in*
 m4/*.m4
 src/.deps
 src/rvcd.dSYM
+.tar.gz

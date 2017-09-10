@@ -460,7 +460,7 @@ static int run_openvpn_proc(struct rvd_vpnconn *vpn_conn)
 	sleep(1);
 
 	/* set owner of openvpn log file */
-	uid = vpn_conn->vpnconn_mgr->c->ops.allowed_uid;
+	uid = vpn_conn->vpnconn_mgr->c->opt.allowed_uid;
 	if (uid > 0) {
 		gid_t gid;
 
@@ -1044,7 +1044,7 @@ static void parse_config(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *config_path
 
 		/* parse json object */
 		if (rvd_json_parse(config_buf, vpn_config, sizeof(vpn_config) / sizeof(rvd_json_object_t)) == 0)
-			config.pre_exec_uid = vpnconn_mgr->c->ops.allowed_uid;
+			config.pre_exec_uid = vpnconn_mgr->c->opt.allowed_uid;
 		else {
 			RVD_DEBUG_ERR("VPN: Couldn't parse configuration file '%s'", config_path);
 			add_config = false;
@@ -1390,7 +1390,7 @@ int rvd_vpnconn_mgr_init(struct rvd_ctx *c)
 	pthread_mutex_init(&vpnconn_mgr->conn_mt, NULL);
 
 	/* set configuration path */
-	read_config(vpnconn_mgr, c->ops.vpn_config_dirs);
+	read_config(vpnconn_mgr, c->opt.vpn_config_dirs);
 
 	/* create thread for monitoring vpn connections */
 	vpn_conn = vpnconn_mgr->vpn_conns;
