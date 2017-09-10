@@ -454,6 +454,10 @@ int is_valid_conn_name(const char *conn_name)
 			return 0;
 	}
 
+	/* check whether last character has alphabetic or digit */
+	if (i > 1 && !isalpha(conn_name[i - 1]) && !isdigit(conn_name[i - 1]))
+		return 0;
+
 	return 1;
 }
 
