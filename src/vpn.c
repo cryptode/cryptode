@@ -1106,6 +1106,81 @@ static void parse_config(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *config_path
 }
 
 /*
+ * read configuration from directory
+ */
+
+static void read_config_by_dir(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *dir_path)
+{
+	DIR *dir;
+	struct dirent *dp;
+
+	RVD_DEBUG_MSG("VPN: Reading configuration files in '%s'", dir_path);
+
+	/* open config directory */
+	dir = opendir(dir_path);
+	if (!dir) {
+		RVD_DEBUG_ERR("VPN: Couldn't open directory '%s'", dir_path);
+		return;
+	}
+
+	while ((dp = readdir(dir)) != NULL) {
+		char ovpn_profile_path[RVD_MAX_PATH];
+		char conf_json_path[RVD_MAX_PATH];
+
+		char conf_name[RVD_MAX_CONN_NAME_LEN];
+
+		struct stat st;
+		const char *p;
+
+		bool conf_exist = true;
+
+		/* init paths */
+		memset(ovpn_profile_path, 0, sizeof(ovpn_profile_path));
+		memset(conf_json_path, 0, sizeof(conf_json_path));
+		memset(conf_name, 0, sizeof(conf_name));
+
+		strcpy(ovpn_profile_path, dir_path);
+		strcpy(conf_json_path, dir_path);
+
+		if (dir_path[strlen(dir_path) - 1] != '/') {
+			strcat(conf_json_path, "/");
+			strcat(ovpn_profile_path, "/");
+		}
+
+		/* check whether the file is ovpn file */
+		p = strstr(dp->d_name, ".ovpn");
+		if (!p || strlen(p) != 5)
+			continue;
+
+		/* set openvpn profile path */
+		strcat(ovpn_profile_path, dp->d_name);
+
+		/* check whether openvpn profile is exist */
+		if (stat(ovpn_profile_path, &st) != 0 || !S_ISREG(st.st_mode)
+			|| st.st_size == 0)
+			continue;
+
+		/* set json configuration path */
+		strncat(conf_json_path, dp->d_name, strlen(dp->d_name) - strlen(p));
+		strcat(conf_json_path, ".json");
+
+		/* check whether configuration file is exist */
+		if (stat(conf_json_path, &st) != 0 || !S_ISREG(st.st_mode) ||
+			st.st_size == 0) {
+			/* set connection name */
+			strncpy(conf_name, dp->d_name, strlen(dp->d_name) - 5);
+			conf_exist = false;
+		}
+
+		/* parse configuration file */
+		parse_config(vpnconn_mgr, conf_exist ? conf_json_path : NULL, conf_name, ovpn_profile_path);
+	}
+
+	/* close directory */
+	closedir(dir);
+}
+
+/*
  * read configuration
  */
 
@@ -1113,75 +1188,17 @@ static void read_config(rvd_vpnconn_mgr_t *vpnconn_mgr, struct rvd_json_array *v
 {
 	int i;
 
+	/* read configuration from default location */
+	read_config_by_dir(vpnconn_mgr, RVD_DEFAULT_VPN_CONFIG_DIR);
+
 	for (i = 0; i < vpn_config_dirs->arr_size; i++) {
-		DIR *dir;
-		struct dirent *dp;
 		const char *dir_path = vpn_config_dirs->val[i];
 
-		RVD_DEBUG_MSG("VPN: Reading configuration files in '%s'", dir_path);
-
-		/* open config directory */
-		dir = opendir(dir_path);
-		if (!dir) {
-			RVD_DEBUG_ERR("VPN: Couldn't open directory '%s'", dir_path);
+		/* check whether dir_path is default location */
+		if (strcmp(dir_path, RVD_DEFAULT_VPN_CONFIG_DIR) == 0)
 			continue;
-		}
 
-		while ((dp = readdir(dir)) != NULL) {
-			char ovpn_profile_path[RVD_MAX_PATH];
-			char conf_json_path[RVD_MAX_PATH];
-
-			char conf_name[RVD_MAX_CONN_NAME_LEN];
-
-			struct stat st;
-			const char *p;
-
-			bool conf_exist = true;
-
-			/* init paths */
-			memset(ovpn_profile_path, 0, sizeof(ovpn_profile_path));
-			memset(conf_json_path, 0, sizeof(conf_json_path));
-			memset(conf_name, 0, sizeof(conf_name));
-
-			strcpy(ovpn_profile_path, dir_path);
-			strcpy(conf_json_path, dir_path);
-
-			if (dir_path[strlen(dir_path) - 1] != '/') {
-				strcat(conf_json_path, "/");
-				strcat(ovpn_profile_path, "/");
-			}
-
-			/* check whether the file is ovpn file */
-			p = strstr(dp->d_name, ".ovpn");
-			if (!p || strlen(p) != 5)
-				continue;
-
-			/* set openvpn profile path */
-			strcat(ovpn_profile_path, dp->d_name);
-
-			/* check whether openvpn profile is exist */
-			if (stat(ovpn_profile_path, &st) != 0 || !S_ISREG(st.st_mode)
-				|| st.st_size == 0)
-				continue;
-
-			/* set json configuration path */
-			strncat(conf_json_path, dp->d_name, strlen(dp->d_name) - strlen(p));
-			strcat(conf_json_path, ".json");
-
-			/* check whether configuration file is exist */
-			if (stat(conf_json_path, &st) != 0 || !S_ISREG(st.st_mode) ||
-				st.st_size == 0) {
-				/* set connection name */
-				strncpy(conf_name, dp->d_name, strlen(dp->d_name) - 5);
-				conf_exist = false;
-			}
-
-			/* parse configuration file */
-			parse_config(vpnconn_mgr, conf_exist ? conf_json_path : NULL, conf_name, ovpn_profile_path);
-		}
-
-		/* close directory */
-		closedir(dir);
+		read_config_by_dir(vpnconn_mgr, dir_path);
 	}
 
 	return;
