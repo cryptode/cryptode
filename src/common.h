@@ -24,6 +24,8 @@
 /* rvd default UID for writting to rvd socket */
 #define RVD_DEFAULT_UID				501
 
+/* rvd pid file path */
+#define RVD_PID_FPATH				"/var/run/rvd.pid"
 
 /* rvd command codes */
 enum RVD_CMD_CODE {
@@ -32,6 +34,7 @@ enum RVD_CMD_CODE {
 	RVD_CMD_DISCONNECT,
 	RVD_CMD_STATUS,
 	RVD_CMD_SCRIPT_SECURITY,
+	RVD_CMD_RELOAD,
 	RVD_CMD_UNKNOWN
 };
 

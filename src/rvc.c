@@ -30,6 +30,9 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <signal.h>
 
 #include <json-c/json.h>
 
@@ -39,6 +42,77 @@ static int g_sock;
 
 static char g_cmd[RVD_MAX_CMD_LEN + 1];
 static char g_resp[RVD_MAX_RESP_LEN + 1];
+
+/*
+ * get process ID of rvd process
+ */
+
+static pid_t
+get_pid_of_rvd()
+{
+	FILE *pid_fp;
+	char buf[128];
+
+	pid_t pid = 0;
+
+	/* open pid file */
+	pid_fp = fopen(RVD_PID_FPATH, "r");
+	if (!pid_fp)
+		return 0;
+
+	/* get pid */
+	while (fgets(buf, sizeof(buf), pid_fp) != NULL) {
+		if (buf[strlen(buf) - 1] == '\n')
+			buf[strlen(buf) - 1] = '\0';
+
+		if (strlen(buf) == 0)
+			continue;
+
+		pid = atoi(buf);
+		if (pid > 0)
+			break;
+	}
+
+	/* close pid file */
+	fclose(pid_fp);
+
+	/* check if pid is valid */
+	if (pid < 1)
+		return 0;
+
+	return pid;
+}
+
+/*
+ * reload rvd daemon
+ */
+
+static void reload_rvd()
+{
+	pid_t pid_rvd;
+
+	/* check UID is root */
+	if (getuid() != 0) {
+		fprintf(stderr, "This option requires root privilege. Please run with 'sudo'\n");
+		exit(-1);
+	}
+
+	/* get process ID of rvd */
+	pid_rvd = get_pid_of_rvd();
+	if (pid_rvd <= 0) {
+		fprintf(stderr, "The rvd process isn't running.\n");
+		exit(-1);
+	}
+
+	/* send SIGUSR1 signal */
+	if (kill(pid_rvd, SIGUSR1) < 0) {
+		fprintf(stderr, "Couldn't to send SIGUSR1 signal to rvd process.(err:%d)\n", errno);
+		exit(-1);
+	} else
+		fprintf(stderr, "Sending reload signal to rvd process '%d' has succeeded.\n", pid_rvd);
+
+	exit(0);
+}
 
 /*
  * send command and print response
@@ -53,6 +127,7 @@ static struct {
 	{RVD_CMD_DISCONNECT, "disconnect"},
 	{RVD_CMD_STATUS, "status"},
 	{RVD_CMD_SCRIPT_SECURITY, "script-security"},
+	{RVD_CMD_RELOAD, "reload"},
 	{RVD_CMD_UNKNOWN, NULL}
 };
 
@@ -109,6 +184,7 @@ static void print_help(void)
 		"    status [all|connection name] [--json]\tget status of VPN connection with given name\n"
 		"    script-security <enable|disable>\t\tenable/disable script security\n"
 		"    help\t\t\t\t\tshow help message\n"
+		"    reload\t\t\t\t\treload configurations(sudo required)\n"
 		);
 }
 
@@ -219,6 +295,14 @@ int main(int argc, char *argv[])
 			cmd_param = argv[2];
 		else
 			opt_invalid = true;
+
+		break;
+
+	case RVD_CMD_RELOAD:
+		if (argc != 2)
+			opt_invalid = true;
+		else
+			reload_rvd();
 
 		break;
 

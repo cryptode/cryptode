@@ -39,6 +39,7 @@
 #include "rvd.h"
 
 static bool g_end_flag;
+static bool g_reload_config;
 
 /* rvd default configuration */
 static rvd_ctx_opt_t g_default_opts = {
@@ -75,6 +76,12 @@ signal_handler(const int signum)
 {
 	RVD_DEBUG_MSG("Main: Received signal %d", signum);
 
+	/* if signal is SIGUSR1, then reload a config */
+	if (signum == SIGUSR1) {
+		g_reload_config = true;
+		return;
+	}
+
 	/* set end flag */
 	g_end_flag = true;
 }
@@ -89,6 +96,7 @@ init_signal()
 	signal(SIGINT, signal_handler);
 	signal(SIGTERM, signal_handler);
 	signal(SIGHUP, signal_handler);
+	signal(SIGUSR1, signal_handler);
 }
 
 /*
@@ -154,7 +162,7 @@ write_pid_file()
 	remove(RVD_PID_FPATH);
 
 	/* open pid file and write */
-	fd = open(RVD_PID_FPATH, O_CREAT | O_WRONLY);
+	fd = open(RVD_PID_FPATH, O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR);
 	if (fd < 0)
 		return;
 
@@ -166,7 +174,7 @@ write_pid_file()
 
 	fprintf(pid_fp, "%d\n", pid);
 
-	// close pid file
+	/* close pid file */
 	fclose(pid_fp);
 }
 
@@ -185,7 +193,7 @@ remove_pid_file()
  */
 
 static int
-parse_config(rvd_ctx_t *c)
+parse_config(rvd_ctx_opt_t *opt, const char *config_path)
 {
 	int fd;
 
@@ -193,9 +201,6 @@ parse_config(rvd_ctx_t *c)
 	ssize_t buf_len = 0;
 
 	struct stat st;
-
-	const char *config_path = c->config_path ? c->config_path : RVD_DEFAULT_CONFIG_PATH;
-	rvd_ctx_opt_t *opt = &c->ops;
 
 	struct rvd_json_object config_jobjs[] = {
 		{"openvpn_bin", RVD_JTYPE_STR, opt->ovpn_bin_path, sizeof(opt->ovpn_bin_path), false, NULL},
@@ -282,9 +287,20 @@ static void free_config(rvd_ctx_opt_t *op)
  */
 
 static int
-rvd_ctx_init(rvd_ctx_t *c)
+rvd_ctx_init(rvd_ctx_t *c, const char *config_path)
 {
 	RVD_DEBUG_MSG("Main: Initializing rvd context");
+
+	/* initialize context object */
+	memset(c, 0, sizeof(rvd_ctx_t));
+
+	/* read configruation */
+	if (parse_config(&c->opt, config_path ? config_path : RVD_DEFAULT_CONFIG_PATH) != 0)
+		exit(-1);
+
+	/* initialize logging */
+	if (rvd_log_init(c->opt.log_path) != 0)
+		return -1;
 
 	/* initialize command manager */
 	if (rvd_cmd_proc_init(c) != 0) {
@@ -315,6 +331,35 @@ rvd_ctx_finalize(rvd_ctx_t *c)
 
 	/* finalize command manager */
 	rvd_cmd_proc_finalize(&c->cmd_proc);
+
+	/* finalize logging */
+	rvd_log_finalize(&c);
+
+	/* free config */
+	free_config(&c->opt);
+}
+
+/*
+ * reload rvd context
+ */
+
+static void
+rvd_ctx_reload(rvd_ctx_t *c, const char *config_path)
+{
+	RVD_DEBUG_MSG("Main: Reloading rvd context");
+
+	/* finalize rvd context */
+	rvd_ctx_finalize(c);
+
+	/* init context object */
+	memset(c, 0, sizeof(rvd_ctx_t));
+
+	/* init rvd context */
+	if (rvd_ctx_init(c, config_path) != 0) {
+		RVD_DEBUG_ERR("Main: Couldn't reload rvd context");
+
+		rvd_ctx_finalize(c);
+	}
 }
 
 /*
@@ -326,6 +371,8 @@ main(int argc, char *argv[])
 {
 	rvd_ctx_t ctx;
 	pid_t pid;
+
+	const char *config_path = NULL;
 
 	/* initialize rvd context */
 	memset(&ctx, 0, sizeof(rvd_ctx_t));
@@ -343,11 +390,7 @@ main(int argc, char *argv[])
 		while ((opt = getopt(argc, argv, "c:h")) != -1) {
 			switch (opt) {
 				case 'c':
-					ctx.config_path = optarg;
-					break;
-
-				case 'h':
-					print_help();
+					config_path = optarg;
 					break;
 
 				default:
@@ -369,18 +412,8 @@ main(int argc, char *argv[])
 	/* init signal */
 	init_signal();
 
-	/* read configruation */
-	if (parse_config(&ctx) != 0)
-		exit(-1);
-
-	/* initialize logging */
-	if (rvd_log_init(ctx.ops.log_path) != 0) {
-		fprintf(stderr, "Couldn't initialize logging.\n");
-		exit(-1);
-	}
-
 	/* initialize rvd context */
-	if (rvd_ctx_init(&ctx) != 0) {
+	if (rvd_ctx_init(&ctx, config_path) != 0) {
 		RVD_DEBUG_ERR("Main: Failed initializing rvd context.");
 
 		rvd_ctx_finalize(&ctx);
@@ -388,17 +421,19 @@ main(int argc, char *argv[])
 	}
 
 	while (!g_end_flag) {
+		if (g_reload_config) {
+			rvd_ctx_reload(&ctx, config_path);
+			g_reload_config = false;
+		}
+
 		sleep(1);
 	}
 
-	/* finalize rvd context */
+	/* finalize rvc context */
 	rvd_ctx_finalize(&ctx);
 
 	/* remove PID file */
 	remove_pid_file();
-
-	/* free config */
-	free_config(&ctx.ops);
 
 	return 0;
 }
