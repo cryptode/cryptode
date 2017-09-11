@@ -64,21 +64,21 @@ static int create_listen_socket(rvd_ctx_opt_t *op)
 	/* set listen address */
 	memset(&listen_addr, 0, sizeof(struct sockaddr_un));
 	listen_addr.sun_family = AF_UNIX;
-	strcpy(listen_addr.sun_path, op->listen_sock_path);
+	strcpy(listen_addr.sun_path, RVD_LISTEN_SOCK_PATH);
 
 	/* remove socket at first */
-	remove(op->listen_sock_path);
+	remove(RVD_LISTEN_SOCK_PATH);
 
 	/* bind and listen socket */
 	if (bind(listen_sock, (struct sockaddr *) &listen_addr, sizeof(struct sockaddr_un)) != 0) {
-		RVD_DEBUG_ERR("CMD: Couldn't bind on unix domain socket '%s'(err:%d)", op->listen_sock_path, errno);
+		RVD_DEBUG_ERR("CMD: Couldn't bind on unix domain socket '%s'(err:%d)", RVD_LISTEN_SOCK_PATH, errno);
 		close(listen_sock);
 
 		return -1;
 	}
 
 	if (listen(listen_sock, 5) != 0) {
-		RVD_DEBUG_ERR("CMD: Couldn't listen on unix domain socket '%s'(err:%d)", op->listen_sock_path, errno);
+		RVD_DEBUG_ERR("CMD: Couldn't listen on unix domain socket '%s'(err:%d)", RVD_LISTEN_SOCK_PATH, errno);
 		close(listen_sock);
 
 		return -1;
@@ -86,10 +86,10 @@ static int create_listen_socket(rvd_ctx_opt_t *op)
 
 	/* set permission of socket */
 	if (op->restrict_cmd_sock) {
-		chown(op->listen_sock_path, op->allowed_uid, 0);
-		chmod(op->listen_sock_path, S_IRUSR | S_IWUSR);
+		chown(RVD_LISTEN_SOCK_PATH, op->allowed_uid, 0);
+		chmod(RVD_LISTEN_SOCK_PATH, S_IRUSR | S_IWUSR);
 	} else
-		chmod(op->listen_sock_path, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+		chmod(RVD_LISTEN_SOCK_PATH, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 
 	return listen_sock;
 }
@@ -551,5 +551,5 @@ void rvd_cmd_proc_finalize(rvd_cmd_proc_t *cmd_proc)
 	close(cmd_proc->listen_sock);
 
 	/* remove socket */
-	remove(RVD_DEFAULT_LISTEN_SOCK);
+	remove(RVD_LISTEN_SOCK_PATH);
 }

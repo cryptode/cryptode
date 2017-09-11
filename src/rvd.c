@@ -47,7 +47,6 @@ static rvd_ctx_opt_t g_default_opts = {
 	false,
 	RVD_DEFAULT_UID,
 	true,
-	RVD_DEFAULT_LISTEN_SOCK,
 	RVD_DEFAULT_LOG_PATH,
 	NULL
 };
@@ -203,7 +202,6 @@ parse_config(rvd_ctx_t *c)
 		{"openvpn_up_down_scripts", RVD_JTYPE_BOOL, &opt->ovpn_use_scripts, 0, false, NULL},
 		{"user_id", RVD_JTYPE_UID, &opt->allowed_uid, 0, false, NULL},
 		{"restrict_socket", RVD_JTYPE_BOOL, &opt->restrict_cmd_sock, 0, false, NULL},
-		{"socket_path", RVD_JTYPE_STR, opt->listen_sock_path, sizeof(opt->listen_sock_path), false, NULL},
 		{"log", RVD_JTYPE_STR, opt->log_path, sizeof(opt->log_path), false, NULL},
 		{"vpn_config_paths", RVD_JTYPE_STR_ARRAY, &opt->vpn_config_dirs, 0, true, NULL}
 	};

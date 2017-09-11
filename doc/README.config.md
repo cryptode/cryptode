@@ -10,7 +10,6 @@ The main configuration file for `rvd` is located in `/opt/rvc/etc/rvd.json`.
   "ovpn_up_down_scripts": false,
   "user_id": 501,
   "restrict_socket": true,
-  "socket_path": "/tmp/.rvd_cmd",
   "log": "/var/log/rvd.log",
   "vpn_config_paths": [
     "/opt/rvc/etc/vpn.d",
@@ -28,8 +27,6 @@ The main configuration file for `rvd` is located in `/opt/rvc/etc/rvd.json`.
 `user_id`: the UID of the user to which the rvd socket is writable.
 
 `restrict_socket`: make the socket writable to others or only the user_id.
-
-`socket_path`: the path of the socket.
 
 `log`: the location of the log file.
 
