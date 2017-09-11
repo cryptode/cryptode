@@ -31,6 +31,7 @@
 #include <errno.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <fcntl.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/select.h>
@@ -43,6 +44,7 @@
 
 #include <json-c/json.h>
 
+#include "common.h"
 #include "util.h"
 
 /* parse JSON string */
@@ -546,6 +548,132 @@ int get_gid_by_uid(uid_t uid, gid_t *gid)
 
 	if (ret == 0)
 		*gid = pwd.pw_gid;
+
+	return ret;
+}
+
+/*
+ * check whether given file has valid extension
+ */
+
+int is_valid_extension(const char *file_path, const char *extension)
+{
+	const char *p;
+
+	/* get extension */
+	p = strrchr(file_path, '.');
+	if (!p)
+		return 0;
+
+	/* compare extension */
+	if (strcmp(p, extension) != 0)
+		return 0;
+
+	return 1;
+}
+
+/* get size of given file */
+size_t get_file_size(const char *file_path)
+{
+	struct stat st;
+
+	/* get stat of file */
+	if (stat(file_path, &st) != 0 || !S_ISREG(st.st_mode))
+		return 0;
+
+	return st.st_size;
+}
+
+/* get file name from path */
+int get_file_name_by_path(const char *file_path, char *file_name, size_t s)
+{
+	const char *p;
+
+	/* check whether file path has '/' */
+	p = strrchr(file_path, '/');
+	if (!p)
+		p = file_path;
+	else
+		p = p + 1;
+
+	/* check length */
+	if (strlen(p) == 0 || strlen(p) + 1 > s)
+		return -1;
+
+	strcpy(file_name, p);
+
+	return 0;
+}
+
+/* copy file into directory */
+int copy_file_into_dir(const char *file_path, const char *dir_path, mode_t mode)
+{
+	char dst_path[RVD_MAX_PATH];
+	size_t dir_path_len;
+
+	char file_name[RVD_MAX_FILE_NAME];
+	struct stat st;
+
+	int src_fd = -1, dst_fd = -1;
+	int ret = 0;
+
+	ssize_t read_bytes = 0;
+
+	/* get file name from file path */
+	if (get_file_name_by_path(file_path, file_name, sizeof(file_name)) != 0)
+		return -1;
+
+	/* check path size */
+	dir_path_len = strlen(dir_path);
+	if (dir_path[dir_path_len - 1] != '/')
+		dir_path_len++;
+
+	if (dir_path_len + strlen(file_name) + 1 > sizeof(dst_path))
+		return -1;
+
+	/* make destination path */
+	memset(dst_path, 0, sizeof(dst_path));
+	strcpy(dst_path, dir_path);
+	if (dst_path[strlen(dst_path) - 1] != '/')
+		strcat(dst_path, "/");
+
+	strcat(dst_path, file_name);
+
+	/* check whether file is already exist */
+	if (stat(dst_path, &st) == 0)
+		return -1;
+
+	/* open source file */
+	src_fd = open(file_path, O_RDONLY);
+	if (src_fd < 0)
+		return -1;
+
+	/* create and open destination file */
+	dst_fd = open(dst_path, O_CREAT | O_WRONLY, mode);
+	if (dst_fd < 0) {
+		close(src_fd);
+		return -1;
+	}
+
+	/* copy file contents */
+	do {
+		char buf[1024];
+		ssize_t write_bytes = 0;
+
+		/* read buffer from file */
+		read_bytes = read(src_fd, buf, sizeof(buf));
+		if (read_bytes > 0)
+			write_bytes = write(dst_fd, buf, read_bytes);
+
+		if (read_bytes < 0 || write_bytes < 0) {
+			ret = -1;
+			break;
+		}
+	} while (read_bytes > 0);
+
+	/* close files */
+	close(dst_fd);
+	close(src_fd);
 
 	return ret;
 }

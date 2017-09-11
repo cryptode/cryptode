@@ -37,7 +37,13 @@
 #include <json-c/json.h>
 
 #include "common.h"
+#include "util.h"
 
+/* rvc import format */
+#define RVC_IMPORT_TYPE_TBLK				0
+#define RVC_IMPORT_TYPE_OVPN				1
+
+/* static global variables */
 static int g_sock;
 
 static char g_cmd[RVD_MAX_CMD_LEN + 1];
@@ -115,6 +121,55 @@ static void reload_rvd()
 }
 
 /*
+ * import VPN connection
+ */
+
+static void import_vpn_connection(const char *import_type_str, const char *import_path)
+{
+	int import_type;
+	size_t fsize;
+
+	/* check UID */
+	if (getuid() != 0) {
+		fprintf(stderr, "This option requires root privilege. Please run with 'sudo'\n");
+		exit(-1);
+	}
+
+	/* get import type */
+	if (strcmp(import_type_str, "new-from-tblk") == 0)
+		import_type = RVC_IMPORT_TYPE_TBLK;
+	else if (strcmp(import_type_str, "new-from-ovpn") == 0)
+		import_type = RVC_IMPORT_TYPE_OVPN;
+	else {
+		fprintf(stderr, "Invalid import type paramter '%s'\n", import_type_str);
+		exit(-1);
+	}
+
+	/* checks whether import_path has valid extension */
+	if (!is_valid_extension(import_path, import_path == RVC_IMPORT_TYPE_TBLK ? ".tblk" : ".ovpn")) {
+		fprintf(stderr, "Invalid extension of file '%s'\n", import_path);
+		exit(-1);
+	}
+
+	/* checks whether size of imported profile */
+	fsize = get_file_size(import_path);
+	if (fsize <= 0 || fsize >= RVC_MAX_IMPORT_SIZE) {
+		fprintf(stderr, "Invalid size or too large file '%s'\n", import_path);
+		exit(-1);
+	}
+
+	/* copy files into rvd config directory */
+	if (copy_file_into_dir(import_path, RVD_DEFAULT_VPN_CONFIG_DIR, S_IRUSR | S_IWUSR) != 0) {
+		fprintf(stderr, "Couldn't copy file '%s' into '%s'\n", import_path, RVD_DEFAULT_VPN_CONFIG_DIR);
+		exit(-1);
+	}
+
+	fprintf(stderr, "Success to import VPN configuration from '%s'\n", import_path);
+
+	reload_rvd();
+}
+
+/*
  * send command and print response
  */
 
@@ -128,6 +183,7 @@ static struct {
 	{RVD_CMD_STATUS, "status"},
 	{RVD_CMD_SCRIPT_SECURITY, "script-security"},
 	{RVD_CMD_RELOAD, "reload"},
+	{RVD_CMD_IMPORT, "import"},
 	{RVD_CMD_UNKNOWN, NULL}
 };
 
@@ -184,7 +240,8 @@ static void print_help(void)
 		"    status [all|connection name] [--json]\tget status of VPN connection with given name\n"
 		"    script-security <enable|disable>\t\tenable/disable script security\n"
 		"    help\t\t\t\t\tshow help message\n"
-		"    reload\t\t\t\t\treload configurations(sudo required)\n"
+		"    reload\t\t\t\t\treload configuration(sudo required)\n"
+		"    import <new-from-tblk|new-from-ovpn> <path>\timport VPN connection(sudo required)\n"
 		);
 }
 
@@ -303,6 +360,14 @@ int main(int argc, char *argv[])
 			opt_invalid = true;
 		else
 			reload_rvd();
+
+		break;
+
+	case RVD_CMD_IMPORT:
+		if (argc != 4)
+			opt_invalid = true;
+		else
+			import_vpn_connection(argv[2], argv[3]);
 
 		break;
 

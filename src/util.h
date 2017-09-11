@@ -59,4 +59,13 @@ int is_valid_permission(const char *path, mode_t mode);
 /* get group ID from user ID */
 int get_gid_by_uid(uid_t uid, gid_t *gid);
 
+/* check whether given file has valid extension */
+int is_valid_extension(const char *file_path, const char *extension);
+
+/* get size of given file */
+size_t get_file_size(const char *file_path);
+
+/* copy file into directory */
+int copy_file_into_dir(const char *file_path, const char *dir_path, mode_t mode);
+
 #endif /* __RVD_UTIL_H__ */
