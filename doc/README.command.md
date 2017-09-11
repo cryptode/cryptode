@@ -3,7 +3,7 @@
 
 The interface between rvd and UI is a socket that takes commands and provides responses.
 
-`rvd daemon` listens on unix domain socket `/tmp/.rvd_cmd`
+`rvd daemon` listens on unix domain socket `/var/run/rvd`
 
 ## Command Codes
 

@@ -16,7 +16,7 @@
 #define RVD_DEFAULT_CONFIG_PATH			"/opt/rvc/etc/rvd.json"
 
 /* rvd default command listen socket path */
-#define RVD_DEFAULT_LISTEN_SOCK			"/tmp/.rvd_cmd"
+#define RVD_LISTEN_SOCK_PATH			"/var/run/rvd"
 
 /* rvd default log file path */
 #define RVD_DEFAULT_LOG_PATH			"/var/log/rvd.log"

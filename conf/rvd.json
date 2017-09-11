@@ -4,7 +4,6 @@
   "ovpn_up_down_scripts": false,
   "user_id": 501,
   "restrict_socket": true,
-  "socket_path": "/tmp/.rvd_cmd",
   "log": "/var/log/rvd.log",
   "vpn_config_paths": [
     "/opt/rvc/etc/vpn.d"

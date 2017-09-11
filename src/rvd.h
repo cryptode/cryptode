@@ -23,7 +23,6 @@ typedef struct rvd_ctx_option {
 
 	uid_t allowed_uid;
 	bool restrict_cmd_sock;
-	char listen_sock_path[RVD_MAX_PATH];
 
 	char log_path[RVD_MAX_PATH];
 

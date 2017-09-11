@@ -204,7 +204,7 @@ static int connect_to_rvd(void)
 	/* set server address */
 	memset(&addr, 0, sizeof(struct sockaddr_un));
 	addr.sun_family = AF_UNIX;
-	strcpy(addr.sun_path, RVD_DEFAULT_LISTEN_SOCK);
+	strcpy(addr.sun_path, RVD_LISTEN_SOCK_PATH);
 
 	/* connect to rvd */
 	return connect(g_sock, (struct sockaddr *) &addr, sizeof(struct sockaddr_un));
