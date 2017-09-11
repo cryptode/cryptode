@@ -1,5 +1,5 @@
 {
-  "openvpn_bin": "/opt/openvpn/bin/openvpn",
+  "openvpn_bin": "/opt/openvpn/sbin/openvpn",
   "openvpn_root_check": true,
   "ovpn_up_down_scripts": false,
   "user_id": 501,

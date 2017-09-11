@@ -340,6 +340,35 @@ static void *stop_vpn_conn(void *p)
 }
 
 /*
+ * check whether openvpn binrary is available
+ */
+
+static int check_ovpn_binary(const char *ovpn_bin_path, bool root_check)
+{
+	struct stat st;
+
+	/* get stat of openvpn binrary file */
+	if (stat(ovpn_bin_path, &st) != 0 || !S_ISREG(st.st_mode)) {
+		RVD_DEBUG_ERR("VPN: Wrong path of OpenVPN binary '%s'", ovpn_bin_path);
+		return -1;
+	}
+
+	/* check executable status */
+	if (!is_valid_permission(ovpn_bin_path, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)) {
+		RVD_DEBUG_ERR("VPN: Wrong permission of OpenVPN binary '%s'", ovpn_bin_path);
+		return -1;
+	}
+
+	/* check root status */
+	if (root_check && !is_owned_by_user(ovpn_bin_path, "root")) {
+		RVD_DEBUG_ERR("VPN: Wrong owner of OpenVPN binary '%s'", ovpn_bin_path);
+		return -1;
+	}
+
+	return 0;
+}
+
+/*
  * run pre-connect command
  */
 
@@ -410,8 +439,17 @@ static int run_openvpn_proc(struct rvd_vpnconn *vpn_conn)
 
 	uid_t uid;
 
+	rvd_ctx_t *c = vpn_conn->vpnconn_mgr->c;
+
 	RVD_DEBUG_MSG("VPN: Running OpenVPN process for connection '%s'", vpn_conn->config.name);
 
+	/* check openvpn binrary */
+	if (check_ovpn_binary(c->opt.ovpn_bin_path, c->opt.ovpn_root_check) != 0) {
+		RVD_DEBUG_ERR("VPN: Failed to check openvpn binrary availability.");
+		return -1;
+	}
+
+	/* run pre connect exec command */
 	if (run_preconn_cmd(vpn_conn) != 0) {
 		RVD_DEBUG_ERR("VPN: Failed exit code from running pre-connect command");
 		return -1;
