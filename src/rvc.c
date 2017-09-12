@@ -39,15 +39,32 @@
 #include "common.h"
 #include "util.h"
 
-/* rvc import format */
-#define RVC_IMPORT_TYPE_TBLK				0
-#define RVC_IMPORT_TYPE_OVPN				1
+#include "rvc.h"
 
 /* static global variables */
 static int g_sock;
 
 static char g_cmd[RVD_MAX_CMD_LEN + 1];
 static char g_resp[RVD_MAX_RESP_LEN + 1];
+
+/*
+ * print help message
+ */
+
+static void print_help(void)
+{
+	printf("usage: rvc <options>\n"
+		"  options:\n"
+		"    list [--json]\t\t\t\tshow list of VPN connections\n"
+		"    connect <all|connection name> [--json]\tconnect to a VPN with given name\n"
+		"    disconnect <all|connection name> [--json]\tdisconnect from VPN with given name\n"
+		"    status [all|connection name] [--json]\tget status of VPN connection with given name\n"
+		"    script-security <enable|disable>\t\tenable/disable script security\n"
+		"    help\t\t\t\t\tshow help message\n"
+		"    reload\t\t\t\t\treload configuration(sudo required)\n"
+		"    import <new-from-tblk|new-from-ovpn> <path>\timport VPN connection(sudo required)\n"
+		);
+}
 
 /*
  * get process ID of rvd process
@@ -93,80 +110,69 @@ get_pid_of_rvd()
  * reload rvd daemon
  */
 
-static void reload_rvd()
+static int reload_rvd()
 {
 	pid_t pid_rvd;
 
 	/* check UID is root */
 	if (getuid() != 0) {
 		fprintf(stderr, "This option requires root privilege. Please run with 'sudo'\n");
-		exit(-1);
+		return RVD_RESP_SUDO_REQUIRED;
 	}
 
 	/* get process ID of rvd */
 	pid_rvd = get_pid_of_rvd();
 	if (pid_rvd <= 0) {
 		fprintf(stderr, "The rvd process isn't running.\n");
-		exit(-1);
+		return RVD_RESP_RVD_NOT_RUNNING;
 	}
 
 	/* send SIGUSR1 signal */
 	if (kill(pid_rvd, SIGUSR1) < 0) {
 		fprintf(stderr, "Couldn't to send SIGUSR1 signal to rvd process.(err:%d)\n", errno);
-		exit(-1);
+		return RVD_RESP_SEND_SIG; 
 	} else
 		fprintf(stderr, "Sending reload signal to rvd process '%d' has succeeded.\n", pid_rvd);
 
-	exit(0);
+	return RVD_RESP_OK;
 }
 
 /*
  * import VPN connection
  */
 
-static void import_vpn_connection(const char *import_type_str, const char *import_path)
+static int import_vpn_connection(int import_type, const char *import_path)
 {
-	int import_type;
 	size_t fsize;
 
 	/* check UID */
 	if (getuid() != 0) {
 		fprintf(stderr, "This option requires root privilege. Please run with 'sudo'\n");
-		exit(-1);
-	}
-
-	/* get import type */
-	if (strcmp(import_type_str, "new-from-tblk") == 0)
-		import_type = RVC_IMPORT_TYPE_TBLK;
-	else if (strcmp(import_type_str, "new-from-ovpn") == 0)
-		import_type = RVC_IMPORT_TYPE_OVPN;
-	else {
-		fprintf(stderr, "Invalid import type paramter '%s'\n", import_type_str);
-		exit(-1);
+		return RVD_RESP_SUDO_REQUIRED;
 	}
 
 	/* checks whether import_path has valid extension */
-	if (!is_valid_extension(import_path, import_path == RVC_IMPORT_TYPE_TBLK ? ".tblk" : ".ovpn")) {
+	if (!is_valid_extension(import_path, import_type == RVC_VPN_PROFILE_TBLK ? ".tblk" : ".ovpn")) {
 		fprintf(stderr, "Invalid extension of file '%s'\n", import_path);
-		exit(-1);
+		return RVD_RESP_INVALID_PROFILE_TYPE;
 	}
 
 	/* checks whether size of imported profile */
 	fsize = get_file_size(import_path);
 	if (fsize <= 0 || fsize >= RVC_MAX_IMPORT_SIZE) {
 		fprintf(stderr, "Invalid size or too large file '%s'\n", import_path);
-		exit(-1);
+		return RVD_RESP_IMPORT_TOO_LARGE;
 	}
 
 	/* copy files into rvd config directory */
 	if (copy_file_into_dir(import_path, RVD_DEFAULT_VPN_CONFIG_DIR, S_IRUSR | S_IWUSR) != 0) {
 		fprintf(stderr, "Couldn't copy file '%s' into '%s'\n", import_path, RVD_DEFAULT_VPN_CONFIG_DIR);
-		exit(-1);
+		return RVD_RESP_UNKNOWN_ERR;
 	}
 
 	fprintf(stderr, "Success to import VPN configuration from '%s'\n", import_path);
 
-	reload_rvd();
+	return reload_rvd();
 }
 
 /*
@@ -187,7 +193,7 @@ static struct {
 	{RVD_CMD_UNKNOWN, NULL}
 };
 
-static void send_cmd(enum RVD_CMD_CODE cmd_code, const char *cmd_param, bool use_json)
+static int send_cmd(enum RVD_CMD_CODE cmd_code, const char *cmd_param, bool use_json)
 {
 	json_object *j_obj;
 
@@ -195,7 +201,7 @@ static void send_cmd(enum RVD_CMD_CODE cmd_code, const char *cmd_param, bool use
 	j_obj = json_object_new_object();
 	if (!j_obj) {
 		fprintf(stderr, "Couldn't create JSON object\n");
-		return;
+		return RVD_RESP_NO_MEMORY;
 	}
 
 	json_object_object_add(j_obj, "cmd", json_object_new_int(cmd_code));
@@ -213,36 +219,64 @@ static void send_cmd(enum RVD_CMD_CODE cmd_code, const char *cmd_param, bool use
 	/* send command */
 	if (send(g_sock, g_cmd, strlen(g_cmd), 0) <= 0) {
 		fprintf(stderr, "Couldn't send command %s\n", g_cmd);
-		return;
+		return RVD_RESP_SOCK_CONN;
 	}
 
 	/* receive response */
 	memset(g_resp, 0, sizeof(g_resp));
 	if (recv(g_sock, g_resp, sizeof(g_resp), 0) <= 0) {
 		fprintf(stderr, "Couldn't receive response\n");
-		return;
+		return RVD_RESP_SOCK_CONN;
 	}
 
 	printf("%s\n", g_resp);
+
+	return RVD_RESP_OK;
 }
 
 /*
- * print help message
+ * parse response from rvd
  */
 
-static void print_help(void)
+static int parse_resp(char **resp_data)
 {
-	printf("usage: rvc <options>\n"
-		"  options:\n"
-		"    list [--json]\t\t\t\tshow list of VPN connections\n"
-		"    connect <all|connection name> [--json]\tconnect to a VPN with given name\n"
-		"    disconnect <all|connection name> [--json]\tdisconnect from VPN with given name\n"
-		"    status [all|connection name] [--json]\tget status of VPN connection with given name\n"
-		"    script-security <enable|disable>\t\tenable/disable script security\n"
-		"    help\t\t\t\t\tshow help message\n"
-		"    reload\t\t\t\t\treload configuration(sudo required)\n"
-		"    import <new-from-tblk|new-from-ovpn> <path>\timport VPN connection(sudo required)\n"
-		);
+	json_object *j_obj, *j_sub_obj;
+	int ret = RVD_RESP_OK;
+
+	/* parse JSON response */
+	j_obj = json_tokener_parse(g_resp);
+	if (!j_obj)
+		return RVD_RESP_JSON_INVALID;
+
+	/* get code */
+	if (!json_object_object_get_ex(j_obj, "code", &j_sub_obj) ||
+		json_object_get_type(j_obj) != json_type_int) {
+		ret = RVD_RESP_JSON_INVALID;
+		goto end;
+	}
+
+	ret = json_object_get_int(j_sub_obj);
+
+	/* get response */
+	if (json_object_object_get_ex(j_obj, "data", &j_sub_obj)) {
+		const char *p = json_object_get_string(j_sub_obj);
+
+		/* allocate and set response data */
+		*resp_data = (char *) malloc(strlen(p) + 1);
+		if (*resp_data == NULL) {
+			ret = RVD_RESP_NO_MEMORY;
+			goto end;
+		}
+
+		strcpy(*resp_data, p);
+		(*resp_data)[strlen(p)] = '\0';
+	}
+
+end:
+	/* free json object */
+	json_object_put(j_obj);
+
+	return ret;
 }
 
 /*
@@ -266,6 +300,122 @@ static int connect_to_rvd(void)
 	/* connect to rvd */
 	return connect(g_sock, (struct sockaddr *) &addr, sizeof(struct sockaddr_un));
 }
+
+/*
+ * List RVC connections
+ */
+
+int rvc_list_connections(char **connections)
+{
+	int ret;
+
+	/* connect to rvd daemon */
+	ret = connect_to_rvd();
+	if (ret != 0)
+		return RVD_RESP_SOCK_CONN;
+
+	/* send command to core */
+	ret = send_cmd(RVD_CMD_LIST, NULL, true);
+	if (ret == 0)
+		ret = parse_resp(connections);
+
+	/* close socket */
+	close(g_sock);
+
+	return ret;
+}
+
+/*
+ * Try to connect VPN server
+ */
+
+int rvc_connect(const char *name, char **conn_status)
+{
+	int ret;
+
+	/* connect to rvd daemon */
+	ret = connect_to_rvd();
+	if (ret != 0)
+		return RVD_RESP_SOCK_CONN;
+
+	/* send command to core */
+	ret = send_cmd(RVD_CMD_CONNECT, name, true);
+	if (ret == 0)
+		ret = parse_resp(conn_status);
+
+	/* close socket */
+	close(g_sock);
+
+	return ret;
+}
+
+/*
+ * Try to disconnect from VPN server
+ */
+
+int rvc_disconnect(const char *name, char **conn_status)
+{
+	int ret;
+
+	/* connect to rvd daemon */
+	ret = connect_to_rvd();
+	if (ret != 0)
+		return RVD_RESP_SOCK_CONN;
+
+	/* send command to core */
+	ret = send_cmd(RVD_CMD_DISCONNECT, name, true);
+	if (ret == 0)
+		ret = parse_resp(conn_status);
+
+	/* close socket */
+	close(g_sock);
+
+	return ret;
+}
+
+/*
+ * Get connection status
+ */
+
+int rvc_get_status(const char *name, char **conn_status)
+{
+	int ret;
+
+	/* connect to rvd daemon */
+	ret = connect_to_rvd();
+	if (ret != 0)
+		return RVD_RESP_SOCK_CONN;
+
+	/* send command to core */
+	ret = send_cmd(RVD_CMD_STATUS, name, true);
+	if (ret == 0)
+		ret = parse_resp(conn_status);
+
+	/* close socket */
+	close(g_sock);
+
+	return ret;
+}
+
+/*
+ * reload VPN connections
+ */
+
+int rvc_reload()
+{
+	return reload_rvd();
+}
+
+/*
+ * import VPN profiles
+ */
+
+int rvc_import(int import_type, const char *import_path)
+{
+	return import_vpn_connection(import_type, import_path);
+}
+
+#if RVC_USE_MAIN
 
 /*
  * main function
@@ -358,16 +508,35 @@ int main(int argc, char *argv[])
 	case RVD_CMD_RELOAD:
 		if (argc != 2)
 			opt_invalid = true;
-		else
-			reload_rvd();
+		else {
+			int ret;
+
+			ret = reload_rvd();
+			exit(ret);
+		}
 
 		break;
 
 	case RVD_CMD_IMPORT:
 		if (argc != 4)
 			opt_invalid = true;
-		else
-			import_vpn_connection(argv[2], argv[3]);
+		else {
+			int ret;
+			int import_type;
+
+			/* get import type */
+			if (strcmp(argv[2], "new-from-tblk") == 0)
+				import_type = RVC_VPN_PROFILE_TBLK;
+			else if (strcmp(argv[2], "new-from-ovpn") == 0)
+				import_type = RVC_VPN_PROFILE_OVPN;
+			else {
+				fprintf(stderr, "Invalid import type paramter '%s'\n", argv[2]);
+				exit(-1);
+			}
+
+			ret = import_vpn_connection(import_type, argv[3]);
+			exit(ret);
+		}
 
 		break;
 
@@ -396,3 +565,5 @@ int main(int argc, char *argv[])
 
 	return 0;
 }
+
+#endif

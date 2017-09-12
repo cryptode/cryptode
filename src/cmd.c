@@ -109,7 +109,8 @@ struct rvd_resp_errs {
 	{RVD_RESP_CONN_NOT_FOUND, "Connection not found"},
 	{RVD_RESP_CONN_ALREADY_CONNECTED, "Already connected"},
 	{RVD_RESP_CONN_ALREADY_DISCONNECTED, "Already disconnected"},
-	{RVD_RESP_CONN_IN_PROGRESS, "Connection/Disconnection is in progress"}
+	{RVD_RESP_CONN_IN_PROGRESS, "Connection/Disconnection is in progress"},
+	{RVD_RESP_UNKNOWN_ERR, NULL},
 };
 
 static void send_cmd_response(int clnt_sock, int resp_code, const char *buffer, bool use_json)
@@ -119,10 +120,21 @@ static void send_cmd_response(int clnt_sock, int resp_code, const char *buffer, 
 	RVD_DEBUG_MSG("CMD: Sending response");
 
 	if (!use_json) {
+		int i;
+		const char *err_buf = "Unknown Error";
+
+		/* get error message by errcode */
+		for (i = 0; g_rvd_resp_errs[i].err_msg != NULL; i++) {
+			if (g_rvd_resp_errs[i].resp_code == resp_code) {
+				err_buf = g_rvd_resp_errs[i].err_msg;
+				break;
+			}
+		}
+
 		if (resp_code == RVD_RESP_OK)
-			resp_buffer = strdup(buffer ? buffer : g_rvd_resp_errs[0].err_msg);
+			resp_buffer = strdup(buffer ? buffer : err_buf);
 		else
-			resp_buffer = strdup(g_rvd_resp_errs[resp_code].err_msg);
+			resp_buffer = strdup(err_buf);
 	} else {
 		rvd_json_object_t resp_jobjs[] = {
 			{"code", RVD_JTYPE_INT, &resp_code, 0, false, NULL},
