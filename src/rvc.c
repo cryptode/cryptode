@@ -302,27 +302,38 @@ static int connect_to_rvd(void)
 }
 
 /*
- * List RVC connections
+ * send command to rvd daemon
  */
 
-int rvc_list_connections(char **connections)
+static int send_cmd_to_rvd(int cmd_code, const char *param, bool json_format, char **resp_data)
 {
 	int ret;
 
 	/* connect to rvd daemon */
 	ret = connect_to_rvd();
-	if (ret != 0)
+	if (ret != 0) {
+		fprintf(stderr, "Couldn't to connect to rvd(err:%d)\n", errno);
 		return RVD_RESP_SOCK_CONN;
+	}
 
 	/* send command to core */
-	ret = send_cmd(RVD_CMD_LIST, NULL, true);
-	if (ret == 0)
-		ret = parse_resp(connections);
+	ret = send_cmd(cmd_code, param, json_format);
+	if (ret == 0 && resp_data)
+		ret = parse_resp(resp_data);
 
 	/* close socket */
 	close(g_sock);
 
 	return ret;
+}
+
+/*
+ * List RVC connections
+ */
+
+int rvc_list_connections(char **connections)
+{
+	return send_cmd_to_rvd(RVD_CMD_LIST, NULL, true, connections);
 }
 
 /*
@@ -331,22 +342,7 @@ int rvc_list_connections(char **connections)
 
 int rvc_connect(const char *name, char **conn_status)
 {
-	int ret;
-
-	/* connect to rvd daemon */
-	ret = connect_to_rvd();
-	if (ret != 0)
-		return RVD_RESP_SOCK_CONN;
-
-	/* send command to core */
-	ret = send_cmd(RVD_CMD_CONNECT, name, true);
-	if (ret == 0)
-		ret = parse_resp(conn_status);
-
-	/* close socket */
-	close(g_sock);
-
-	return ret;
+	return send_cmd_to_rvd(RVD_CMD_CONNECT, name, true, conn_status);
 }
 
 /*
@@ -355,22 +351,7 @@ int rvc_connect(const char *name, char **conn_status)
 
 int rvc_disconnect(const char *name, char **conn_status)
 {
-	int ret;
-
-	/* connect to rvd daemon */
-	ret = connect_to_rvd();
-	if (ret != 0)
-		return RVD_RESP_SOCK_CONN;
-
-	/* send command to core */
-	ret = send_cmd(RVD_CMD_DISCONNECT, name, true);
-	if (ret == 0)
-		ret = parse_resp(conn_status);
-
-	/* close socket */
-	close(g_sock);
-
-	return ret;
+	return send_cmd_to_rvd(RVD_CMD_DISCONNECT, name, true, conn_status);
 }
 
 /*
@@ -379,22 +360,7 @@ int rvc_disconnect(const char *name, char **conn_status)
 
 int rvc_get_status(const char *name, char **conn_status)
 {
-	int ret;
-
-	/* connect to rvd daemon */
-	ret = connect_to_rvd();
-	if (ret != 0)
-		return RVD_RESP_SOCK_CONN;
-
-	/* send command to core */
-	ret = send_cmd(RVD_CMD_STATUS, name, true);
-	if (ret == 0)
-		ret = parse_resp(conn_status);
-
-	/* close socket */
-	close(g_sock);
-
-	return ret;
+	return send_cmd_to_rvd(RVD_CMD_STATUS, name, true, conn_status);
 }
 
 /*
@@ -551,17 +517,7 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
-	/* connect to rvd */
-	if (connect_to_rvd() != 0) {
-		fprintf(stderr, "Couldn't connect to rvd process.\n");
-		exit(1);
-	}
-
-	/* send command to core */
-	send_cmd(cmd_code, cmd_param, use_json);
-
-	/* close socket */
-	close(g_sock);
+	send_cmd_to_rvd(cmd_code, cmd_param, use_json, NULL);
 
 	return 0;
 }
