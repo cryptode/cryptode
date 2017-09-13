@@ -1,7 +1,56 @@
 #ifndef __RVC_H__
 #define __RVC_H__
 
-#define RVC_USE_MAIN				1
+/*
+ * print help message
+ */
+
+void print_help(void);
+
+/*
+ * get process ID of rvd process
+ */
+
+pid_t
+get_pid_of_rvd();
+
+/*
+ * reload rvd daemon
+ */
+
+int reload_rvd();
+
+/*
+ * import VPN connection
+ */
+
+int import_vpn_connection(int import_type, const char *import_path);
+
+/*
+ * send command and print response
+ */
+
+static struct {
+    enum RVD_CMD_CODE code;
+    const char *name;
+} g_cmd_names[] = {
+        {RVD_CMD_LIST, "list"},
+        {RVD_CMD_CONNECT, "connect"},
+        {RVD_CMD_DISCONNECT, "disconnect"},
+        {RVD_CMD_STATUS, "status"},
+        {RVD_CMD_SCRIPT_SECURITY, "script-security"},
+        {RVD_CMD_RELOAD, "reload"},
+        {RVD_CMD_IMPORT, "import"},
+        {RVD_CMD_UNKNOWN, NULL}
+};
+
+int send_cmd(enum RVD_CMD_CODE cmd_code, const char *cmd_param, bool use_json);
+
+/*
+ * send command to rvd daemon
+ */
+
+int send_cmd_to_rvd(int cmd_code, const char *param, bool json_format, char **resp_data);
 
 /*
  * VPN profile type
