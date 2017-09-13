@@ -28,3 +28,8 @@ m4/*.m4
 src/.deps
 src/rvcd.dSYM
 .tar.gz
+
+# Intellij IdeaC
+.idea/
+CMakeLists.txt
+cmake-build-debug/
