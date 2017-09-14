@@ -15,11 +15,12 @@ enum RVC_VPN_PROFILE_TYPE {
  * Note that the allocated memory for listing VPN connections should be freed
  * after used.
  * 
+ * @param [in] json_format set output format
  * @param [out] connections JSON buffer which keeps connection list.
  * @return 0 If success, otherwise non-zero will be returned.
  */
 
-int rvc_list_connections(char **connections);
+int rvc_list_connections(int json_format, char **connections);
 
 /** Try to connect to RVC VPN server
  *
@@ -30,12 +31,13 @@ int rvc_list_connections(char **connections);
  * after used.
  * 
  * @param [in] name 'all' or VPN connection name to be connected
+ * @param [in] json_format set output format
  * @param [out] conn_status JSON buffer which keeps connection status
  *			    for given connection name.
  * @return 0 If success, otherwise non-zero will be returned.
  */
 
-int rvc_connect(const char *name, char **conn_status);
+int rvc_connect(const char *name, int json_format, char **conn_status);
 
 /** Try to disconnect from RVC VPN server
  *
@@ -46,11 +48,12 @@ int rvc_connect(const char *name, char **conn_status);
  * after used.
  * 
  * @param [in] name 'all' or VPN connection name to be disconnected
+ * @param [in] json_format set output format
  * @param [out] conn_status buffer which keeps connection status for given connection name.
  * @return 0 If success, otherwise non-zero will be returned.
  */
 
-int rvc_disconnect(const char *name, char **conn_status);
+int rvc_disconnect(const char *name, int json_format, char **conn_status);
 
 /** Get connection status
  *
@@ -61,11 +64,12 @@ int rvc_disconnect(const char *name, char **conn_status);
  * after used.
  * 
  * @param [in] name 'all' or VPN connection name to be disconnected
+ * @param [in] json_format set output format
  * @param [out] conn_status buffer which keeps connection status for given connection name.
  * @return 0 If success, otherwise non-zero will be returned.
  */
 
-int rvc_get_status(const char *name, char **conn_status);
+int rvc_get_status(const char *name, int json_format, char **conn_status);
 
 /** Reload RVD VPN connections
  *

@@ -26,20 +26,30 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <sys/un.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <signal.h>
+#include <dirent.h>
 
 #include <json-c/json.h>
+
+#include <openssl/bio.h>
+#include <openssl/err.h>
+#include <openssl/pem.h>
 
 #include "common.h"
 #include "util.h"
 
 #include "rvc_shared.h"
+
+/* TunnelBlick credential types */
+#define TBLK_CRED_TYPE_CA		0
+#define TBLK_CRED_TYPE_CERT		1
+#define TBLK_CRED_TYPE_KEY		2
 
 /* static global variables */
 static int g_sock;
@@ -465,21 +475,7 @@ static int import_vpn_connection(int import_type, const char *import_path)
  * send command and print response
  */
 
-static struct {
-	enum RVD_CMD_CODE code;
-	const char *name;
-} g_cmd_names[] = {
-	{RVD_CMD_LIST, "list"},
-	{RVD_CMD_CONNECT, "connect"},
-	{RVD_CMD_DISCONNECT, "disconnect"},
-	{RVD_CMD_STATUS, "status"},
-	{RVD_CMD_SCRIPT_SECURITY, "script-security"},
-	{RVD_CMD_RELOAD, "reload"},
-	{RVD_CMD_IMPORT, "import"},
-	{RVD_CMD_UNKNOWN, NULL}
-};
-
-static int send_cmd(enum RVD_CMD_CODE cmd_code, const char *cmd_param, bool use_json)
+static int send_cmd(enum RVD_CMD_CODE cmd_code, const char *cmd_param, int use_json)
 {
 	json_object *j_obj;
 
@@ -495,7 +491,7 @@ static int send_cmd(enum RVD_CMD_CODE cmd_code, const char *cmd_param, bool use_
 	if (cmd_param)
 		json_object_object_add(j_obj, "param", json_object_new_string(cmd_param));
 
-	json_object_object_add(j_obj, "json", json_object_new_boolean(use_json ? 1 : 0));
+	json_object_object_add(j_obj, "json", json_object_new_boolean(use_json));
 
 	snprintf(g_cmd, sizeof(g_cmd), "%s", json_object_get_string(j_obj));
 
@@ -515,54 +511,7 @@ static int send_cmd(enum RVD_CMD_CODE cmd_code, const char *cmd_param, bool use_
 		return RVD_RESP_SOCK_CONN;
 	}
 
-	printf("%s\n", g_resp);
-
 	return RVD_RESP_OK;
-}
-
-/*
- * parse response from rvd
- */
-
-static int parse_resp(char **resp_data)
-{
-	json_object *j_obj, *j_sub_obj;
-	int ret = RVD_RESP_OK;
-
-	/* parse JSON response */
-	j_obj = json_tokener_parse(g_resp);
-	if (!j_obj)
-		return RVD_RESP_JSON_INVALID;
-
-	/* get code */
-	if (!json_object_object_get_ex(j_obj, "code", &j_sub_obj) ||
-		json_object_get_type(j_obj) != json_type_int) {
-		ret = RVD_RESP_JSON_INVALID;
-		goto end;
-	}
-
-	ret = json_object_get_int(j_sub_obj);
-
-	/* get response */
-	if (json_object_object_get_ex(j_obj, "data", &j_sub_obj)) {
-		const char *p = json_object_get_string(j_sub_obj);
-
-		/* allocate and set response data */
-		*resp_data = (char *) malloc(strlen(p) + 1);
-		if (*resp_data == NULL) {
-			ret = RVD_RESP_NO_MEMORY;
-			goto end;
-		}
-
-		strcpy(*resp_data, p);
-		(*resp_data)[strlen(p)] = '\0';
-	}
-
-end:
-	/* free json object */
-	json_object_put(j_obj);
-
-	return ret;
 }
 
 /*
@@ -591,7 +540,7 @@ static int connect_to_rvd(void)
  * send command to rvd daemon
  */
 
-static int send_cmd_to_rvd(int cmd_code, const char *param, bool json_format, char **resp_data)
+int send_cmd_to_rvd(int cmd_code, const char *param, int json_format, char **resp_data)
 {
 	int ret;
 
@@ -604,8 +553,8 @@ static int send_cmd_to_rvd(int cmd_code, const char *param, bool json_format, ch
 
 	/* send command to core */
 	ret = send_cmd(cmd_code, param, json_format);
-	if (ret == 0 && resp_data)
-		ret = parse_resp(resp_data);
+	if (ret == 0)
+		*resp_data = strdup(g_resp);
 
 	/* close socket */
 	close(g_sock);
@@ -617,36 +566,36 @@ static int send_cmd_to_rvd(int cmd_code, const char *param, bool json_format, ch
  * List RVC connections
  */
 
-int rvc_list_connections(char **connections)
+int rvc_list_connections(int json_format, char **connections)
 {
-	return send_cmd_to_rvd(RVD_CMD_LIST, NULL, true, connections);
+	return send_cmd_to_rvd(RVD_CMD_LIST, NULL, json_format, connections);
 }
 
 /*
  * Try to connect VPN server
  */
 
-int rvc_connect(const char *name, char **conn_status)
+int rvc_connect(const char *name, int json_format, char **conn_status)
 {
-	return send_cmd_to_rvd(RVD_CMD_CONNECT, name, true, conn_status);
+	return send_cmd_to_rvd(RVD_CMD_CONNECT, name, json_format, conn_status);
 }
 
 /*
  * Try to disconnect from VPN server
  */
 
-int rvc_disconnect(const char *name, char **conn_status)
+int rvc_disconnect(const char *name, int json_format, char **conn_status)
 {
-	return send_cmd_to_rvd(RVD_CMD_DISCONNECT, name, true, conn_status);
+	return send_cmd_to_rvd(RVD_CMD_DISCONNECT, name, json_format, conn_status);
 }
 
 /*
  * Get connection status
  */
 
-int rvc_get_status(const char *name, char **conn_status)
+int rvc_get_status(const char *name, int json_format, char **conn_status)
 {
-	return send_cmd_to_rvd(RVD_CMD_STATUS, name, true, conn_status);
+	return send_cmd_to_rvd(RVD_CMD_STATUS, name, json_format, conn_status);
 }
 
 /*
