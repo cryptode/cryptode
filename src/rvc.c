@@ -27,14 +27,21 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <sys/stat.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <signal.h>
+#include <dirent.h>
 
 #include <json-c/json.h>
+
+#include <openssl/bio.h>
+#include <openssl/err.h>
+#include <openssl/pem.h>
+
 
 #include "common.h"
 #include "util.h"
@@ -59,6 +66,8 @@ static void print_help(void)
 		"    import <new-from-tblk|new-from-ovpn> <path>\timport VPN connection(sudo required)\n"
 		);
 }
+
+#if RVC_USE_MAIN
 
 /*
  * main function

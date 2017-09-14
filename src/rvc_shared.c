@@ -119,32 +119,149 @@ static int reload_rvd()
 }
 
 /*
+ * read PEM data from X509 file
+ */
+
+static int read_x509_data(FILE *fp, char **x509_data)
+{
+	X509 *x509 = NULL;
+	BIO *bio = NULL;
+
+	char *p;
+
+	/* try to read in PEM format */
+	if (!PEM_read_X509(fp, &x509, NULL, NULL)) {
+		/* if file isn't PEM format, then try to read in DER format */
+		fseek(fp, 0, SEEK_SET);
+
+		/* read in DER format */
+		if (!d2i_X509_fp(fp, &x509))
+			return -1;
+	}
+
+	/* write X509 as PEM format to bio */
+	bio = BIO_new(BIO_s_mem());
+	if (!bio) {
+		X509_free(x509);
+		return -1;
+	}
+
+	if (!PEM_write_bio_X509(bio, x509)) {
+		X509_free(x509);
+		return -1;
+	}
+
+	/* free X509 */
+	X509_free(x509);
+
+	/* allocate and read buffer from bio */
+	p = (char *) malloc(bio->num_write + 1);
+	if (!p) {
+		BIO_free(bio);
+		return -1;
+	}
+
+	BIO_read(bio, p, bio->num_write);
+	p[bio->num_write] = '\0';
+
+	/* free bio */
+	BIO_free(bio);
+
+	*x509_data = p;
+
+	return 0;
+}
+
+/*
+ * read key data from file
+ */
+
+static int read_key_data(FILE *fp, char **key_data)
+{
+	unsigned char buf[512];
+
+	char *p = NULL;
+	size_t len = 0;
+
+	int ret = 0;
+
+	while (!feof(fp)) {
+		size_t read_bytes;
+
+		/* read buffer */
+		read_bytes = fread(buf, 1, sizeof(buf), fp);
+		if (read_bytes > 0) {
+			p = realloc(p, len + read_bytes + 1);
+			if (!p) {
+				ret = -1;
+				break;
+			}
+
+			memcpy(&p[len], buf, read_bytes);
+			len += read_bytes;
+		}
+
+	}
+
+	/* set '\0' */
+	p[len] = '\0';
+
+	*key_data = p;
+
+	return ret;
+}
+
+/*
  * write tunnelblick key and certs to OpenVPN config file
  */
 
 static int write_tblk_cred(const char *dir, int cred_type, const char *fname, FILE *dst_fp)
 {
+	FILE *cred_fp;
+
 	char cred_path[RVD_MAX_PATH];
 	char *cred_data;
 
-	
+	int ret;
 
 	/* get the full path of credential */
 	snprintf(cred_path, sizeof(cred_path), "%s/%s", dir, fname);
 
 	/* open credential file */
-	cred_fp = fopen(cred_path, "r");
+	cred_fp = fopen(cred_path, "rb");
 	if (!cred_fp)
 		return -1;
 
-	if (cred_type == TBLK_CRED_TYPE_CA || cred_type == TBLK_CRED_TYPE_CERT) {
-		X509 *x509;
+	/* read credetial data */
+	if (cred_type == TBLK_CRED_TYPE_CA || cred_type == TBLK_CRED_TYPE_CERT)
+		ret = read_x509_data(cred_fp, &cred_data);
+	else
+		ret = read_key_data(cred_fp, &cred_data);
 
-		/* read */
+	/* close file */
+	fclose(cred_fp);
+
+	if (ret != 0)
+		return -1;
+
+	if (cred_type == TBLK_CRED_TYPE_CA) {
+		fprintf(dst_fp, "<ca>\n");
+		fprintf(dst_fp, "%s\n", cred_data);
+		fprintf(dst_fp, "</ca>\n");
+	} else if (cred_type == TBLK_CRED_TYPE_CERT) {
+		fprintf(dst_fp, "<cert>\n");
+		fprintf(dst_fp, "%s\n", cred_data);
+		fprintf(dst_fp, "</cert>\n");
 	} else {
-
+		fprintf(dst_fp, "<key>\n");
+		fprintf(dst_fp, "%s\n", cred_data);
+		fprintf(dst_fp, "</key>\n");
 	}
 
+	/* free credential data */
+	free(cred_data);
+
+	return 0;
 }
 
 /*
@@ -224,7 +341,7 @@ static int convert_tblk_to_ovpn(const char *container_path, const char *ovpn_nam
 		} else
 			fprintf(new_fp, "%s\n", buf);
 
-		if (cred_type > 0 &&
+		if (cred_type >= 0 &&
 		    write_tblk_cred(container_path, cred_type, cred_name, new_fp) != 0) {
 			ret = -1;
 			break;
@@ -249,7 +366,7 @@ static int convert_tblk_to_ovpn(const char *container_path, const char *ovpn_nam
  * import openvpn profile from TunnelBlick profile
  */
 
-static int import_ovpn_from_tblk(const char *tblk_path, int *count)
+static int import_ovpn_from_tblk(const char *tblk_path)
 {
 	DIR *dir;
 	struct dirent *entry;
@@ -316,7 +433,7 @@ static int import_vpn_connection(int import_type, const char *import_path)
 		return RVD_RESP_INVALID_PROFILE_TYPE;
 	}
 
-	if (import_type == RVC_VPN_PROFILE_TBLK &&) {
+	if (import_type == RVC_VPN_PROFILE_TBLK) {
 		ret = import_ovpn_from_tblk(import_path);
 		if (ret <= 0) {
 			fprintf(stderr, "Couldn't import OpenVPN profile from TunnelBlick profile '%s'", import_path);
@@ -326,19 +443,17 @@ static int import_vpn_connection(int import_type, const char *import_path)
 		size_t fsize;
 
 		/* checks whether size of imported profile */
-		fsize = get_file_size(ovpn_profile);
+		fsize = get_file_size(import_path);
 		if (fsize <= 0 || fsize >= RVC_MAX_IMPORT_SIZE) {
-			fprintf(stderr, "Invalid size or too large file '%s'\n", ovpn_profile);
+			fprintf(stderr, "Invalid size or too large file '%s'\n", import_path);
 			return RVD_RESP_IMPORT_TOO_LARGE;
 		}
 
 		/* copy files into rvd config directory */
-		if (copy_file_into_dir(ovpn_profile, RVD_DEFAULT_VPN_CONFIG_DIR, S_IRUSR | S_IWUSR) != 0) {
-			fprintf(stderr, "Couldn't copy file '%s' into '%s'\n", ovpn_profile, RVD_DEFAULT_VPN_CONFIG_DIR);
+		if (copy_file_into_dir(import_path, RVD_DEFAULT_VPN_CONFIG_DIR, S_IRUSR | S_IWUSR) != 0) {
+			fprintf(stderr, "Couldn't copy file '%s' into '%s'\n", import_path, RVD_DEFAULT_VPN_CONFIG_DIR);
 			return RVD_RESP_UNKNOWN_ERR;
 		}
-
-		return 0;
 	}
 
 	fprintf(stderr, "Success to import VPN configuration from '%s'\n", import_path);
