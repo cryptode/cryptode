@@ -26,20 +26,46 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <stdbool.h>
-#include <sys/socket.h>
-#include <sys/un.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <signal.h>
-
-#include <json-c/json.h>
 
 #include "common.h"
-#include "util.h"
-
 #include "rvc_shared.h"
+
+/*
+ * rvc command list
+ */
+
+static struct {
+	enum RVD_CMD_CODE code;
+	const char *name;
+} g_cmd_names[] = {
+	{RVD_CMD_LIST, "list"},
+	{RVD_CMD_CONNECT, "connect"},
+	{RVD_CMD_DISCONNECT, "disconnect"},
+	{RVD_CMD_STATUS, "status"},
+	{RVD_CMD_SCRIPT_SECURITY, "script-security"},
+	{RVD_CMD_RELOAD, "reload"},
+	{RVD_CMD_IMPORT, "import"},
+	{RVD_CMD_UNKNOWN, NULL}
+};
+
+/*
+ * print help message
+ */
+
+static void print_help(void)
+{
+	printf("usage: rvc <options>\n"
+		"  options:\n"
+		"    list [--json]\t\t\t\tshow list of VPN connections\n"
+		"    connect <all|connection name> [--json]\tconnect to a VPN with given name\n"
+		"    disconnect <all|connection name> [--json]\tdisconnect from VPN with given name\n"
+		"    status [all|connection name] [--json]\tget status of VPN connection with given name\n"
+		"    script-security <enable|disable>\t\tenable/disable script security\n"
+		"    help\t\t\t\t\tshow help message\n"
+		"    reload\t\t\t\t\treload configuration(sudo required)\n"
+		"    import <new-from-tblk|new-from-ovpn> <path>\timport VPN connection(sudo required)\n"
+		);
+}
 
 /*
  * main function
@@ -48,12 +74,13 @@
 int main(int argc, char *argv[])
 {
 	enum RVD_CMD_CODE cmd_code = RVD_CMD_UNKNOWN;
-	bool use_json = false;
-	bool opt_invalid = false;
+	int use_json = 0;
+	int opt_invalid = 0;
 
-	int i;
+	int i, ret;
 
 	const char *cmd_param = NULL;
+	char *resp_data = NULL;
 
 	/* check argument */
 	if (argc < 2) {
@@ -85,10 +112,13 @@ int main(int argc, char *argv[])
 	switch (cmd_code) {
 	case RVD_CMD_LIST:
 		if (argc == 3 && strcmp(argv[2], "--json") == 0)
-			use_json = true;
-		else if (argc != 2)
-			opt_invalid = true;
+			use_json = 1;
+		else if (argc != 2) {
+			opt_invalid = 1;
+			break;
+		}
 
+		ret = rvc_list_connections(use_json, &resp_data);
 		break;
 
 	case RVD_CMD_CONNECT:
@@ -97,9 +127,16 @@ int main(int argc, char *argv[])
 			cmd_param = argv[2];
 		else if (argc == 4 && strcmp(argv[3], "--json") == 0) {
 			cmd_param = argv[2];
-			use_json = true;
-		} else
-			opt_invalid = true;
+			use_json = 1;
+		} else {
+			opt_invalid = 1;
+			break;
+		}
+
+		if (cmd_code == RVD_CMD_CONNECT)
+			ret = rvc_connect(cmd_param, use_json, &resp_data);
+		else
+			ret = rvc_disconnect(cmd_param, use_json, &resp_data);
 
 		break;
 
@@ -108,16 +145,19 @@ int main(int argc, char *argv[])
 			cmd_param = "all";
 		else if (argc == 3) {
 			if (strcmp(argv[2], "--json") == 0) {
-				use_json = true;
+				use_json = 1;
 				cmd_param = "all";
 			} else
 				cmd_param = argv[2];
 		} else if (argc == 4 && strcmp(argv[3], "--json") == 0) {
-			use_json = true;
+			use_json = 1;
 			cmd_param = argv[2];
-		} else
-			opt_invalid = true;
+		} else {
+			opt_invalid = 1;
+			break;
+		}
 
+		ret = rvc_get_status(cmd_param, use_json, &resp_data);
 		break;
 
 	case RVD_CMD_SCRIPT_SECURITY:
@@ -125,17 +165,15 @@ int main(int argc, char *argv[])
 			(strcmp(argv[2], "disable")) == 0))
 			cmd_param = argv[2];
 		else
-			opt_invalid = true;
+			opt_invalid = 1;
 
 		break;
 
 	case RVD_CMD_RELOAD:
 		if (argc != 2)
-			opt_invalid = true;
+			opt_invalid = 1;
 		else {
-			int ret;
-
-			ret = reload_rvd();
+			ret = rvc_reload();
 			exit(ret);
 		}
 
@@ -143,7 +181,7 @@ int main(int argc, char *argv[])
 
 	case RVD_CMD_IMPORT:
 		if (argc != 4)
-			opt_invalid = true;
+			opt_invalid = 1;
 		else {
 			int ret;
 			int import_type;
@@ -158,7 +196,7 @@ int main(int argc, char *argv[])
 				exit(-1);
 			}
 
-			ret = import_vpn_connection(import_type, argv[3]);
+			ret = rvc_import(import_type, argv[3]);
 			exit(ret);
 		}
 
@@ -175,7 +213,10 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
-	send_cmd_to_rvd(cmd_code, cmd_param, use_json, NULL);
+	if (ret == 0 && resp_data) {
+		printf("%s\n", resp_data);
+		free(resp_data);
+	}
 
 	return 0;
 }
