@@ -171,7 +171,7 @@ static int read_x509_data(FILE *fp, char **x509_data)
 		return -1;
 	}
 
-	BIO_read(bio, p, bio->num_write);
+	BIO_read(bio, p, (int) bio->num_write);
 	p[bio->num_write] = '\0';
 
 	/* free bio */
