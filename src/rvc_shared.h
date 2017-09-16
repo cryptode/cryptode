@@ -78,7 +78,7 @@ int rvc_get_status(const char *name, int json_format, char **conn_status);
  * @return 0 If success, otherwise non-zero will be returned.
  */
 
-int rvc_reload();
+int rvc_reload(void);
 
 /** Import OpenVPN or TunnelBlick VPN profile
  *
