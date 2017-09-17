@@ -616,7 +616,7 @@ int rvc_import(int import_type, const char *import_path)
  * remove VPN connection
  */
 
-int rvc_remove(const char *conn_name)
+int rvc_remove(const char *conn_name, int force)
 {
 	char *conn_status = NULL;
 
@@ -666,7 +666,7 @@ int rvc_remove(const char *conn_name)
 		}
 	}
 
-	if (state != RVD_CONN_STATE_DISCONNECTED) {
+	if (state != RVD_CONN_STATE_DISCONNECTED && !force) {
 		fprintf(stderr, "The connection '%s' is in connected or pending progress.", conn_name);
 		return RVD_RESP_CONN_IN_PROGRESS;
 	}

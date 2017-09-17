@@ -65,7 +65,7 @@ static void print_help(void)
 		"    help\t\t\t\t\tshow help message\n"
 		"    reload\t\t\t\t\treload configuration(sudo required)\n"
 		"    import <new-from-tblk|new-from-ovpn> <path>\timport VPN connection(sudo required)\n"
-		"    remove <connection name>\t\t\tremove VPN connection(sudo required)\n"
+		"    remove <connection name> [--force]\t\tremove VPN connection(sudo required)\n"
 		);
 }
 
@@ -205,8 +205,8 @@ int main(int argc, char *argv[])
 		break;
 
 	case RVD_CMD_REMOVE:
-		if (argc == 3) {
-			ret = rvc_remove(argv[2]);
+		if (argc == 3 || (argc == 4 && strcmp(argv[3], "--force") == 0)) {
+			ret = rvc_remove(argv[2], argc == 3 ? 0 : 1);
 			exit(ret);
 		} else
 			opt_invalid = 1;
