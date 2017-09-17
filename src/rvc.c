@@ -45,6 +45,7 @@ static struct {
 	{RVD_CMD_SCRIPT_SECURITY, "script-security"},
 	{RVD_CMD_RELOAD, "reload"},
 	{RVD_CMD_IMPORT, "import"},
+	{RVD_CMD_REMOVE, "remove"},
 	{RVD_CMD_UNKNOWN, NULL}
 };
 
@@ -64,6 +65,7 @@ static void print_help(void)
 		"    help\t\t\t\t\tshow help message\n"
 		"    reload\t\t\t\t\treload configuration(sudo required)\n"
 		"    import <new-from-tblk|new-from-ovpn> <path>\timport VPN connection(sudo required)\n"
+		"    remove <connection name>\t\t\tremove VPN connection(sudo required)\n"
 		);
 }
 
@@ -199,6 +201,15 @@ int main(int argc, char *argv[])
 			ret = rvc_import(import_type, argv[3]);
 			exit(ret);
 		}
+
+		break;
+
+	case RVD_CMD_REMOVE:
+		if (argc == 3) {
+			ret = rvc_remove(argv[2]);
+			exit(ret);
+		} else
+			opt_invalid = 1;
 
 		break;
 

@@ -786,6 +786,7 @@ static void get_single_conn_status(struct rvd_vpnconn *vpn_conn, bool json_forma
 		rvd_json_object_t conn_status_objs[] = {
 			{"name", RVD_JTYPE_STR, vpn_conn->config.name, 0, false, NULL},
 			{"status", RVD_JTYPE_STR, (void *)g_rvd_state[vpn_conn->conn_state].state_str, 0, false, NULL},
+			{"profile", RVD_JTYPE_STR, (void *)vpn_conn->config.ovpn_profile_path, 0, false, NULL},
 			{"ovpn-status", RVD_JTYPE_STR, (void *)g_ovpn_state[vpn_conn->ovpn_state].ovpn_state_str, 0, false, NULL},
 			{"in-total", RVD_JTYPE_INT64, &vpn_conn->total_bytes_in, 0, false, NULL},
 			{"out-total", RVD_JTYPE_INT64, &vpn_conn->total_bytes_out, 0, false, NULL},
@@ -819,6 +820,7 @@ static void get_single_conn_status(struct rvd_vpnconn *vpn_conn, bool json_forma
 			snprintf(status_buffer, sizeof(status_buffer), "name: %s\n"
 				"\tstatus: %s\n"
 				"\topenvpn-status: %s\n"
+				"\tprofile: %s\n"
 				"\tin-total: %lu\n"
 				"\tout-total: %lu\n"
 				"\tconnected-time: %lu\n"
@@ -827,6 +829,7 @@ static void get_single_conn_status(struct rvd_vpnconn *vpn_conn, bool json_forma
 				"\ttimestamp: %lu\n",
 				vpn_conn->config.name,
 				g_rvd_state[vpn_conn->conn_state].state_str,
+				vpn_conn->config.ovpn_profile_path,
 				g_ovpn_state[vpn_conn->ovpn_state].ovpn_state_str,
 				vpn_conn->total_bytes_in, vpn_conn->curr_bytes_out,
 				vpn_conn->connected_tm,
@@ -836,11 +839,13 @@ static void get_single_conn_status(struct rvd_vpnconn *vpn_conn, bool json_forma
 			snprintf(status_buffer, sizeof(status_buffer), "name: %s\n"
 				"\tstatus: %s\n"
 				"\topenvpn-status: %s\n"
+				"\tprofile: %s\n"
 				"\tin-total: %lu\n"
 				"\tout-total: %lu\n"
 				"\ttimestamp: %lu\n",
 				vpn_conn->config.name,
 				g_rvd_state[vpn_conn->conn_state].state_str,
+				vpn_conn->config.ovpn_profile_path,
 				g_ovpn_state[vpn_conn->ovpn_state].ovpn_state_str,
 				vpn_conn->total_bytes_in, vpn_conn->curr_bytes_out,
 				ts);
