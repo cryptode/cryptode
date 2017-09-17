@@ -474,7 +474,7 @@ int is_owned_by_user(const char *path, const char *uname)
 	uid_t uid;
 
 	/* allocate buffer for getpwnam_r */
-	bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
+	bufsize = (int) sysconf(_SC_GETPW_R_SIZE_MAX);
 	if (bufsize < 0)
 		return 0;
 
@@ -530,7 +530,7 @@ int get_gid_by_uid(uid_t uid, gid_t *gid)
 	int ret = 0;
 
 	/* get buffer size */
-	bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
+	bufsize = (int) sysconf(_SC_GETPW_R_SIZE_MAX);
 	if (bufsize <= 0)
 		return -1;
 
