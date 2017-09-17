@@ -93,4 +93,15 @@ int rvc_reload(void);
 
 int rvc_import(int import_type, const char *import_path);
 
+/** Remove RVD VPN connections
+ *
+ * This function requires sudo privilege, so it needs to gain root privilege before calling.
+ * 
+ * @param [in] conn_name VPN connection name to be removed
+ * @param [in] force if connection is in connected or pending status, then force removing
+ * @return 0 If success, otherwise non-zero will be returned.
+ */
+
+int rvc_remove(const char *conn_name);
+
 #endif /* __RVC_H__ */

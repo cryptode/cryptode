@@ -57,11 +57,21 @@ int rvd_json_parse(const char *jbuf, rvd_json_object_t *objs, int objs_count)
 		return -1;
 
 	for (i = 0; i < objs_count; i++) {
-		json_object *j_sub_obj;
+		json_object *j_sub_obj, *j_par_obj = NULL;
 		rvd_json_object_t *obj = &objs[i];
 
-		/* check whether the object is exist */
-		if (!json_object_object_get_ex(j_obj, obj->key, &j_sub_obj)) {
+		int obj_not_found = 0;
+
+		/* get parent object if parent key is exist */
+		if (obj->parent_key) {
+			if (!json_object_object_get_ex(j_obj, obj->parent_key, &j_par_obj) ||
+				!json_object_object_get_ex(j_par_obj, obj->key, &j_sub_obj))
+				obj_not_found = 1;
+		} else if (!json_object_object_get_ex(j_obj, obj->key, &j_sub_obj)) {
+			obj_not_found = 1;
+		}
+
+		if (obj_not_found) {
 			if (!obj->mondatory)
 				continue;
 
@@ -166,6 +176,15 @@ int rvd_json_parse(const char *jbuf, rvd_json_object_t *objs, int objs_count)
 
 			break;
 
+		case RVD_JTYPE_OBJ:
+			if (j_type != json_type_object)
+				break;
+
+			snprintf((char *)obj->val, obj->size, "%s", json_object_get_string(j_sub_obj));
+			ret = 0;
+
+			break;			
+
 		default:
 			break;
 		}
@@ -196,12 +215,16 @@ int rvd_json_build(rvd_json_object_t *objs, int objs_count, char **jbuf)
 		return -1;
 
 	for (i = 0; i < objs_count; i++) {
-		rvd_json_object_t *obj = &objs[i];
 		json_object *j_sub_obj = NULL;
+		rvd_json_object_t *obj = &objs[i];
 
 		switch (obj->type) {
 		case RVD_JTYPE_STR:
-			j_sub_obj = json_object_new_string((char *)obj->val);
+			if (obj->val)
+				j_sub_obj = json_object_new_string((char *)obj->val);
+			else
+				j_sub_obj = json_object_new_string("");
+
 			break;
 
 		case RVD_JTYPE_BOOL:
