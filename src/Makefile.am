@@ -10,3 +10,5 @@ rvd_LDFLAGS = $(JSONC_LDFLAGS)
 rvc_SOURCES = rvc.c rvc_shared.c util.c
 rvc_LDADD = $(JSONC_LIBS) $(OPENSSL_LIBS)
 rvc_LDFLAGS = $(JSONC_LDFLAGS) $(OPENSSL_LDFLAGS)
+
+include_HEADERS = common.h rvd.h cmd.h log.h util.h vpn.h rvc_shared.h
