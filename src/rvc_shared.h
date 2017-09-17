@@ -102,6 +102,6 @@ int rvc_import(int import_type, const char *import_path);
  * @return 0 If success, otherwise non-zero will be returned.
  */
 
-int rvc_remove(const char *conn_name);
+int rvc_remove(const char *conn_name, int force);
 
 #endif /* __RVC_H__ */
