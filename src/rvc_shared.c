@@ -406,7 +406,7 @@ static int import_ovpn_from_tblk(const char *tblk_path)
 static int send_cmd(enum RVD_CMD_CODE cmd_code, const char *cmd_param, int use_json, char **resp_data)
 {
 	char *cmd;
-	int ret;
+	ssize_t ret;
 
 	char resp[RVD_MAX_RESP_LEN];
 
