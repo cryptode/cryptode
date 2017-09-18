@@ -57,7 +57,7 @@ int rvd_json_parse(const char *jbuf, rvd_json_object_t *objs, int objs_count)
 		return -1;
 
 	for (i = 0; i < objs_count; i++) {
-		json_object *j_sub_obj, *j_par_obj = NULL;
+		json_object *j_sub_obj = NULL, *j_par_obj = NULL;
 		rvd_json_object_t *obj = &objs[i];
 
 		int obj_not_found = 0;
