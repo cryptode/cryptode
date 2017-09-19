@@ -6,7 +6,7 @@ RVC is a command line driven OpenVPN client for macOS with two focus areas:
 * CLI usage for automation
 * Security for protection of your OpenVPN private keys + certificates and ensuring that only approved routes are added to your route table
 
-Don't get fooled by the word *Relaxed*. It is meant that you can relax when using RVC and not having to stress about security issues arising from VPN use.
+Don't get fooled by the word *Relaxed*. It is meant that you can relax when using RVC and not having to stress about security issues arising from leaked VPN certificates.
 
 **Let us know if you have any comments, suggestions for improvement, found a bug or identified a security vulnerability. We are open to pull requests!**
 
@@ -31,36 +31,41 @@ Dependencies:
 
 Overview:
 ```
-  +---+     +-main configuration--+
-  |rvd+--+->|/opt/rvc/etc/rvd.json|
-  +-+-+  |  +---------------------+
-    |    |
-    |    |  +-OpenVPN configuration file--+
-    |    +->|/opt/rvc/etc/vpn.d/<vpn>.ovpn|
-    |    |  +-----------------------------+
-    |    |
-    |    |  +-rvd VPN configuration file--+
-    |    +->|/opt/rvc/etc/vpn.d/<vpn>.json|
-    |       +-----------------------------+
-    |
-    |       +-rvd log--------+
-    +------>|/var/log/rvd.log|
-    |       +----------------+
-    |
-    |       +-OpenVPN started by rvd-----------------------------------------+
-    +------>|/opt/openvpn/sbin/openvpn --config /opt/rvc/etc/vpn.d/<vpn>.ovpn|
-    |       +----------------------------------------------------------------+
-    |
-    |       +-socket-----+
-    +------>|/var/run/rvd|
-            +------------+
-                  ^
-   +---+          |
-   |rvc+----------+
-   +---+
++---------+
+| launchd |
++-+-------+
+  |
+  v
++-----+     +-main configuration----+
+| rvd +--+->| /opt/rvc/etc/rvd.json |
++--+--+  |  +-----------------------+
+   |     |
+   |     |  +-OpenVPN configuration file----+
+   |     +->| /opt/rvc/etc/vpn.d/<vpn>.ovpn |
+   |     |  +-------------------------------+
+   |     |
+   |     |  +-rvd VPN configuration file----+
+   |     +->| /opt/rvc/etc/vpn.d/<vpn>.json |<-+
+   |        +-------------------------------+  |
+   |                                           |
+   |       +-rvd log----------+                |
+   +------>| /var/log/rvd.log |                |
+   |       +------------------+                |
+   |                                           |
+   |       +-OpenVPN started by rvd------------+------------------------------+
+   +------>| /opt/openvpn/sbin/openvpn --config /opt/rvc/etc/vpn.d/<vpn>.ovpn |
+   |       +-----------------+------------------------------------------------+
+   |                         |
+   |       +-socket-------+  |   +-VPN log file--------+
+   +------>| /var/run/rvd |  +-> | /tmp/<vpn>.ovpn.log |
+           +--------------+      +---------------------+
+                   ^
++-----+            |
+| rvc +------------+
++-----+
 ```
 
-## rvd configuration file
+## /opt/rvc/etc/rvd.json configuration file
 
 The `/opt/rvc/etc/rvd.json` configuration file looks like this:
 ```json
@@ -210,7 +215,7 @@ static int check_ovpn_binary(const char *ovpn_bin_path, bool root_check)
 }
 ```
 
-* Brew and/or a manual `make install` install `rvc` to `/usr/local/bin`, follow the instructions to also install the executables in `/opt/rvc/bin`.
+* Brew and/or a manual `make install` installs `rvc` to `/usr/local/bin`, follow the instructions to also install the executables in `/opt/rvc/bin`.
 Your `PATH` will most likely have `/usr/local/bin` in it. **It is of upmost importance that you put `/opt/rvc/bin` in the beginning of your `PATH`.**
 Example: `PATH=/opt/rvc/bin:/usr/local/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin`. This is to prevent you from running `sudo` on a
 backdoored `rvc` that is put in `/usr/local/bin` by a local attacker.
