@@ -749,7 +749,7 @@ void rvd_vpnconn_disconnect(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_nam
 {
 	struct rvd_vpnconn *vpn_conn;
 
-	RVD_DEBUG_MSG("VPN: Try to disconnect from VPN with name '%s'", conn_name);
+	RVD_DEBUG_MSG("VPN: Try to disconnect VPN with name '%s'", conn_name);
 
 	/* if connection name is 'all', try stop all connections */
 	if (strcmp(conn_name, "all") == 0) {

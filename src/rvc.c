@@ -59,13 +59,13 @@ static void print_help(void)
 		"  options:\n"
 		"    list [--json]\t\t\t\tshow list of VPN connections\n"
 		"    connect <all|connection name> [--json]\tconnect to a VPN with given name\n"
-		"    disconnect <all|connection name> [--json]\tdisconnect from VPN with given name\n"
+		"    disconnect <all|connection name> [--json]\tdisconnect VPN with given name\n"
 		"    status [all|connection name] [--json]\tget status of VPN connection with given name\n"
 		"    script-security <enable|disable>\t\tenable/disable script security\n"
 		"    help\t\t\t\t\tshow help message\n"
-		"    reload\t\t\t\t\treload configuration(sudo required)\n"
-		"    import <new-from-tblk|new-from-ovpn> <path>\timport VPN connection(sudo required)\n"
-		"    remove <connection name> [--force]\t\tremove VPN connection(sudo required)\n"
+		"    reload\t\t\t\t\treload configuration (sudo required)\n"
+		"    import <new-from-tblk|new-from-ovpn> <path>\timport VPN connection (sudo required)\n"
+		"    remove <connection name> [--force]\t\tremove VPN connection (sudo required)\n"
 		);
 }
 
