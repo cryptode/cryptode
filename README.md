@@ -134,23 +134,36 @@ that require access to root owned directories and files.
 
 * `rvd` is owned by `root:wheel` and has the following permissions: `-r-x------`. `rvd` is meant to be only executed by `launchd`. So don't
 start it manually. Upon starting `rvd` will create a socket in `/var/run/rvd` which will be writable only by a predefined userid that is
-set in `/opt/rvc/etc/rvd.conf`.
+set in `/opt/rvc/etc/rvd.conf`. It looks like this:
+```console
+$ ls -la /var/run/rvd
+srw-------  1 test  wheel  0 Sep 19 15:52 /var/run/rvd
+$ id test
+uid=501(test) gid=20(staff) groups=20(staff),401(com.apple.sharepoint.group.1),12(everyone),61(localaccounts),79(_appserverusr),80(admin),81(_appserveradm),98(_lpadmin),501(access_bpf),701(com.apple.sharepoint.group.3),33(_appstore),100(_lpoperator),204(_developer),395(com.apple.access_ftp),398(com.apple.access_screensharing),399(com.apple.access_ssh),402(com.apple.sharepoint.group.2)
+```
 
 * `rvc` is owned by `root:wheel` and has the following permissions: `-r-xr-xr-x`. `rvc` can be executed by any user but the socket `rvc`
-connects to can only be written to a predefined userid. This restricts the connecting/disconnecting of VPNs to a single userid. Sending a `reload`
-signal to `rvd` using `rvc` requires `sudo`.
+connects to can only be written to a predefined userid. This restricts the connecting/disconnecting of VPNs to a single userid. Sending a
+`reload` signal to `rvd` using `rvc` requires `sudo`.
 
 * OpenVPN files are stored in `/opt/rvc/etc/vpn.d` which owned by `root:wheel` and has `drwxr-xr-x` permissions.
 The OpenVPN files are stored as `/opt/rvc/etc/vpn.d/<vpn>.ovpn`, owned by `root:wheel` and have `-rw-------` permissions.
 The `rvd` VPN configuration are stored as `/opt/rvc/etc/vpn.d/<vpn>.json`, owned by `root:wheel` and have `-rw-------` permissions.
 This strict permission and owner scheme is to prevent your keys being read and/or your VPN configurations modified by a local attacker.
 If `rvd` were to be allowed to use any OpenVPN file then a local attacker could change the routes to the system's DNS server and/or
-execute some malicious pre/post connect script. `rvd` only accepts OpenVPN files that are owned by `root` and are not readable by `others`.
+execute some malicious pre/post connect script. `rvd` only accepts OpenVPN files that are owned by `root` and are not readable by `others`:
+```console
+$ ls -la /opt/rvc/etc/vpn.d
+total 144
+drwxr-xr-x  14 root  wheel   476 Sep 15 13:28 .
+drwxr-xr-x   4 root  wheel   136 Sep 15 16:48 ..
+-rw-------   1 root  wheel   146 Sep 11 13:50 vpn1.json
+-rw-------   1 root  wheel  7240 Sep 11 13:50 vpn1.ovpn
+```
 
 * VPNs can be configured that a script is executed before OpenVPN will connect. This is defined in `pre-connect-exec`
 in `/opt/rvc/etc/vpn.d/<vpn>.json`. As `rvd` runs as `root` it will drop its root privileges to the UID defined with `user_id` in
-`/opt/rvc/etc/rvd.json`. The following code is responsible for this:
-`src/vpn.c`:
+`/opt/rvc/etc/rvd.json`. The following code in `src/vpn.c` is responsible for this:
 ```C
 /* set UID */
 setuid(vpn_conn->config.pre_exec_uid);
@@ -163,9 +176,39 @@ if (get_gid_by_uid(vpn_conn->config.pre_exec_uid, &gid) == 0)
 ret = system(vpn_conn->config.pre_exec_cmd);
 ```
 
-* Brew installs OpenVPN in `/usr/local/bin`. This allows a local attacker to replace the `openvpn` executable with something malicious.
+* Brew installs `openvpn` in `/usr/local/sbin`. This allows a local attacker to replace the `openvpn` executable with something malicious.
 Therefor during installation of RVC a root owned copy of `openvpn` needs to be placed in `/opt/openvpn/sbin`. Upon start `rvd` will
-perform the `root` check on the `openvpn` executable before it will actually run it.
+perform the `root` check on the `openvpn` executable before it will actually run it. The following code in `src/vpn.c` is responsible for this:
+```C
+/*
+ * check whether openvpn binary is available
+ */
+
+static int check_ovpn_binary(const char *ovpn_bin_path, bool root_check)
+{
+	struct stat st;
+
+	/* get stat of openvpn binrary file */
+	if (stat(ovpn_bin_path, &st) != 0 || !S_ISREG(st.st_mode)) {
+		RVD_DEBUG_ERR("VPN: Wrong path of OpenVPN binary '%s'", ovpn_bin_path);
+		return -1;
+	}
+
+	/* check executable status */
+	if (!is_valid_permission(ovpn_bin_path, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)) {
+		RVD_DEBUG_ERR("VPN: Wrong permission of OpenVPN binary '%s'", ovpn_bin_path);
+		return -1;
+	}
+
+	/* check root status */
+	if (root_check && !is_owned_by_user(ovpn_bin_path, "root")) {
+		RVD_DEBUG_ERR("VPN: Wrong owner of OpenVPN binary '%s'", ovpn_bin_path);
+		return -1;
+	}
+
+	return 0;
+}
+```
 
 * Brew and/or a manual `make install` install `rvc` to `/usr/local/bin`, follow the instructions to also install the executables in `/opt/rvc/bin`.
 Your `PATH` will most likely have `/usr/local/bin` in it. **It is of upmost importance that you put `/opt/rvc/bin` in the beginning of your `PATH`.**
