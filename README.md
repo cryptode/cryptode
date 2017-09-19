@@ -11,41 +11,41 @@ The {R}elaxed {V}PN {C}lient.
 
 `rvc` has the following structure:
 
-`/opt/rvc/bin/rvd`: the daemon that is responsible for starting and stopping OpenVPN connections
-`/opt/rvc/bin/rvc`: the client that is used to make `rvd` connect/disconnect to VPNs
-`/opt/rvc/etc/rvd.conf`: the main configuration file for `rvd`
-`/opt/rvc/etc/vpn.d`: the directory in which `.ovpn` files are stored
-`/Library/LaunchDaemons/com.ribose.rvd.plist`: the `rvd` plist for `launchd`
-`/var/run/rvd`: the socket to which `rvc` can communicate with `rvd`
+* `/opt/rvc/bin/rvd`: the daemon that is responsible for starting and stopping OpenVPN connections
+* `/opt/rvc/bin/rvc`: the client that is used to make `rvd` connect/disconnect to VPNs
+* `/opt/rvc/etc/rvd.conf`: the main configuration file for `rvd`
+* `/opt/rvc/etc/vpn.d`: the directory in which `.ovpn` files are stored
+* `/Library/LaunchDaemons/com.ribose.rvd.plist`: the `rvd` plist for `launchd`
+* `/var/run/rvd`: the socket to which `rvc` can communicate with `rvd`
 
 VPN files (example):
-`/opt/rvc/etc/vpn.d/vpn1.ovpn`: the OpenVPN that contains the configuration of the VPN, private key, client certificate and CA certificate
-`/opt/rvc/etc/vpn.d/vpn1.json`: the `rvd` configuration of this particular VPN
+* `/opt/rvc/etc/vpn.d/vpn1.ovpn`: the OpenVPN that contains the configuration of the VPN, private key, client certificate and CA certificate
+* `/opt/rvc/etc/vpn.d/vpn1.json`: the `rvd` configuration of this particular VPN
 
 Dependencies:
-`/opt/openvpn/bin/openvpn`: a root owned copy of OpenVPN
+* `/opt/openvpn/bin/openvpn`: a root owned copy of OpenVPN
 
 
 ## Security architecture
 
-`rvd` is owned `root:wheel` and has the following permissions: `-r-x------`. `rvd` is meant to be only executed by `launchd`.
+* `rvd` is owned `root:wheel` and has the following permissions: `-r-x------`. `rvd` is meant to be only executed by `launchd`.
 Upon starting `rvd` will create a socket which will be writable only by a predefined userid that is set in `/opt/rvc/etc/rvd.conf`.
 
-`rvc` is owned `root:wheel` and has the following permissions: `-r-xr-xr-x`. `rvc` can be executed by any user but the socket `rvc`
+* `rvc` is owned `root:wheel` and has the following permissions: `-r-xr-xr-x`. `rvc` can be executed by any user but the socket `rvc`
 connects to can only be written to a predefined userid. This restricts the connecting/disconnecting of VPNs to a single userid.
 
-OpenVPN files are stored in `/opt/rvc/etc/vpn.d` and this directory is owned by `root:wheel` and has `drwxr-xr-x` permissions.
+* OpenVPN files are stored in `/opt/rvc/etc/vpn.d` and this directory is owned by `root:wheel` and has `drwxr-xr-x` permissions.
 The OpenVPN files are stored as `/opt/rvc/etc/vpn.d/vpn1.ovpn`, owned by `root:wheel` and have `-rw-------` permissions.
 The `rvd` VPN configuration are stored as `/opt/rvc/etc/vpn.d/vpn1.json`, owned by `root:wheel` and have `-rw-------` permissions.
 This strict permission and owner scheme is to prevent your keys being read and/or your VPN configurations modified by a local attacker.
 If `rvd` were to be allowed to use any OpenVPN file then a local attacker could change the routes to the system's DNS server and/or
 execute some malicous pre/post connect script. We only accept `root` owned OpenVPN files.
 
-`brew` installs OpenVPN in `/usr/local/bin` any local attacker can replace the `openvpn` executable with something malicious. Therefor
+* `brew` installs OpenVPN in `/usr/local/bin` any local attacker can replace the `openvpn` executable with something malicious. Therefor
 during installation of `rvc` a `root` owned copy of `openvpn` needs to be made to `/opt/openvpn/bin`. Upon start `rvd` will perform the
 `root` check on the `openvpn` executable before it starts it.
 
-Besides the installation target of `/opt/rvc/bin`, `brew` will also install `rvc` to `/usr/local/bin` which you most likely have in your
+* Besides the installation target of `/opt/rvc/bin`, `brew` will also install `rvc` to `/usr/local/bin` which you most likely have in your
 `PATH`. It is of upmost importance that you put `/opt/rvc/bin` in the beginning of your `PATH`.
 Example: `PATH=/opt/rvc/bin:/usr/local/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin`. This is to prevent you from running sudo on a
 modified `rvc` that's living in `/usr/local/bin`.
@@ -56,15 +56,15 @@ modified `rvc` that's living in `/usr/local/bin`.
 The `rvd` configuration file looks like this:
 ```json
 {
-  "openvpn_bin": "/opt/openvpn/sbin/openvpn",
-  "openvpn_root_check": true,
-  "ovpn_up_down_scripts": false,
-  "user_id": 501,
-  "restrict_socket": true,
-  "log": "/var/log/rvd.log",
-  "vpn_config_paths": [
-    "/opt/rvc/etc/vpn.d"
-  ]
+  "openvpn_bin": "/opt/openvpn/sbin/openvpn",
+  "openvpn_root_check": true,
+  "ovpn_up_down_scripts": false,
+  "user_id": 501,
+  "restrict_socket": true,
+  "log": "/var/log/rvd.log",
+  "vpn_config_paths": [
+    "/opt/rvc/etc/vpn.d"
+  ]
 }
 ```
 
@@ -156,6 +156,8 @@ tls-version-min 1.2
 -----END RSA PRIVATE KEY-----
 </key>
 ```
+
+### Connecting and disconnecting to VPNs
 
 ```sh
 $ sudo /opt/rvc/bin/rvc reload
