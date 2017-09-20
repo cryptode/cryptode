@@ -654,11 +654,11 @@ int copy_file_into_dir(const char *file_path, const char *dir_path, mode_t mode)
 
 	/* make destination path */
 	memset(dst_path, 0, sizeof(dst_path));
-	strcpy(dst_path, dir_path);
+	strlcpy(dst_path, dir_path, sizeof(dst_path));
 	if (dst_path[strlen(dst_path) - 1] != '/')
 		strcat(dst_path, "/");
 
-	strcat(dst_path, file_name);
+	strlcat(dst_path, file_name, sizeof(dst_path));
 
 	/* check whether file is already exist */
 	if (stat(dst_path, &st) == 0)
