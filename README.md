@@ -6,7 +6,7 @@ RVC is a command line driven OpenVPN client for macOS with two focus areas:
 * CLI usage for automation
 * Security for protection of your OpenVPN private keys + certificates and ensuring that only approved routes are added to your route table
 
-Don't get fooled by the word *Relaxed*. It is meant that you can relax when using RVC and not having to stress about security issues arising from leaked VPN certificates.
+Don't get fooled by the word *Relaxed*. It is meant that you can relax when using RVC and not having to stress about your VPN private keys and certificates will get leaked.
 
 **Let us know if you have any comments, suggestions for improvement, found a bug or identified a security vulnerability. We are open to pull requests!**
 
@@ -22,7 +22,7 @@ RVC has the following structure:
 * `/var/run/rvd`: the socket that `rvc` uses to communicate with `rvd`
 * `/var/log/rvd.log`: the log file from `rvd`, use this for troubleshooting
 
-VPN files (example):
+VPN configuration files (example):
 * `/opt/rvc/etc/vpn.d/<vpn>.ovpn`: the OpenVPN file that contains the configuration of the VPN, private key, client certificate and CA certificate
 * `/opt/rvc/etc/vpn.d/<vpn>.json`: the `rvd` configuration of this particular VPN
 
@@ -40,19 +40,19 @@ Overview:
 | rvd +--+->| /opt/rvc/etc/rvd.json |
 +--+--+  |  +-----------------------+
    |     |
-   |     |  +-OpenVPN configuration file----+
-   |     +->| /opt/rvc/etc/vpn.d/<vpn>.ovpn |
-   |     |  +-------------------------------+
-   |     |
-   |     |  +-rvd VPN configuration file----+
-   |     +->| /opt/rvc/etc/vpn.d/<vpn>.json |<-+
-   |        +-------------------------------+  |
-   |                                           |
-   |       +-rvd log----------+                |
-   +------>| /var/log/rvd.log |                |
-   |       +------------------+                |
-   |                                           |
-   |       +-OpenVPN started by rvd------------+------------------------------+
+   |     |    +-rvd VPN configuration file----+
+   |     | +->| /opt/rvc/etc/vpn.d/<vpn>.json |
+   |     | |  +-------------------------------+
+   |     +-+
+   |       |  +-OpenVPN configuration file----+
+   |       +->| /opt/rvc/etc/vpn.d/<vpn>.ovpn |<-+
+   |          +-------------------------------+  |
+   |                                             |
+   |       +-rvd log----------+                  |
+   +------>| /var/log/rvd.log |                  |
+   |       +------------------+                  |
+   |                                             |
+   |       +-OpenVPN started by rvd--------------+----------------------------+
    +------>| /opt/openvpn/sbin/openvpn --config /opt/rvc/etc/vpn.d/<vpn>.ovpn |
    |       +-----------------+------------------------------------------------+
    |                         |
@@ -85,23 +85,23 @@ The `/opt/rvc/etc/rvd.json` configuration file looks like this:
 ### /opt/rvc/etc/rvd.json configuration file details
 
 `openvpn_bin`: the location of the OpenVPN executable. Since this executable will be ran with `uid 0` it is important
-to place this in a directory not writable by unprivileged users. OpenVPN will be most likely installed by `brew` and
-must therefor be copied to `/opt`. If you wish to have `rvd` use the OpenVPN executable in `/usr/local/bin` then you can, **but
-this is not advised**.
+to place this in a directory not writable by unprivileged users. OpenVPN will be most likely installed by `brew` in `/usr/local/sbin`
+and for security purposes must therefor be copied to `/opt`. If you wish to have `rvd` use the OpenVPN executable in `/usr/local/sbin`
+then you can, **but this is not advised as a local attacker could replace anything in `/usr/local/`**.
 
 `openvpn_root_check`: `rvd` can perform a check whether the OpenVPN executable is owned by root. By default `rvd` will
-expect OpenVPN to live in `/opt/openvpn/sbin` which should be owned by root. In case you want to use the OpenVPN executable
-in `/usr/local/bin` then you can disable this check, **which is not advised**.
+expect OpenVPN to live in `/opt/openvpn/sbin` which must be owned by root. In case you want to use the OpenVPN executable
+in another directory such as `/usr/local/bin` then you can disable this check, **but this is not advised**.
 
 `ovpn_up_down_scripts`: OpenVPN allows to run up and down scripts to set routes and perform MFA actions. By default this
-behaviour is disabled and up scripts are handled by `rvd` on a per VPN basis in the `pre-connect-exec` in the VPN JSON file.
+behaviour is disabled and up scripts are handled by `rvd` on a per VPN basis with the `pre-connect-exec` statement in the VPN JSON file.
 **It is not advised to enable the `ovpn_up_down_scripts` globally unless you really need this and know what you are doing.**
 
 `user_id`: this is the default UID of the regular desktop user on your macOS system. `pre-connect-exec` scripts will use
-this UID to be run as, also the socket of `rvd` will only be writable to from this UID. By default it is set to `501` which
-is the first UID used by macOS when creating a desktop user.
+this UID to be run as, also the socket of `rvd` will only be writable to by this UID. By default it is set to `501` which
+is the UID used by macOS when creating the first desktop user.
 
-`restrict_socket`: `rvd` by default only accepts `rvc` socket connections from a UID set in `user_id`. This is to prevent
+`restrict_socket`: `rvd` by default only accepts `rvc` socket connections from the UID set in `user_id`. This is to prevent
 access to your VPN connections on multi-user systems. **Disabling this restriction is not advised.**
 
 `log`: this is the log file `rvd` will write to.
@@ -151,12 +151,12 @@ uid=501(test) gid=20(staff) groups=20(staff),401(com.apple.sharepoint.group.1),1
 connects to can only be written to a predefined userid. This restricts the connecting/disconnecting of VPNs to a single userid. Sending a
 `reload` signal to `rvd` using `rvc` requires `sudo`.
 
-* OpenVPN files are stored in `/opt/rvc/etc/vpn.d` which owned by `root:wheel` and has `drwxr-xr-x` permissions.
+* OpenVPN files are stored in `/opt/rvc/etc/vpn.d` which is owned by `root:wheel` and has `drwxr-xr-x` permissions.
 The OpenVPN files are stored as `/opt/rvc/etc/vpn.d/<vpn>.ovpn`, owned by `root:wheel` and have `-rw-------` permissions.
 The `rvd` VPN configuration are stored as `/opt/rvc/etc/vpn.d/<vpn>.json`, owned by `root:wheel` and have `-rw-------` permissions.
-This strict permission and owner scheme is to prevent your keys being read and/or your VPN configurations modified by a local attacker.
-If `rvd` were to be allowed to use any OpenVPN file then a local attacker could change the routes to the system's DNS server and/or
-execute some malicious pre/post connect script. `rvd` only accepts OpenVPN files that are owned by `root` and are not readable by `others`:
+This strict permission and owner scheme is to prevent your private keys being leaked and/or your VPN configurations modified by a local attacker.
+If `rvd` were to be allowed to use *any* OpenVPN file then a local attacker could potentially change the routes to the system's DNS servers to an attacker controlled IP.
+`rvd` only accepts OpenVPN files that are owned by `root` and are not readable by `others`:
 ```console
 $ ls -la /opt/rvc/etc/vpn.d
 total 144
@@ -181,14 +181,31 @@ if (get_gid_by_uid(vpn_conn->config.pre_exec_uid, &gid) == 0)
 ret = system(vpn_conn->config.pre_exec_cmd);
 ```
 
-* Brew installs `openvpn` in `/usr/local/sbin`. This allows a local attacker to replace the `openvpn` executable with something malicious.
-Therefor during installation of RVC a root owned copy of `openvpn` needs to be placed in `/opt/openvpn/sbin`. Upon start `rvd` will
-perform the `root` check on the `openvpn` executable before it will actually run it. The following code in `src/vpn.c` is responsible for this:
+* `rvd` does not follow symlinks when opening log files to write to. The following code in `src/vpn.c` is responsible for this:
 ```C
-/*
- * check whether openvpn binary is available
- */
+snprintf(ovpn_log_fpath, sizeof(ovpn_log_fpath), "/tmp/%s.ovpn.log", vpn_conn->config.name);
 
+/* remove log path */
+remove(ovpn_log_fpath);
+```
+
+* OpenVPN will be executed as root but log files will be owned by `user_id`. This is to ensure that your desktop user can access and
+delete the log files of his/her VPNs. The following code in `src/vpn.c` is responsible for this:
+```C
+/* set owner of openvpn log file */
+uid = vpn_conn->vpnconn_mgr->c->opt.allowed_uid;
+if (uid > 0) {
+	gid_t gid;
+
+	if (get_gid_by_uid(uid, &gid) == 0)
+		chown(ovpn_log_fpath, uid, gid);
+}
+```
+
+* Brew installs OpenVPN in `/usr/local/sbin`. This allows a local attacker to replace the `openvpn` executable with something malicious.
+Therefor during installation of RVC a root owned copy of `openvpn` needs to be placed in `/opt/openvpn/sbin`. Upon start `rvd` will
+perform the `root` check on the `openvpn` executable before it actually runs it. The following code in `src/vpn.c` is responsible for this:
+```C
 static int check_ovpn_binary(const char *ovpn_bin_path, bool root_check)
 {
 	struct stat st;
@@ -248,7 +265,7 @@ brew tap riboseinc/rvc
 brew install --HEAD rvc
 ```
 
-**be sure to follow the instructions in the caveats section during the brew installation**
+**Be sure to follow the instructions in the caveats section during the brew installation**
 
 And take a look at the homebrew formula: [homebrew-rvc](https://github.com/riboseinc/homebrew-rvc)
 
@@ -282,6 +299,16 @@ sudo install -m 500 -g wheel -o root /usr/local/sbin/openvpn /opt/openvpn/sbin
 sudo install -m 600 -g wheel -o root /usr/local/bin/com.ribose.rvd.plist /Library/LaunchDaemons
 sudo launchctl load -w /Library/LaunchDaemons/com.ribose.rvd.plist
 ```
+
+## Pro tip
+
+After installation do the following:
+```sh
+rm -f /usr/local/bin/rvc /usr/local/bin/rvd 
+```
+
+This is to ensure you will always use the correct `rvc` that is living in `/opt/rvc/bin`.
+
 
 ## Commands to add, connect and disconnect a VPN
 
