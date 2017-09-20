@@ -1,8 +1,7 @@
 #ifndef __RVD_LOG_H__
 #define __RVD_LOG_H__
 
-#define RVD_LOG_FPATH					"/var/log/rvd.log"
-#define RVD_LOG_BACKUP_FPATH				"/var/log/rvd.log.0"
+#define RVD_LOG_FILE_NAME				"rvd.log"
 
 #define RVD_MAX_LOG_FSIZE				30 * 1024 * 1024
 
@@ -19,7 +18,7 @@ enum LOG_TYPE {
 };
 
 /* rvd log functions */
-int rvd_log_init(const char *log_path);
+int rvd_log_init(const char *log_dir_path);
 void rvd_log_finalize();
 
 void rvd_debug_log(enum LOG_TYPE log_type, const char *file_name, int file_line, const char *format, ...);

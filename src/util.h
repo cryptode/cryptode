@@ -68,4 +68,10 @@ size_t get_file_size(const char *file_path);
 /* copy file into directory */
 int copy_file_into_dir(const char *file_path, const char *dir_path, mode_t mode);
 
+/* get full path of file */
+void get_full_path(const char *dir_path, const char *file_name, char *full_path, size_t size);
+
+/* create directory with given permission */
+int create_dir(const char *dir_path, mode_t mode);
+
 #endif /* __RVD_UTIL_H__ */
