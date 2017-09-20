@@ -1025,7 +1025,7 @@ static void parse_config(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *config_path
 	memset(&config, 0, sizeof(config));
 
 	/* set VPN profile path */
-	strcpy(config.ovpn_profile_path, ovpn_profile_path);
+	strlcpy(config.ovpn_profile_path, ovpn_profile_path, sizeof(config.ovpn_profile_path));
 
 	if (config_path) {
 		int fd;
@@ -1096,7 +1096,7 @@ static void parse_config(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *config_path
 		/* free configuration buffer */
 		free(config_buf);
 	} else
-		strcpy(config.name, conf_name);
+		strlcpy(config.name, conf_name, sizeof(config.name));
 
 	/* check the flag whether add a config */
 	if (!add_config)
@@ -1144,8 +1144,8 @@ static void read_config_by_dir(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *dir_p
 		memset(conf_json_path, 0, sizeof(conf_json_path));
 		memset(conf_name, 0, sizeof(conf_name));
 
-		strcpy(ovpn_profile_path, dir_path);
-		strcpy(conf_json_path, dir_path);
+		strlcpy(ovpn_profile_path, dir_path, sizeof(ovpn_profile_path));
+		strlcpy(conf_json_path, dir_path, sizeof(conf_json_path));
 
 		if (dir_path[strlen(dir_path) - 1] != '/') {
 			strcat(conf_json_path, "/");
@@ -1158,7 +1158,7 @@ static void read_config_by_dir(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *dir_p
 			continue;
 
 		/* set openvpn profile path */
-		strcat(ovpn_profile_path, dp->d_name);
+		strlcat(ovpn_profile_path, dp->d_name, sizeof(ovpn_profile_path));
 
 		/* check whether openvpn profile is exist */
 		if (stat(ovpn_profile_path, &st) != 0 || !S_ISREG(st.st_mode)

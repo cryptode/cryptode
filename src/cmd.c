@@ -64,7 +64,7 @@ static int create_listen_socket(rvd_ctx_opt_t *op)
 	/* set listen address */
 	memset(&listen_addr, 0, sizeof(struct sockaddr_un));
 	listen_addr.sun_family = AF_UNIX;
-	strcpy(listen_addr.sun_path, RVD_LISTEN_SOCK_PATH);
+	strlcpy(listen_addr.sun_path, RVD_LISTEN_SOCK_PATH, sizeof(listen_addr.sun_path));
 
 	/* remove socket at first */
 	remove(RVD_LISTEN_SOCK_PATH);
