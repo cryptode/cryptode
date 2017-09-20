@@ -65,6 +65,7 @@ Overview:
 +-----+
 ```
 
+
 ## /opt/rvc/etc/rvd.json configuration file
 
 The `/opt/rvc/etc/rvd.json` configuration file looks like this:
@@ -82,11 +83,12 @@ The `/opt/rvc/etc/rvd.json` configuration file looks like this:
 }
 ```
 
+
 ### /opt/rvc/etc/rvd.json configuration file details
 
 `openvpn_bin`: the location of the OpenVPN executable. Since this executable will be ran with `uid 0` it is important
 to place this in a directory not writable by unprivileged users. OpenVPN will be most likely installed by `brew` in `/usr/local/sbin`
-and for security purposes must therefor be copied to `/opt`. If you wish to have `rvd` use the OpenVPN executable in `/usr/local/sbin`
+and for security purposes must therefore be copied to `/opt`. If you wish to have `rvd` use the OpenVPN executable in `/usr/local/sbin`
 then you can, **but this is not advised as a local attacker could replace anything in `/usr/local/`**.
 
 `openvpn_root_check`: `rvd` can perform a check whether the OpenVPN executable is owned by root. By default `rvd` will
@@ -94,7 +96,7 @@ expect OpenVPN to live in `/opt/openvpn/sbin` which must be owned by root. In ca
 in another directory such as `/usr/local/bin` then you can disable this check, **but this is not advised**.
 
 `ovpn_up_down_scripts`: OpenVPN allows to run up and down scripts to set routes and perform MFA actions. By default this
-behaviour is disabled and up scripts are handled by `rvd` on a per VPN basis with the `pre-connect-exec` statement in the VPN JSON file.
+behaviour is disabled and up scripts are handled by `rvd` on a per VPN basis with the `pre-connect-exec` statement in the VPN .json file.
 **It is not advised to enable the `ovpn_up_down_scripts` globally unless you really need this and know what you are doing.**
 
 `user_id`: this is the default UID of the regular desktop user on your macOS system. `pre-connect-exec` scripts will use
@@ -111,6 +113,8 @@ directories such as home directories or file shares. **This however is not advis
 and visible to other users. In addition, allowing `rvd` (which runs as root) to read OpenVPN files from insecure locations
 might introduce security vulnerabilities.**
 
+This file is mandatory.
+
 
 ### VPN configuration file
 
@@ -124,12 +128,16 @@ Example `rvd` configuration for a VPN:
 }
 ```
 
+This file is optional.
+
+
 ### VPN configuration file details
 
 `name`: The VPN name as it will appear in `rvc list`.
 `auto-connect`: Set this to `true` when you want to automatically connect to a VPN when `rvd` starts. This is useful when you have Jenkins slaves auto connecting to VPNs upon boot.
 `pre-connect-exec`: Run a script or executable before connecting to the VPN. This can be used to execute a script for MFA purposes.
 
+As a .json file for a VPN is optional you should only create one if you need `auto-connect` and/or a `pre-connect-exec` script to run.
 
 ## Security architecture and considerations
 
@@ -166,6 +174,8 @@ drwxr-xr-x   4 root  wheel   136 Sep 15 16:48 ..
 -rw-------   1 root  wheel  7240 Sep 11 13:50 vpn1.ovpn
 ```
 
+* VPNs do not not require a .json `rvd` configuration file. By default VPN connections will not `auto-connect` and no `pre-connect-exec` will be executed.
+
 * VPNs can be configured that a script is executed before OpenVPN will connect. This is defined in `pre-connect-exec`
 in `/opt/rvc/etc/vpn.d/<vpn>.json`. As `rvd` runs as `root` it will drop its root privileges to the UID defined with `user_id` in
 `/opt/rvc/etc/rvd.json`. The following code in `src/vpn.c` is responsible for this:
@@ -179,14 +189,6 @@ if (get_gid_by_uid(vpn_conn->config.pre_exec_uid, &gid) == 0)
 
 /* run command */
 ret = system(vpn_conn->config.pre_exec_cmd);
-```
-
-* `rvd` does not follow symlinks when opening log files to write to. The following code in `src/vpn.c` is responsible for this:
-```C
-snprintf(ovpn_log_fpath, sizeof(ovpn_log_fpath), "/tmp/%s.ovpn.log", vpn_conn->config.name);
-
-/* remove log path */
-remove(ovpn_log_fpath);
 ```
 
 * OpenVPN will be executed as root but log files will be owned by `user_id`. This is to ensure that your desktop user can access and
@@ -203,7 +205,7 @@ if (uid > 0) {
 ```
 
 * Brew installs OpenVPN in `/usr/local/sbin`. This allows a local attacker to replace the `openvpn` executable with something malicious.
-Therefor during installation of RVC a root owned copy of `openvpn` needs to be placed in `/opt/openvpn/sbin`. Upon start `rvd` will
+Therefore during installation of RVC a root owned copy of `openvpn` needs to be placed in `/opt/openvpn/sbin`. Upon start `rvd` will
 perform the `root` check on the `openvpn` executable before it actually runs it. The following code in `src/vpn.c` is responsible for this:
 ```C
 static int check_ovpn_binary(const char *ovpn_bin_path, bool root_check)
@@ -314,6 +316,7 @@ This is to ensure you will always use the correct `rvc` that is living in `/opt/
 
 Follow these steps to setup a new VPN connection called `vpn1`:
 
+
 ### Add VPN configuration .json
 
 ```sh
@@ -328,6 +331,7 @@ sudo vi /opt/rvc/etc/vpn.d/vpn1.json
   "pre-connect-exec": ""
 }
 ```
+
 
 ### Add VPN configuration .ovpn
 
@@ -367,12 +371,14 @@ tls-version-min 1.2
 </key>
 ```
 
+
 ### Set correct permissions
 
 ```sh
 sudo chmod 500 /opt/rvc/etc/vpn.d/vpn1.ovpn
 sudo chmod 500 /opt/rvc/etc/vpn.d/vpn1.json
 ```
+
 
 ### Reload rvd
 
@@ -402,6 +408,7 @@ name: vpn1
 
 ```
 
+
 ### To connect to the VPN
 ```sh
 $ /opt/rvc/bin/rvc connect vpn1
@@ -414,6 +421,7 @@ name: vpn1
         timestamp: 1505802970
 
 ```
+
 
 ### Check the status of the VPN
 ```sh
@@ -430,6 +438,7 @@ name: vpn1
         timestamp: 1505803003
 
 ```
+
 
 ### Disconnect the VPN
 ```sh
