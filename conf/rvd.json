@@ -7,5 +7,12 @@
   "log": "/var/log/rvd.log",
   "vpn_config_paths": [
     "/opt/rvc/etc/vpn.d"
-  ]
+  ],
+  "override_dns_settings": {
+  	"status": 1,
+  	"dns_servers": [
+  		"8.8.8.8",
+  		"8.8.4.4"
+  	]
+  }
 }
