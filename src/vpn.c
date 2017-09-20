@@ -435,6 +435,8 @@ static int run_openvpn_proc(struct rvd_vpnconn *vpn_conn)
 	pid_t ovpn_pid;
 
 	char mgm_port_str[32];
+
+	char ovpn_log_fname[RVD_MAX_FILE_NAME];
 	char ovpn_log_fpath[RVD_MAX_PATH];
 
 	uid_t uid;
@@ -467,7 +469,8 @@ static int run_openvpn_proc(struct rvd_vpnconn *vpn_conn)
 	}
 
 	snprintf(mgm_port_str, sizeof(mgm_port_str), "%d", vpn_conn->ovpn_mgm_port);
-	snprintf(ovpn_log_fpath, sizeof(ovpn_log_fpath), "/tmp/%s.ovpn.log", vpn_conn->config.name);
+	snprintf(ovpn_log_fname, sizeof(ovpn_log_fname), "%s.ovpn.log", vpn_conn->config.name);
+	get_full_path(c->opt.log_dir_path, ovpn_log_fname, ovpn_log_fpath, sizeof(ovpn_log_fpath));
 
 	/* remove log path */
 	remove(ovpn_log_fpath);

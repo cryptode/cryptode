@@ -38,10 +38,11 @@
 #include <sys/stat.h>
 
 #include "common.h"
+#include "util.h"
 #include "log.h"
 
 static FILE *g_log_fp;
-static const char *g_log_path;
+static char g_log_path[RVD_MAX_PATH];
 static int g_log_fsize;
 static pthread_mutex_t g_log_mt = PTHREAD_MUTEX_INITIALIZER;
 
@@ -55,7 +56,7 @@ static int create_log_file()
 	char backup_log_path[RVD_MAX_PATH];
 
 	/* check whether log path is set */
-	if (!g_log_path)
+	if (strlen(g_log_path) == 0)
 		return -1;
 
 	/* check whether file pointer is exist */
@@ -92,9 +93,14 @@ static int create_log_file()
  * initialize rvd logging
  */
 
-int rvd_log_init(const char *log_path)
+int rvd_log_init(const char *log_dir_path)
 {
-	g_log_path = log_path;
+	/* create log directory */
+	if (create_dir(log_dir_path, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH) != 0)
+		return -1;
+
+	/* set path of log file */
+	get_full_path(log_dir_path, RVD_LOG_FILE_NAME, g_log_path, sizeof(g_log_path));
 
 	/* open log file */
 	if (create_log_file() != 0)

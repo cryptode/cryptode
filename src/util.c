@@ -698,3 +698,42 @@ int copy_file_into_dir(const char *file_path, const char *dir_path, mode_t mode)
 
 	return ret;
 }
+
+/* get full path of file */
+void get_full_path(const char *dir_path, const char *file_name, char *full_path, size_t size)
+{
+	size_t len;
+
+	/* get length of dir path buffer */
+	len = strlen(dir_path);
+	if (len < 1)
+		return;
+
+	/* set full path */
+	if (dir_path[len - 1] == '/')
+		snprintf(full_path, size, "%s%s", dir_path, file_name);
+	else
+		snprintf(full_path, size, "%s/%s", dir_path, file_name);
+}
+
+/* create directory with given permission */
+int create_dir(const char *dir_path, mode_t mode)
+{
+	struct stat st;
+
+	/* check directory is exist */
+	if (stat(dir_path, &st) == 0) {
+		if (S_ISDIR(st.st_mode) && is_owned_by_user(dir_path, "root") &&
+			chmod(dir_path, mode) == 0)
+			return 0;
+
+		/* remove old */
+		remove(dir_path);
+	}
+
+	/* create directory */
+	if (mkdir(dir_path, mode) != 0)
+		return -1;
+
+	return 0;
+}

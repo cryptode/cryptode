@@ -76,7 +76,7 @@ The `/opt/rvc/etc/rvd.json` configuration file looks like this:
   "ovpn_up_down_scripts": false,
   "user_id": 501,
   "restrict_socket": true,
-  "log": "/var/log/rvd.log",
+  "log_directory": "/var/log/rvd.log",
   "vpn_config_paths": [
     "/opt/rvc/etc/vpn.d"
   ]

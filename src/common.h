@@ -25,7 +25,7 @@
 #define RVD_LISTEN_SOCK_PATH			"/var/run/rvd"
 
 /* rvd default log file path */
-#define RVD_DEFAULT_LOG_PATH			"/var/log/rvd.log"
+#define RVD_DEFAULT_LOGDIR_PATH			"/var/log/rvd"
 
 /* rvd default UID for writting to rvd socket */
 #define RVD_DEFAULT_UID				501
