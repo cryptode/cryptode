@@ -507,6 +507,8 @@ static int run_openvpn_proc(struct rvd_vpnconn *vpn_conn)
 			    "--config", vpn_conn->config.ovpn_profile_path,
 			    "--management", "127.0.0.1", mgm_port_str,
 			    "--log-append", ovpn_log_fpath,
+			    "--resolv-retry", "infinite",
+			    "--connect-retry", OVPN_CONN_RETRY_TIMEOUT_MIN, OVPN_CONN_RETRY_TIMEOUT_MAX,
 			    NULL};
 
 		/* child process */
