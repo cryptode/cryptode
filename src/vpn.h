@@ -1,14 +1,16 @@
 #ifndef __RVD_VPN_H__
 #define __RVD_VPN_H__
 
-#define OVPN_MGM_PORT_START			6001
+#define OVPN_MGM_PORT_START				6001
 
-#define OVPN_MGM_CMD_STATE			"state on\n"
+#define OVPN_MGM_CMD_STATE				"state on\n"
 #define OVPN_MGM_CMD_SIGTERM			"signal SIGTERM\n"
 #define OVPN_MGM_CMD_BYTECOUNT			"bytecount 10\n"
 
 #define OVPN_MGM_RESP_BYTECOUNT			">BYTECOUNT:"
-#define OVPN_MGM_RESP_STATE			">STATE:"
+#define OVPN_MGM_RESP_STATE				">STATE:"
+
+#define OVPN_MAX_LOG_FSIZE				32 * 1024 * 1024
 
 #define RVD_OVPN_CONN_TIMEOUT			10
 #define RVD_OVPN_STOP_TIMEOUT			10
