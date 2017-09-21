@@ -427,6 +427,31 @@ static int run_preconn_cmd(struct rvd_vpnconn *vpn_conn)
 }
 
 /*
+ * rotate original OpenVPN log file
+ */
+
+static void rotate_orig_ovpn_log(const char *ovpn_log_path)
+{
+	struct stat st;
+	char backup_log_path[RVD_MAX_PATH];
+
+	/* get state of openvpn log file */
+	if (stat(ovpn_log_path, &st) != 0 || !S_ISREG(st.st_mode)) {
+		remove(ovpn_log_path);
+		return;
+	}
+
+	/* check the size of openvpn log file */
+	if (st.st_size <= OVPN_MAX_LOG_FSIZE)
+		return;
+
+	/* backup original log file */
+	snprintf(backup_log_path, sizeof(backup_log_path), "%s.0", ovpn_log_path);
+
+	rename(ovpn_log_path, backup_log_path);
+}
+
+/*
  * Run openvpn process
  */
 
@@ -473,7 +498,7 @@ static int run_openvpn_proc(struct rvd_vpnconn *vpn_conn)
 	get_full_path(c->opt.log_dir_path, ovpn_log_fname, ovpn_log_fpath, sizeof(ovpn_log_fpath));
 
 	/* remove log path */
-	remove(ovpn_log_fpath);
+	rotate_orig_ovpn_log(ovpn_log_fpath);
 
 	/* create openvpn process */
 	ovpn_pid = fork();
@@ -481,7 +506,7 @@ static int run_openvpn_proc(struct rvd_vpnconn *vpn_conn)
 		char *const ovpn_params[] = {c->opt.ovpn_bin_path,
 			    "--config", vpn_conn->config.ovpn_profile_path,
 			    "--management", "127.0.0.1", mgm_port_str,
-			    "--log", ovpn_log_fpath,
+			    "--log-append", ovpn_log_fpath,
 			    NULL};
 
 		/* child process */
