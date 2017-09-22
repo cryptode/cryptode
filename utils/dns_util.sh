@@ -93,7 +93,7 @@ _EOF
 	fi
 }
 
-# show status for VPN settings
+# show status for DNS settings
 function show_status() {
 	# check whether current DNS was set by rvc
 	if check_dns_set_by_rvc; then
