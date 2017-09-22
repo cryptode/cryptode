@@ -484,6 +484,21 @@ int is_valid_conn_name(const char *conn_name)
 	return 1;
 }
 
+/* check whether given file or directory is exist */
+int is_exist_path(const char *path, int is_dir)
+{
+	struct stat st;
+	int valid_mode;
+
+	/* check the stat of path */
+	if (stat(path, &st) != 0)
+		return 0;
+
+	valid_mode = is_dir ? S_ISDIR(st.st_mode) : S_ISREG(st.st_mode);
+
+	return valid_mode;
+}
+
 /* check whether the file is owned by specified user */
 int is_owned_by_user(const char *path, const char *uname)
 {

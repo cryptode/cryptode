@@ -1,6 +1,8 @@
 #ifndef __RVC_H__
 #define __RVC_H__
 
+#define RVC_DNS_UTIL_PATH				"/opt/rvc/bin/dns_util.sh"
+
 /*
  * VPN profile type
  */
@@ -96,12 +98,32 @@ int rvc_import(int import_type, const char *import_path);
 /** Remove RVD VPN connections
  *
  * This function requires sudo privilege, so it needs to gain root privilege before calling.
- * 
+ *
  * @param [in] conn_name VPN connection name to be removed
  * @param [in] force if connection is in connected or pending status, then force removing
  * @return 0 If success, otherwise non-zero will be returned.
  */
 
 int rvc_remove(const char *conn_name, int force);
+
+/** Override DNS settings on the system
+ *
+ * This function requires sudo privilege, so it needs to gain root privilege before calling.
+ *
+ * @param [in] enabled flag for enable/disable DNS overriding
+ * @param [in] dns_ip_list list of DNS server IP addresses separated by comma
+ * @return 0 If success, otherwise non-zero will be returned.
+ */
+
+int rvc_dns_override(int enabled, const char *dns_ip_list);
+
+/** Print the current DNS setting on the system
+ *
+ * This function requires sudo privilege, so it needs to gain root privilege before calling.
+ *
+ * @return 0 If success, otherwise non-zero will be returned.
+ */
+
+int rvc_dns_print(void);
 
 #endif /* __RVC_H__ */
