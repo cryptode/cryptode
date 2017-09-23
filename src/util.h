@@ -50,6 +50,9 @@ int set_non_blocking(int sock);
 /* check whether connection name is valid */
 int is_valid_conn_name(const char *conn_name);
 
+/* check whether given file or directory is exist */
+int is_exist_path(const char *path, int is_dir);
+
 /* check whether the file is owned by specified user */
 int is_owned_by_user(const char *path, const char *uname);
 

@@ -677,3 +677,90 @@ int rvc_remove(const char *conn_name, int force)
 	/* reload rvd */
 	return rvc_reload();
 }
+
+/*
+ * check whether DNS utility has installed perperly
+ */
+
+static int check_dns_util_path()
+{
+	/* check whether dns utility is exist */
+	if (!is_exist_path(RVC_DNS_UTIL_PATH, 0)) {
+		fprintf(stderr, "No exist rvc DNS utility '%s'\n", RVC_DNS_UTIL_PATH);
+		return RVD_RESP_NO_EXIST_DNS_UTIL;
+	}
+
+	/* check whether rvc utility is exist and valid permission */
+	if (!is_valid_permission(RVC_DNS_UTIL_PATH, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH) ||
+		!is_owned_by_user(RVC_DNS_UTIL_PATH, "root")) {
+		fprintf(stderr, "rvc DNS utility '%s' has wrong owner or permission.\n", RVC_DNS_UTIL_PATH);
+		return RVD_RESP_WRONG_PERMISSION;
+	}
+
+	return RVD_RESP_OK;
+}
+
+/*
+ * Override DNS settings
+ */
+
+int rvc_dns_override(int enabled, const char *dns_ip_list)
+{
+	char cmd[RVD_MAX_PATH];
+	int ret;
+
+	/* check UID is root */
+	if (getuid() != 0) {
+		fprintf(stderr, "This option requires root privilege. Please run with 'sudo'\n");
+		return RVD_RESP_SUDO_REQUIRED;
+	}
+
+	/* check utility path */
+	ret = check_dns_util_path();
+	if (ret != RVD_RESP_OK)
+		return ret;
+
+	/* build command string */
+	if (enabled)
+		snprintf(cmd, sizeof(cmd), "%s enable %s", RVC_DNS_UTIL_PATH, dns_ip_list);
+	else
+		snprintf(cmd, sizeof(cmd), "%s disable", RVC_DNS_UTIL_PATH);
+
+	/* run command */
+	ret = system(cmd);
+	if (ret != 0)
+		return RVD_RESP_ERR_DNS_UTIL;
+
+	return RVD_RESP_OK;
+}
+
+/*
+ * print DNS setting on the system
+ */
+
+int rvc_dns_print(void)
+{
+	char cmd[RVD_MAX_PATH];
+	int ret;
+
+	/* check UID is root */
+	if (getuid() != 0) {
+		fprintf(stderr, "This option requires root privilege. Please run with 'sudo'\n");
+		return RVD_RESP_SUDO_REQUIRED;
+	}
+
+	/* check utility path */
+	ret = check_dns_util_path();
+	if (ret != RVD_RESP_OK)
+		return ret;
+
+	/* build command */
+	snprintf(cmd, sizeof(cmd), "%s status", RVC_DNS_UTIL_PATH);
+
+	/* run command */
+	ret = system(cmd);
+	if (ret != 0)
+		return RVD_RESP_ERR_DNS_UTIL;
+
+	return RVD_RESP_OK;
+}

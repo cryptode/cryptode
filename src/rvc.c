@@ -46,6 +46,7 @@ static struct {
 	{RVD_CMD_RELOAD, "reload"},
 	{RVD_CMD_IMPORT, "import"},
 	{RVD_CMD_REMOVE, "remove"},
+	{RVD_CMD_DNS_OVERRIDE, "dns-override"},
 	{RVD_CMD_UNKNOWN, NULL}
 };
 
@@ -66,6 +67,8 @@ static void print_help(void)
 		"    reload\t\t\t\t\treload configuration (sudo required)\n"
 		"    import <new-from-tblk|new-from-ovpn> <path>\timport VPN connection (sudo required)\n"
 		"    remove <connection name> [--force]\t\tremove VPN connection (sudo required)\n"
+		"    dns-override <enable|disable|status> [DNS server IP list]\n"
+		"           override DNS settings. DNS server IP addresses should be separated by comma (sudo required)\n"
 		);
 }
 
@@ -209,6 +212,18 @@ int main(int argc, char *argv[])
 			ret = rvc_remove(argv[2], argc == 3 ? 0 : 1);
 			exit(ret);
 		} else
+			opt_invalid = 1;
+
+		break;
+
+	case RVD_CMD_DNS_OVERRIDE:
+		if (argc == 4 && strcmp(argv[2], "enable") == 0)
+			ret = rvc_dns_override(1, argv[3]);
+		else if (argc == 3 && strcmp(argv[2], "disable") == 0)
+			ret = rvc_dns_override(0, NULL);
+		else if (argc == 3 && strcmp(argv[2], "status") == 0)
+			ret = rvc_dns_print();
+		else
 			opt_invalid = 1;
 
 		break;
