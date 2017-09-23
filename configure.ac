@@ -102,5 +102,11 @@ fi
 AC_DEFINE_UNQUOTED([OPENVPN_BINARY_PATH], ["$OPENVPN_BINARY_PATH"], [Path to OpenVPN])
 AC_SUBST(OPENVPN_BINARY_PATH)
 
-AC_CONFIG_FILES([Makefile src/Makefile])
+AC_CONFIG_FILES([Makefile
+                utils/Makefile
+                etc/Makefile
+                platforms/Makefile
+                platforms/osx/Makefile
+                src/Makefile])
+
 AC_OUTPUT

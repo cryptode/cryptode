@@ -27,7 +27,9 @@ config.h.in*
 m4/*.m4
 src/.deps
 src/rvcd.dSYM
-.tar.gz
+*tar.gz
+platforms/osx/rvc.dist
+rvc.pkg
 
 # Intellij IdeaC
 .idea/

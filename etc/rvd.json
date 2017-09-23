@@ -5,7 +5,5 @@
   "user_id": 501,
   "restrict_socket": true,
   "log_directory": "/var/log/rvd",
-  "vpn_config_paths": [
-    "/opt/rvc/etc/vpn.d"
-  ]
+  "vpn_config_paths": "/opt/rvc/etc/vpn.d"
 }

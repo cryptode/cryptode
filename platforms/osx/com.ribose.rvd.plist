@@ -11,7 +11,7 @@
     <string>com.ribose.rvd</string>
     <key>ProgramArguments</key>
     <array>
-      <string>/opt/rvc/bin/rvd</string>
+      <string>/opt/rvc/sbin/rvd</string>
     </array>
     <key>RunAtLoad</key>
     <true/>
