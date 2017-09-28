@@ -1,0 +1,16 @@
+#!/bin/bash
+
+RVC_DATA_DIR=/opt/rvc.dist
+RVC_INSTALL_DIR=/opt/rvc
+
+RVD_PLIST_FILE=/Library/LaunchDaemons/com.ribose.rvd.plist
+
+# remove old data and installation directory
+rm -rf $RVC_DATA_DIR
+rm -rf $RVC_INSTALL_DIR
+
+# unload rvd launch daemon
+launchctl unload $RVD_PLIST_FILE
+rm -rf $RVD_PLIST_FILE
+
+exit 0
