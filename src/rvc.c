@@ -82,7 +82,7 @@ int main(int argc, char *argv[])
 	int use_json = 0;
 	int opt_invalid = 0;
 
-	int i, ret;
+	int i, ret = -1;
 
 	const char *cmd_param = NULL;
 	char *resp_data = NULL;
@@ -239,10 +239,10 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
-	if (ret == 0 && resp_data) {
+	if (resp_data) {
 		printf("%s\n", resp_data);
 		free(resp_data);
 	}
 
-	return 0;
+	return ret;
 }

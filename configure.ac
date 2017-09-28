@@ -37,8 +37,10 @@ AC_CHECK_HEADERS_ONCE(m4_flatten([
     sys/types.h
 ]))
 
-AX_CHECK_JSONC([], AC_MSG_ERROR([Couldn't find json-c/json.h... try 'brew install json-c']))
-AX_CHECK_OPENSSL([], AC_MSG_ERROR([Couldn't find openssl/crypto.h... try 'brew install openssl']))
+AC_CHECK_FUNCS([strlcpy strlcat])
+
+AX_CHECK_JSONC([], AC_MSG_ERROR([]))
+AX_CHECK_OPENSSL([], AC_MSG_ERROR([]))
 
 # add more host definitions if needed.
 islinux=no

@@ -34,6 +34,7 @@
 #include <signal.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -1297,7 +1298,7 @@ static void add_conninfo_to_json(struct rvd_vpnconn *vpn_conn, json_object *j_ob
 void rvd_vpnconn_list_to_buffer(rvd_vpnconn_mgr_t *vpnconn_mgr, bool json_format, char **buffer)
 {
 	struct rvd_vpnconn *vpn_conn = vpnconn_mgr->vpn_conns;
-	json_object *j_obj;
+	json_object *j_obj = NULL;
 
 	RVD_DEBUG_MSG("VPN: Writing VPN connection list into buffer");
 

@@ -38,7 +38,6 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <pwd.h>
-#include <uuid/uuid.h>
 
 #include <json-c/json.h>
 
@@ -752,3 +751,53 @@ int create_dir(const char *dir_path, mode_t mode)
 
 	return 0;
 }
+
+#ifndef HAVE_STRLCPY
+
+/* size bounded string copy function */
+size_t strlcpy(char *dst, const char *src, size_t size)
+{
+	size_t srclen;
+
+	/* decrease size value */
+	size--;
+
+	/* get source len */
+	srclen = strlen(src);
+	if (srclen > size)
+		srclen = size;
+
+	memcpy(dst, src, srclen);
+	dst[srclen] = '\0';
+
+	return srclen;
+}
+
+#endif
+
+#ifndef HAVE_STRLCAT
+
+/* size bounded string copy function */
+size_t strlcat(char *dst, const char *src, size_t size)
+{
+	size_t srclen;
+	size_t dstlen;
+
+	/* set length of destination buffer */
+	dstlen = strlen(dst);
+	size -= dstlen + 1;
+	if (!size)
+		return dstlen;
+
+	/* get the length of source buffer */
+	srclen = strlen(src);
+	if (srclen > size)
+		srclen = size;
+
+	memcpy(dst + dstlen, src, srclen);
+	dst[dstlen + srclen] = '\0';
+
+	return (dstlen + srclen);
+}
+
+#endif
