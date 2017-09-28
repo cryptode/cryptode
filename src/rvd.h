@@ -25,8 +25,7 @@ typedef struct rvd_ctx_option {
 	bool restrict_cmd_sock;
 
 	char log_dir_path[RVD_MAX_PATH];
-
-	struct rvd_json_array *vpn_config_dirs;
+	char vpn_config_dir[RVD_MAX_PATH];
 } rvd_ctx_opt_t;
 
 /* rvd context structure */
