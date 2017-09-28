@@ -49,7 +49,7 @@ static rvd_ctx_opt_t g_default_opts = {
 	RVD_DEFAULT_UID,
 	true,
 	RVD_DEFAULT_LOGDIR_PATH,
-	NULL
+	RVD_DEFAULT_VPN_CONFIG_DIR,
 };
 
 /*
@@ -208,7 +208,7 @@ parse_config(rvd_ctx_opt_t *opt, const char *config_path)
 		{"user_id", RVD_JTYPE_UID, &opt->allowed_uid, 0, false, NULL},
 		{"restrict_socket", RVD_JTYPE_BOOL, &opt->restrict_cmd_sock, 0, false, NULL},
 		{"log_directory", RVD_JTYPE_STR, opt->log_dir_path, sizeof(opt->log_dir_path), false, NULL},
-		{"vpn_config_paths", RVD_JTYPE_STR_ARRAY, &opt->vpn_config_dirs, 0, true, NULL}
+		{"vpn_config_dir", RVD_JTYPE_STR, &opt->vpn_config_dir, sizeof(opt->vpn_config_dir), false, NULL}
 	};
 
 	/* check whether configuration file has valid permission */
@@ -259,25 +259,6 @@ parse_config(rvd_ctx_opt_t *opt, const char *config_path)
 	}
 
 	return 0;
-}
-
-/*
- * free config
- */
-
-static void free_config(rvd_ctx_opt_t *op)
-{
-	struct rvd_json_array *vpn_configs = op->vpn_config_dirs;
-	int i;
-
-	if (!vpn_configs)
-		return;
-
-	/* free vpn configs */
-	for (i = 0; i < vpn_configs->arr_size; i++)
-		free(vpn_configs->val[i]);
-
-	free(vpn_configs);
 }
 
 /*
@@ -334,9 +315,6 @@ rvd_ctx_finalize(rvd_ctx_t *c)
 
 	/* finalize logging */
 	rvd_log_finalize(&c);
-
-	/* free config */
-	free_config(&c->opt);
 }
 
 /*

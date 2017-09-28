@@ -1144,7 +1144,7 @@ static void parse_config(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *config_path
  * read configuration from directory
  */
 
-static void read_config_by_dir(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *dir_path)
+static void read_config(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *dir_path)
 {
 	DIR *dir;
 	struct dirent *dp;
@@ -1213,30 +1213,6 @@ static void read_config_by_dir(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *dir_p
 
 	/* close directory */
 	closedir(dir);
-}
-
-/*
- * read configuration
- */
-
-static void read_config(rvd_vpnconn_mgr_t *vpnconn_mgr, struct rvd_json_array *vpn_config_dirs)
-{
-	int i;
-
-	/* read configuration from default location */
-	read_config_by_dir(vpnconn_mgr, RVD_DEFAULT_VPN_CONFIG_DIR);
-
-	for (i = 0; i < vpn_config_dirs->arr_size; i++) {
-		const char *dir_path = vpn_config_dirs->val[i];
-
-		/* check whether dir_path is default location */
-		if (strcmp(dir_path, RVD_DEFAULT_VPN_CONFIG_DIR) == 0)
-			continue;
-
-		read_config_by_dir(vpnconn_mgr, dir_path);
-	}
-
-	return;
 }
 
 /*
@@ -1480,7 +1456,7 @@ int rvd_vpnconn_mgr_init(struct rvd_ctx *c)
 	pthread_mutex_init(&vpnconn_mgr->conn_mt, NULL);
 
 	/* set configuration path */
-	read_config(vpnconn_mgr, c->opt.vpn_config_dirs);
+	read_config(vpnconn_mgr, c->opt.vpn_config_dir);
 
 	/* create thread for monitoring vpn connections */
 	vpn_conn = vpnconn_mgr->vpn_conns;

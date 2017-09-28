@@ -311,20 +311,22 @@ static int process_cmd_script_security(rvd_cmd_proc_t *cmd_proc, const char *par
 }
 
 /*
- * process commands
+ * process 'get-configdir' command
  */
 
-struct rvd_cmd {
-	enum RVD_CMD_CODE code;
-	const char *name;
-} g_rvd_cmds[] = {
-	{RVD_CMD_LIST, "list"},
-	{RVD_CMD_CONNECT, "connect"},
-	{RVD_CMD_DISCONNECT, "disconnect"},
-	{RVD_CMD_STATUS, "status"},
-	{RVD_CMD_SCRIPT_SECURITY, "script-security"},
-	{RVD_CMD_UNKNOWN, NULL}
-};
+static int process_cmd_get_confdir(rvd_cmd_proc_t *cmd_proc, char **conf_dir)
+{
+	RVD_DEBUG_MSG("CMD: Processing 'get_confdir' command");
+
+	/* set configuration directory path */
+	*conf_dir = strdup(cmd_proc->c->opt.vpn_config_dir);
+
+	return RVD_RESP_OK;
+}
+
+/*
+ * process commands
+ */
 
 static int process_cmd(rvd_cmd_proc_t *cmd_proc, const char *cmd,
 		char **resp_data, bool *json_format)
@@ -367,6 +369,10 @@ static int process_cmd(rvd_cmd_proc_t *cmd_proc, const char *cmd,
 
 	case RVD_CMD_SCRIPT_SECURITY:
 		resp_code = process_cmd_script_security(cmd_proc, cmd_param);
+		break;
+
+	case RVD_CMD_GET_CONFDIR:
+		resp_code = process_cmd_get_confdir(cmd_proc, resp_data);
 		break;
 
 	default:

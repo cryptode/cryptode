@@ -73,6 +73,14 @@ int rvc_disconnect(const char *name, int json_format, char **conn_status);
 
 int rvc_get_status(const char *name, int json_format, char **conn_status);
 
+/** Get the configuration directory
+ *
+ * @param [out] conf_dir buffer which keeps configuration directory
+ * @return 0 If success, otherwise non-zero will be returned.
+ */
+
+int rvc_get_confdir(char **conf_dir);
+
 /** Reload RVD VPN connections
  *
  * This function requires sudo privilege, so it needs to gain root privilege before calling.

@@ -260,7 +260,7 @@ static int write_tblk_cred(const char *dir, int cred_type, const char *fname, FI
  * convert tblk profile to OpenVPN profile
  */
 
-static int convert_tblk_to_ovpn(const char *container_path, const char *ovpn_name)
+static int convert_tblk_to_ovpn(const char *conf_dir, const char *container_path, const char *ovpn_name)
 {
 	char ovpn_path[RVD_MAX_PATH];
 	char new_ovpn_path[RVD_MAX_PATH];
@@ -346,7 +346,7 @@ static int convert_tblk_to_ovpn(const char *container_path, const char *ovpn_nam
 
 	/* copy new profile to rvd configuratio directory */
 	if (ret == 0)
-		ret = copy_file_into_dir(new_ovpn_path, RVD_DEFAULT_VPN_CONFIG_DIR, S_IRUSR | S_IWUSR);
+		ret = copy_file_into_dir(new_ovpn_path, conf_dir, S_IRUSR | S_IWUSR);
 
 	/* remove new profile */
 	remove(new_ovpn_path);
@@ -358,7 +358,7 @@ static int convert_tblk_to_ovpn(const char *container_path, const char *ovpn_nam
  * import openvpn profile from TunnelBlick profile
  */
 
-static int import_ovpn_from_tblk(const char *tblk_path)
+static int import_ovpn_from_tblk(const char *conf_dir, const char *tblk_path)
 {
 	DIR *dir;
 	struct dirent *entry;
@@ -389,7 +389,7 @@ static int import_ovpn_from_tblk(const char *tblk_path)
 			continue;
 
 		/* convert tblk profile to openvpn */
-		if (convert_tblk_to_ovpn(container_path, entry->d_name) == 0)
+		if (convert_tblk_to_ovpn(conf_dir, container_path, entry->d_name) == 0)
 			count++;
 	}
 
@@ -528,6 +528,16 @@ int rvc_get_status(const char *name, int json_format, char **conn_status)
 }
 
 /*
+ * Get the configuration directory
+ */
+
+int rvc_get_confdir(char **conf_dir)
+{
+	return send_cmd_to_rvd(RVD_CMD_GET_CONFDIR, NULL, false, conf_dir);
+}
+
+
+/*
  * reload VPN connections
  */
 
@@ -565,11 +575,18 @@ int rvc_reload()
 int rvc_import(int import_type, const char *import_path)
 {
 	int ret;
+	char *conf_dir = NULL;
 
 	/* check UID */
 	if (getuid() != 0) {
 		fprintf(stderr, "This option requires root privilege. Please run with 'sudo'\n");
 		return RVD_RESP_SUDO_REQUIRED;
+	}
+
+	/* get configuration directory path */
+	if (rvc_get_confdir(&conf_dir) != 0) {
+		fprintf(stderr, "Couldn't get the configuration directory of rvd\n");
+		return RVD_RESP_INVALID_CONF_DIR;
 	}
 
 	/* check import type */
@@ -585,7 +602,7 @@ int rvc_import(int import_type, const char *import_path)
 	}
 
 	if (import_type == RVC_VPN_PROFILE_TBLK) {
-		ret = import_ovpn_from_tblk(import_path);
+		ret = import_ovpn_from_tblk(conf_dir, import_path);
 		if (ret <= 0) {
 			fprintf(stderr, "Couldn't import OpenVPN profile from TunnelBlick profile '%s'", import_path);
 			return RVD_RESP_INVALID_PROFILE_TYPE;
@@ -601,8 +618,8 @@ int rvc_import(int import_type, const char *import_path)
 		}
 
 		/* copy files into rvd config directory */
-		if (copy_file_into_dir(import_path, RVD_DEFAULT_VPN_CONFIG_DIR, S_IRUSR | S_IWUSR) != 0) {
-			fprintf(stderr, "Couldn't copy file '%s' into '%s'\n", import_path, RVD_DEFAULT_VPN_CONFIG_DIR);
+		if (copy_file_into_dir(import_path, conf_dir, S_IRUSR | S_IWUSR) != 0) {
+			fprintf(stderr, "Couldn't copy file '%s' into '%s'\n", import_path, conf_dir);
 			return RVD_RESP_UNKNOWN_ERR;
 		}
 	}
