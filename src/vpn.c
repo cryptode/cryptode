@@ -369,10 +369,40 @@ static int check_ovpn_binary(const char *ovpn_bin_path, bool root_check)
 }
 
 /*
+ * add pre exec command fail log into log file
+ */
+
+static void add_pre_exec_faillog(const char *log_path, const char *cmd, int status)
+{
+	int log_fd;
+	FILE *log_fp;
+
+	/* open log file for append mode */
+	log_fd = open(log_path, O_CREAT | O_WRONLY | O_APPEND);
+	if (log_fd < 0) {
+		RVD_DEBUG_ERR("VPN: Couldn't open openvpn log file '%s'", log_path);
+		return;
+	}
+
+	log_fp = fdopen(log_fd, "a");
+	if (!log_fp) {
+		RVD_DEBUG_ERR("VPN: Couldn't open openvpn log file '%s'", log_path);
+		close(log_fd);
+		return;
+	}
+
+	/* write log line */
+	fprintf(log_fp, "Warning, pre-exec-cmd '%s' has failed with exit code '%d'\n", cmd, status);
+
+	/* close log file */
+	fclose(log_fp);
+}
+
+/*
  * run pre-connect command
  */
 
-static int run_preconn_cmd(struct rvd_vpnconn *vpn_conn)
+static int run_preconn_cmd(struct rvd_vpnconn *vpn_conn, const char *log_path)
 {
 	pid_t pre_cmd_pid;
 	int exit_status = EXIT_FAILURE;
@@ -429,6 +459,10 @@ static int run_preconn_cmd(struct rvd_vpnconn *vpn_conn)
 	vpn_conn->config.pre_exec_status = exit_status;
 
 	RVD_DEBUG_MSG("VPN: The status of pre-exec-cmd is '%d'", vpn_conn->config.pre_exec_status);
+
+	/* append log line into openvpn log file */
+	if (exit_status != 0)
+		add_pre_exec_faillog(log_path, vpn_conn->config.pre_exec_cmd, exit_status);
 
 	return exit_status;
 }
@@ -490,7 +524,7 @@ static int run_openvpn_proc(struct rvd_vpnconn *vpn_conn)
 	rotate_orig_ovpn_log(ovpn_log_fpath);
 
 	/* run pre connect exec command */
-	if (run_preconn_cmd(vpn_conn) != 0) {
+	if (run_preconn_cmd(vpn_conn, ovpn_log_fpath) != 0) {
 		RVD_DEBUG_ERR("VPN: Failed exit code from running pre-connect command");
 		return -1;
 	}
