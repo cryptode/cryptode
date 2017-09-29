@@ -492,15 +492,6 @@ int send_cmd_to_rvd(int cmd_code, const char *param, int json_format, char **res
 }
 
 /*
- * List RVC connections
- */
-
-int rvc_list_connections(int json_format, char **connections)
-{
-	return send_cmd_to_rvd(RVD_CMD_LIST, NULL, json_format, connections);
-}
-
-/*
  * Try to connect VPN server
  */
 
