@@ -12,18 +12,6 @@ enum RVC_VPN_PROFILE_TYPE {
 	RVC_VPN_PROFILE_TBLK			/* TunnelBlick profile */
 };
 
-/** List all VPN connections.
- *
- * Note that the allocated memory for listing VPN connections should be freed
- * after used.
- * 
- * @param [in] json_format set output format
- * @param [out] connections JSON buffer which keeps connection list.
- * @return 0 If success, otherwise non-zero will be returned.
- */
-
-int rvc_list_connections(int json_format, char **connections);
-
 /** Try to connect to RVC VPN server
  *
  * The JSON buffer to be returned may have two types, single or array JSON buffer

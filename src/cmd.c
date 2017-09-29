@@ -159,28 +159,6 @@ static void send_cmd_response(int clnt_sock, int resp_code, const char *buffer, 
 }
 
 /*
- * process 'list' command
- */
-
-static int process_cmd_list(rvd_cmd_proc_t *cmd_proc, bool json_format, char **resp_buffer)
-{
-	char *buffer = NULL;
-
-	int resp_code = RVD_RESP_OK;
-
-	RVD_DEBUG_MSG("CMD: Processing 'list' command");
-
-	/* get buffer of config list */
-	rvd_vpnconn_list_to_buffer(&cmd_proc->c->vpnconn_mgr, json_format, &buffer);
-	if (buffer)
-		*resp_buffer = buffer;
-	else
-		resp_code = RVD_RESP_EMPTY_LIST;
-
-	return resp_code;
-}
-
-/*
  * process 'connect' command
  */
 
@@ -351,10 +329,6 @@ static int process_cmd(rvd_cmd_proc_t *cmd_proc, const char *cmd,
 	}
 
 	switch (cmd_code) {
-	case RVD_CMD_LIST:
-		resp_code = process_cmd_list(cmd_proc, *json_format, resp_data);
-		break;
-
 	case RVD_CMD_CONNECT:
 		resp_code = process_cmd_connect(cmd_proc, cmd_param, *json_format, resp_data);
 		break;
