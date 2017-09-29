@@ -405,7 +405,11 @@ static void add_pre_exec_faillog(const char *log_path, const char *cmd, int stat
 static int run_preconn_cmd(struct rvd_vpnconn *vpn_conn, const char *log_path)
 {
 	pid_t pre_cmd_pid;
-	int exit_status = EXIT_FAILURE;
+
+	char *cmd, *tok;
+	char **args = NULL;
+
+	int tok_count = 0;
 
 	/* check whether pre-connect command is exist */
 	if (strlen(vpn_conn->config.pre_exec_cmd) == 0)
@@ -416,6 +420,28 @@ static int run_preconn_cmd(struct rvd_vpnconn *vpn_conn, const char *log_path)
 
 	/* init exit status */
 	vpn_conn->config.pre_exec_status = EXIT_FAILURE;
+
+	/* separate commad to args */
+	cmd = strdup(vpn_conn->config.pre_exec_cmd);
+	if (!cmd) {
+		RVD_DEBUG_ERR("VPN: Out of memory(strdup)");
+		return -1;
+	}
+
+	tok = strtok(cmd, " ");
+	while (tok) {
+		/* allocate args */
+		args = realloc(args, (++tok_count + 1) * sizeof(char *));
+		if (!args)
+			break;
+
+		/* set args */
+		args[tok_count - 1] = tok;
+
+		tok = strtok(NULL, " ");
+	}
+
+	args[tok_count] = NULL;
 
 	/* create pre fork exec process */
 	pre_cmd_pid = fork();
@@ -430,8 +456,8 @@ static int run_preconn_cmd(struct rvd_vpnconn *vpn_conn, const char *log_path)
 			setgid(gid);
 
 		/* run command */
-		exit_status = system(vpn_conn->config.pre_exec_cmd);
-		exit(exit_status);
+		execvp(args[0], args);
+		exit(EXIT_FAILURE);
 	} else if (pre_cmd_pid > 0) {
 		int w, status;
 		int timeout = 0;
@@ -442,12 +468,16 @@ static int run_preconn_cmd(struct rvd_vpnconn *vpn_conn, const char *log_path)
 			if (w < 0)
 				break;
 
-			if (WIFEXITED(status))
+			if (WIFEXITED(status)) {
+				vpn_conn->config.pre_exec_status = WEXITSTATUS(status);
 				break;
+			}
 
 			/* check timeout */
-			if (timeout == RVD_PRE_EXEC_TIMEOUT)
+			if (timeout == RVD_PRE_EXEC_TIMEOUT) {
+				kill(pre_cmd_pid, SIGTERM);
 				break;
+			}
 
 			timeout++;
 		} while(1);
@@ -455,16 +485,22 @@ static int run_preconn_cmd(struct rvd_vpnconn *vpn_conn, const char *log_path)
 		RVD_DEBUG_ERR("VPN: Forking new process for pre-connect-exec has failed(err:%d)", errno);
 	}
 
-	/* set exit status */
-	vpn_conn->config.pre_exec_status = exit_status;
+	/* free memory */
+	if (args)
+		free(args);
+
+	if (cmd)
+		free(cmd);
 
 	RVD_DEBUG_MSG("VPN: The status of pre-exec-cmd is '%d'", vpn_conn->config.pre_exec_status);
 
 	/* append log line into openvpn log file */
-	if (exit_status != 0)
-		add_pre_exec_faillog(log_path, vpn_conn->config.pre_exec_cmd, exit_status);
+	if (vpn_conn->config.pre_exec_status != 0) {
+		add_pre_exec_faillog(log_path, vpn_conn->config.pre_exec_cmd, vpn_conn->config.pre_exec_status);
+		return -1;
+	}
 
-	return exit_status;
+	return 0;
 }
 
 /*
