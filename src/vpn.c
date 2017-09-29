@@ -882,8 +882,12 @@ static void get_single_conn_status(struct rvd_vpnconn *vpn_conn, bool json_forma
 
 		/* allocate buffer for ret_str */
 		ret_str = (char *) malloc(strlen(status_buffer) + 1);
-		if (ret_str)
-			strlcpy(ret_str, status_buffer, strlen(status_buffer) + 1);
+		if (ret_str) {
+			size_t size;
+
+			size = strlen(status_buffer) + 1;
+			strlcpy(ret_str, status_buffer, size);
+		}
 	}
 
 	*status_str = ret_str;
@@ -934,6 +938,7 @@ static void get_all_conn_status(rvd_vpnconn_mgr_t *vpnconn_mgr, bool json_format
 	} else {
 		while (vpn_conn) {
 			char *conn_status_str = NULL;
+			size_t size;
 
 			/* get single connection status */
 			get_single_conn_status(vpn_conn, false, &conn_status_str);
@@ -941,9 +946,10 @@ static void get_all_conn_status(rvd_vpnconn_mgr_t *vpnconn_mgr, bool json_format
 				size_t len = ret_str ? strlen(ret_str) : 0;
 
 				/* allocate and copy buffer */
-				ret_str = realloc(ret_str, len + strlen(conn_status_str) + 1);
+				size = len + strlen(conn_status_str) + 1;
+				ret_str = realloc(ret_str, size);
 				if (ret_str)
-					strlcpy(&ret_str[len], conn_status_str, strlen(conn_status_str) + 1);
+					strlcpy(&ret_str[len], conn_status_str, size - len);
 
 				/* free buffer */
 				free(conn_status_str);
@@ -1317,10 +1323,12 @@ void rvd_vpnconn_list_to_buffer(rvd_vpnconn_mgr_t *vpnconn_mgr, bool json_format
 
 	if (json_format) {
 		const char *p = json_object_get_string(j_obj);
+		size_t size;
 
-		*buffer = (char *) malloc(strlen(p) + 1);
+		size = strlen(p) + 1;
+		*buffer = (char *) malloc(size);
 		if (*buffer)
-			strlcpy(*buffer, p, strlen(p) + 1);
+			strlcpy(*buffer, p, size);
 
 		/* free json object */
 		json_object_put(j_obj);
