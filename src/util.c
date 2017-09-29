@@ -163,8 +163,7 @@ int rvd_json_parse(const char *jbuf, rvd_json_object_t *objs, int objs_count)
 					if (!arr_val->val[arr_idx])
 						continue;
 
-					strcpy(arr_val->val[arr_idx], str);
-					arr_val->val[arr_idx][strlen(str)] = '\0';
+					strlcpy(arr_val->val[arr_idx], str, strlen(str) + 1);
 
 					/* increase array size */
 					arr_val->arr_size++;
@@ -260,9 +259,7 @@ int rvd_json_build(rvd_json_object_t *objs, int objs_count, char **jbuf)
 	if (p && strlen(p) > 0) {
 		*jbuf = (char *) malloc(strlen(p) + 1);
 		if (*jbuf) {
-			strcpy(*jbuf, p);
-			(*jbuf)[strlen(p)] = '\0';
-
+			strlcpy(*jbuf, p, strlen(p) + 1);
 			ret = 0;
 		}
 	}
@@ -339,9 +336,7 @@ int rvd_json_add(const char *jbuf, rvd_json_object_t *objs, int objs_count, char
 	if (p && strlen(p) > 0) {
 		*ret_jbuf = (char *) malloc(strlen(p) + 1);
 		if (*ret_jbuf) {
-			strcpy(*ret_jbuf, p);
-			(*ret_jbuf)[strlen(p)] = '\0';
-
+			strlcpy(*ret_jbuf, p, strlen(p) + 1);
 			ret = 0;
 		}
 	}
@@ -621,7 +616,7 @@ size_t get_file_size(const char *file_path)
 }
 
 /* get file name from path */
-int get_file_name_by_path(const char *file_path, char *file_name, size_t s)
+int get_file_name_by_path(const char *file_path, char *file_name, size_t size)
 {
 	const char *p;
 
@@ -633,10 +628,10 @@ int get_file_name_by_path(const char *file_path, char *file_name, size_t s)
 		p = p + 1;
 
 	/* check length */
-	if (strlen(p) == 0 || strlen(p) + 1 > s)
+	if (strlen(p) == 0)
 		return -1;
 
-	strcpy(file_name, p);
+	strlcpy(file_name, p, size);
 
 	return 0;
 }
@@ -664,14 +659,10 @@ int copy_file_into_dir(const char *file_path, const char *dir_path, mode_t mode)
 	if (dir_path[dir_path_len - 1] != '/')
 		dir_path_len++;
 
-	if (dir_path_len + strlen(file_name) + 1 > sizeof(dst_path))
-		return -1;
-
 	/* make destination path */
-	memset(dst_path, 0, sizeof(dst_path));
 	strlcpy(dst_path, dir_path, sizeof(dst_path));
 	if (dst_path[strlen(dst_path) - 1] != '/')
-		strcat(dst_path, "/");
+		strlcat(dst_path, "/", sizeof(dst_path));
 
 	strlcat(dst_path, file_name, sizeof(dst_path));
 

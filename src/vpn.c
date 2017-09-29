@@ -882,10 +882,8 @@ static void get_single_conn_status(struct rvd_vpnconn *vpn_conn, bool json_forma
 
 		/* allocate buffer for ret_str */
 		ret_str = (char *) malloc(strlen(status_buffer) + 1);
-		if (ret_str) {
-			strcpy(ret_str, status_buffer);
-			ret_str[strlen(status_buffer)] = '\0';
-		}
+		if (ret_str)
+			strlcpy(ret_str, status_buffer, strlen(status_buffer) + 1);
 	}
 
 	*status_str = ret_str;
@@ -944,10 +942,8 @@ static void get_all_conn_status(rvd_vpnconn_mgr_t *vpnconn_mgr, bool json_format
 
 				/* allocate and copy buffer */
 				ret_str = realloc(ret_str, len + strlen(conn_status_str) + 1);
-				if (ret_str) {
-					strcpy(&ret_str[len], conn_status_str);
-					ret_str[len + strlen(conn_status_str)] = '\0';
-				}
+				if (ret_str)
+					strlcpy(&ret_str[len], conn_status_str, strlen(conn_status_str) + 1);
 
 				/* free buffer */
 				free(conn_status_str);
@@ -1170,16 +1166,12 @@ static void read_config(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *dir_path)
 		bool conf_exist = true;
 
 		/* init paths */
-		memset(ovpn_profile_path, 0, sizeof(ovpn_profile_path));
-		memset(conf_json_path, 0, sizeof(conf_json_path));
-		memset(conf_name, 0, sizeof(conf_name));
-
 		strlcpy(ovpn_profile_path, dir_path, sizeof(ovpn_profile_path));
 		strlcpy(conf_json_path, dir_path, sizeof(conf_json_path));
 
 		if (dir_path[strlen(dir_path) - 1] != '/') {
-			strcat(conf_json_path, "/");
-			strcat(ovpn_profile_path, "/");
+			strlcat(conf_json_path, "/", sizeof(conf_json_path));
+			strlcat(ovpn_profile_path, "/", sizeof(ovpn_profile_path));
 		}
 
 		/* check whether the file is ovpn file */
@@ -1197,7 +1189,7 @@ static void read_config(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *dir_path)
 
 		/* set json configuration path */
 		strncat(conf_json_path, dp->d_name, strlen(dp->d_name) - strlen(p));
-		strcat(conf_json_path, ".json");
+		strlcat(conf_json_path, ".json", sizeof(conf_json_path));
 
 		/* check whether configuration file is exist */
 		if (stat(conf_json_path, &st) != 0 || !S_ISREG(st.st_mode) ||
@@ -1255,8 +1247,7 @@ static void add_conninfo_to_buffer(struct rvd_vpnconn *vpn_conn, char **buffer)
 	else
 		p = (char *) realloc(p, strlen(config_buffer) + len + 1);
 
-	strcpy(&p[len], config_buffer);
-	p[len + strlen(config_buffer)] = '\0';
+	strlcpy(&p[len], config_buffer, len + strlen(config_buffer) + 1);
 
 	*buffer = p;
 }
@@ -1328,10 +1319,8 @@ void rvd_vpnconn_list_to_buffer(rvd_vpnconn_mgr_t *vpnconn_mgr, bool json_format
 		const char *p = json_object_get_string(j_obj);
 
 		*buffer = (char *) malloc(strlen(p) + 1);
-		if (*buffer) {
-			strcpy(*buffer, p);
-			(*buffer)[strlen(p)] = '\0';
-		}
+		if (*buffer)
+			strlcpy(*buffer, p, strlen(p) + 1);
 
 		/* free json object */
 		json_object_put(j_obj);
