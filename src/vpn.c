@@ -374,10 +374,8 @@ static int check_ovpn_binary(const char *ovpn_bin_path, bool root_check)
 
 static int run_preconn_cmd(struct rvd_vpnconn *vpn_conn)
 {
-	int w, status = -1;
-	int timeout = 0;
-
 	pid_t pre_cmd_pid;
+	int exit_status = EXIT_FAILURE;
 
 	/* check whether pre-connect command is exist */
 	if (strlen(vpn_conn->config.pre_exec_cmd) == 0)
@@ -386,10 +384,12 @@ static int run_preconn_cmd(struct rvd_vpnconn *vpn_conn)
 	RVD_DEBUG_MSG("VPN: Running pre-connect command '%s' with uid '%d'",
 			vpn_conn->config.pre_exec_cmd, vpn_conn->config.pre_exec_uid);
 
+	/* init exit status */
+	vpn_conn->config.pre_exec_status = EXIT_FAILURE;
+
 	/* create pre fork exec process */
 	pre_cmd_pid = fork();
 	if (pre_cmd_pid == 0) {
-		int ret;
 		gid_t gid;
 
 		/* set UID */
@@ -400,30 +400,37 @@ static int run_preconn_cmd(struct rvd_vpnconn *vpn_conn)
 			setgid(gid);
 
 		/* run command */
-		ret = system(vpn_conn->config.pre_exec_cmd);
-		exit(ret);
-	} else if (pre_cmd_pid < 0) {
+		exit_status = system(vpn_conn->config.pre_exec_cmd);
+		exit(exit_status);
+	} else if (pre_cmd_pid > 0) {
+		int w, status;
+		int timeout = 0;
+
+		/* wait until pre-connect command has finished */
+		do {
+			w = waitpid(pre_cmd_pid, &status, 0);
+			if (w < 0)
+				break;
+
+			if (WIFEXITED(status))
+				break;
+
+			/* check timeout */
+			if (timeout == RVD_PRE_EXEC_TIMEOUT)
+				break;
+
+			timeout++;
+		} while(1);
+	} else {
 		RVD_DEBUG_ERR("VPN: Forking new process for pre-connect-exec has failed(err:%d)", errno);
-		return -1;
 	}
 
-	/* wait until pre-connect command has finished */
-	do {
-		w = waitpid(pre_cmd_pid, &status, 0);
-		if (w < 0)
-			break;
+	/* set exit status */
+	vpn_conn->config.pre_exec_status = exit_status;
 
-		if (WIFEXITED(status))
-			break;
+	RVD_DEBUG_MSG("VPN: The status of pre-exec-cmd is '%d'", vpn_conn->config.pre_exec_status);
 
-		/* check timeout */
-		if (timeout == RVD_PRE_EXEC_TIMEOUT)
-			break;
-
-		timeout++;
-	} while(1);
-
-	return status;
+	return exit_status;
 }
 
 /*
@@ -476,6 +483,12 @@ static int run_openvpn_proc(struct rvd_vpnconn *vpn_conn)
 		return -1;
 	}
 
+	/* rotate openvpn log file */
+	snprintf(ovpn_log_fname, sizeof(ovpn_log_fname), "%s.ovpn.log", vpn_conn->config.name);
+	get_full_path(c->opt.log_dir_path, ovpn_log_fname, ovpn_log_fpath, sizeof(ovpn_log_fpath));
+
+	rotate_orig_ovpn_log(ovpn_log_fpath);
+
 	/* run pre connect exec command */
 	if (run_preconn_cmd(vpn_conn) != 0) {
 		RVD_DEBUG_ERR("VPN: Failed exit code from running pre-connect command");
@@ -494,11 +507,6 @@ static int run_openvpn_proc(struct rvd_vpnconn *vpn_conn)
 	}
 
 	snprintf(mgm_port_str, sizeof(mgm_port_str), "%d", vpn_conn->ovpn_mgm_port);
-	snprintf(ovpn_log_fname, sizeof(ovpn_log_fname), "%s.ovpn.log", vpn_conn->config.name);
-	get_full_path(c->opt.log_dir_path, ovpn_log_fname, ovpn_log_fpath, sizeof(ovpn_log_fpath));
-
-	/* remove log path */
-	rotate_orig_ovpn_log(ovpn_log_fpath);
 
 	/* create openvpn process */
 	ovpn_pid = fork();
@@ -820,7 +828,10 @@ static void get_single_conn_status(struct rvd_vpnconn *vpn_conn, bool json_forma
 			{"ovpn-status", RVD_JTYPE_STR, (void *)g_ovpn_state[vpn_conn->ovpn_state].ovpn_state_str, 0, false, NULL},
 			{"in-total", RVD_JTYPE_INT64, &vpn_conn->total_bytes_in, 0, false, NULL},
 			{"out-total", RVD_JTYPE_INT64, &vpn_conn->total_bytes_out, 0, false, NULL},
-			{"timestamp", RVD_JTYPE_INT64, &ts, 0, false, NULL}
+			{"timestamp", RVD_JTYPE_INT64, &ts, 0, false, NULL},
+			{"auto-connect", RVD_JTYPE_BOOL, &vpn_conn->config.auto_connect, 0, false, NULL},
+			{"pre-exec-cmd", RVD_JTYPE_STR, vpn_conn->config.pre_exec_cmd, 0, false, NULL},
+			{"pre-exec-status", RVD_JTYPE_INT, &vpn_conn->config.pre_exec_status, 0, false, NULL}
 		};
 
 		/* create json object */
@@ -856,7 +867,10 @@ static void get_single_conn_status(struct rvd_vpnconn *vpn_conn, bool json_forma
 				"\tconnected-time: %lu\n"
 				"\tin-current: %lu\n"
 				"\tout-current: %lu\n"
-				"\ttimestamp: %lu\n",
+				"\ttimestamp: %lu\n"
+				"\tauto-connect: %s\n"
+				"\tpre-exec-cmd: %s\n"
+				"\tpre-exec-status: %s [%d]\n",
 				vpn_conn->config.name,
 				vpn_conn->config.ovpn_profile_path,
 				g_rvd_state[vpn_conn->conn_state].state_str,
@@ -864,7 +878,11 @@ static void get_single_conn_status(struct rvd_vpnconn *vpn_conn, bool json_forma
 				vpn_conn->total_bytes_in, vpn_conn->curr_bytes_out,
 				vpn_conn->connected_tm,
 				vpn_conn->curr_bytes_in, vpn_conn->curr_bytes_out,
-				ts);
+				ts,
+				vpn_conn->config.auto_connect ? "Enabled" : "Disabled",
+				vpn_conn->config.pre_exec_cmd,
+				vpn_conn->config.pre_exec_status == 0 ? "SUCCESSFUL" : "FAILED",
+				vpn_conn->config.pre_exec_status);
 		else
 			snprintf(status_buffer, sizeof(status_buffer), "name: %s\n"
 				"\tprofile: %s\n"
@@ -872,13 +890,20 @@ static void get_single_conn_status(struct rvd_vpnconn *vpn_conn, bool json_forma
 				"\topenvpn-status: %s\n"
 				"\tin-total: %lu\n"
 				"\tout-total: %lu\n"
-				"\ttimestamp: %lu\n",
+				"\ttimestamp: %lu\n"
+				"\tauto-connect: %s\n"
+				"\tpre-exec-cmd: %s\n"
+				"\tpre-exec-status: %s [%d]\n",
 				vpn_conn->config.name,
 				vpn_conn->config.ovpn_profile_path,
 				g_rvd_state[vpn_conn->conn_state].state_str,
 				g_ovpn_state[vpn_conn->ovpn_state].ovpn_state_str,
 				vpn_conn->total_bytes_in, vpn_conn->curr_bytes_out,
-				ts);
+				ts,
+				vpn_conn->config.auto_connect ? "Enabled" : "Disabled",
+				vpn_conn->config.pre_exec_cmd,
+				vpn_conn->config.pre_exec_status == 0 ? "SUCCESSFUL" : "FAILED",
+				vpn_conn->config.pre_exec_status);
 
 		/* allocate buffer for ret_str */
 		ret_str = (char *) malloc(strlen(status_buffer) + 1);

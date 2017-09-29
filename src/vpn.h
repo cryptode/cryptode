@@ -45,6 +45,8 @@ struct rvd_vpnconfig {
 
 	uid_t pre_exec_uid;
 	char pre_exec_cmd[512];
+
+	int pre_exec_status;
 };
 
 /* vpn connection structure */
