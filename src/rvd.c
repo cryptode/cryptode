@@ -60,7 +60,9 @@ static void print_help(void)
 {
 	printf("usage: rvd <options>\n"
 		"  Options:\n"
-		"    -c <config file>\tset configuration file\n"
+		"    -f <config file>\tset configuration file\n"
+		"    -D\t\t\tgoes daemon\n"
+		"    -c\t\t\tonly check config and exit\n"
 		"    -h\t\t\tprint help message\n");
 
 	exit(0);
@@ -143,6 +145,42 @@ check_process_running()
 }
 
 /*
+ * daemonize the process
+ */
+
+static void daemonize(void)
+{
+	int pid, sid;
+
+	/* fork new process */
+	pid = fork();
+	if (pid < 0)
+		exit(1);
+
+	/* if child has created, then exit parent */
+	if (pid > 0)
+		exit(0);
+
+	/* set file permission */
+	umask(027);
+
+	/* set new process group */
+	sid = setsid();
+	if (sid < 0)
+		exit(1);
+
+	/* disable standard output and err */
+	close(0);
+	close(1);
+	close(2);
+
+	open("/dev/null", O_RDWR);
+
+	dup(0);
+	dup(0);
+}
+
+/*
  * write PID file
  */
 
@@ -182,7 +220,7 @@ write_pid_file()
  */
 
 static void
-remove_pid_file()
+remove_pid_file(void)
 {
 	remove(RVD_PID_FPATH);
 }
@@ -352,6 +390,9 @@ main(int argc, char *argv[])
 
 	const char *config_path = NULL;
 
+	bool go_daemon = false;
+	bool check_mode = false;
+
 	/* initialize rvd context */
 	memset(&ctx, 0, sizeof(rvd_ctx_t));
 
@@ -364,11 +405,18 @@ main(int argc, char *argv[])
 	/* parse command line options */
 	if (argc > 1) {
 		int opt;
-
-		while ((opt = getopt(argc, argv, "c:h")) != -1) {
+		while ((opt = getopt(argc, argv, "Df:ch")) != -1) {
 			switch (opt) {
-				case 'c':
+				case 'f':
 					config_path = optarg;
+					break;
+
+				case 'D':
+					go_daemon = true;
+					break;
+
+				case 'c':
+					check_mode = true;
 					break;
 
 				default:
@@ -378,11 +426,26 @@ main(int argc, char *argv[])
 		}
 	}
 
+	/* if check mode is enabled, then check configuration file and exit */
+	if (check_mode) {
+		rvd_ctx_opt_t opt;
+
+		if (parse_config(&opt, config_path ? config_path : RVD_DEFAULT_CONFIG_PATH) != 0)
+			exit(-1);
+
+		printf("Success to parse the configuration file '%s'\n", config_path ? config_path : RVD_DEFAULT_CONFIG_PATH);
+		exit(0);
+	}
+
 	/* check if the process is already running */
 	if ((pid = check_process_running()) > 0) {
 		fprintf(stderr, "The rvd process is already running with PID %d. Exiting...\n", pid);
 		exit(-1);
 	}
+
+	/* if daemon mode is enabled, then daemonize the process */
+	if (go_daemon)
+		daemonize();
 
 	/* write PID file */
 	write_pid_file();
