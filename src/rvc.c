@@ -38,7 +38,6 @@ static struct {
 	enum RVD_CMD_CODE code;
 	const char *name;
 } g_cmd_names[] = {
-	{RVD_CMD_LIST, "list"},
 	{RVD_CMD_CONNECT, "connect"},
 	{RVD_CMD_DISCONNECT, "disconnect"},
 	{RVD_CMD_STATUS, "status"},
@@ -93,7 +92,7 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
-	if (argc == 2 && strcmp(argv[1], "help") == 0) {
+	if (strcmp(argv[1], "help") == 0) {
 		print_help();
 		exit(0);
 	}
@@ -115,17 +114,6 @@ int main(int argc, char *argv[])
 	}
 
 	switch (cmd_code) {
-	case RVD_CMD_LIST:
-		if (argc == 3 && strcmp(argv[2], "--json") == 0)
-			use_json = 1;
-		else if (argc != 2) {
-			opt_invalid = 1;
-			break;
-		}
-
-		ret = rvc_list_connections(use_json, &resp_data);
-		break;
-
 	case RVD_CMD_CONNECT:
 	case RVD_CMD_DISCONNECT:
 		if (argc == 3)

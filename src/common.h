@@ -35,7 +35,6 @@
 
 /* rvd command codes */
 enum RVD_CMD_CODE {
-	RVD_CMD_LIST = 0,
 	RVD_CMD_CONNECT,
 	RVD_CMD_DISCONNECT,
 	RVD_CMD_STATUS,

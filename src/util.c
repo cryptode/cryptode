@@ -130,6 +130,8 @@ int rvd_json_parse(const char *jbuf, rvd_json_object_t *objs, int objs_count)
 				struct rvd_json_array *arr_val;
 				int arr_idx, arr_len;
 
+				size_t val_size;
+
 				/* allocate memory for array */
 				arr_val = (struct rvd_json_array *)malloc(sizeof(struct rvd_json_array));
 				if (!arr_val)
@@ -158,12 +160,13 @@ int rvd_json_parse(const char *jbuf, rvd_json_object_t *objs, int objs_count)
 					if (strlen(str) == 0)
 						continue;
 
-					arr_val->val[arr_idx] = (char *) malloc(strlen(str) + 1);
+					/* set array value */
+					val_size = strlen(str) + 1;
+					arr_val->val[arr_idx] = (char *) malloc(val_size);
 					if (!arr_val->val[arr_idx])
 						continue;
 
-					strcpy(arr_val->val[arr_idx], str);
-					arr_val->val[arr_idx][strlen(str)] = '\0';
+					strlcpy(arr_val->val[arr_idx], str, val_size);
 
 					/* increase array size */
 					arr_val->arr_size++;
@@ -257,11 +260,12 @@ int rvd_json_build(rvd_json_object_t *objs, int objs_count, char **jbuf)
 
 	p = json_object_get_string(j_obj);
 	if (p && strlen(p) > 0) {
-		*jbuf = (char *) malloc(strlen(p) + 1);
-		if (*jbuf) {
-			strcpy(*jbuf, p);
-			(*jbuf)[strlen(p)] = '\0';
+		size_t size;
 
+		size = strlen(p) + 1;
+		*jbuf = (char *) malloc(size);
+		if (*jbuf) {
+			strlcpy(*jbuf, p, size);
 			ret = 0;
 		}
 	}
@@ -336,11 +340,12 @@ int rvd_json_add(const char *jbuf, rvd_json_object_t *objs, int objs_count, char
 
 	p = json_object_get_string(j_obj);
 	if (p && strlen(p) > 0) {
-		*ret_jbuf = (char *) malloc(strlen(p) + 1);
-		if (*ret_jbuf) {
-			strcpy(*ret_jbuf, p);
-			(*ret_jbuf)[strlen(p)] = '\0';
+		size_t size;
 
+		size = strlen(p) + 1;
+		*ret_jbuf = (char *) malloc(size);
+		if (*ret_jbuf) {
+			strlcpy(*ret_jbuf, p, size);
 			ret = 0;
 		}
 	}
@@ -620,7 +625,7 @@ size_t get_file_size(const char *file_path)
 }
 
 /* get file name from path */
-int get_file_name_by_path(const char *file_path, char *file_name, size_t s)
+int get_file_name_by_path(const char *file_path, char *file_name, size_t size)
 {
 	const char *p;
 
@@ -632,10 +637,10 @@ int get_file_name_by_path(const char *file_path, char *file_name, size_t s)
 		p = p + 1;
 
 	/* check length */
-	if (strlen(p) == 0 || strlen(p) + 1 > s)
+	if (strlen(p) == 0)
 		return -1;
 
-	strcpy(file_name, p);
+	strlcpy(file_name, p, size);
 
 	return 0;
 }
@@ -663,14 +668,10 @@ int copy_file_into_dir(const char *file_path, const char *dir_path, mode_t mode)
 	if (dir_path[dir_path_len - 1] != '/')
 		dir_path_len++;
 
-	if (dir_path_len + strlen(file_name) + 1 > sizeof(dst_path))
-		return -1;
-
 	/* make destination path */
-	memset(dst_path, 0, sizeof(dst_path));
 	strlcpy(dst_path, dir_path, sizeof(dst_path));
 	if (dst_path[strlen(dst_path) - 1] != '/')
-		strcat(dst_path, "/");
+		strlcat(dst_path, "/", sizeof(dst_path));
 
 	strlcat(dst_path, file_name, sizeof(dst_path));
 
