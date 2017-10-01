@@ -53,7 +53,6 @@ AC_DEFUN([AX_CHECK_JSONC], [
                 if test $? = 0; then
                     JSONC_LIBS=`$PKG_CONFIG json-c --libs-only-l 2>/dev/null`
                     JSONC_INCLUDES=`$PKG_CONFIG json-c --cflags-only-I 2>/dev/null`
-                    JSONC_LIBDIR=`$PKG_CONFIG json-c --variable=libdir 2>/dev/null`
                     found=true
                 fi
             fi
@@ -74,7 +73,6 @@ AC_DEFUN([AX_CHECK_JSONC], [
                 JSONC_INCLUDES="-I$jsoncdir/include/json-c"
                 JSONC_LDFLAGS="-L$jsoncdir/lib"
                 JSONC_LIBS="-ljson-c"
-                JSONC_LIBDIR="$jsoncdir/lib"
                 found=true
                 AC_MSG_RESULT([yes])
                 break
@@ -116,5 +114,4 @@ AC_DEFUN([AX_CHECK_JSONC], [
     AC_SUBST([JSONC_INCLUDES])
     AC_SUBST([JSONC_LIBS])
     AC_SUBST([JSONC_LDFLAGS])
-    AC_SUBST([JSONC_LIBDIR])
 ])

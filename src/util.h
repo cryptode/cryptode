@@ -77,4 +77,14 @@ void get_full_path(const char *dir_path, const char *file_name, char *full_path,
 /* create directory with given permission */
 int create_dir(const char *dir_path, mode_t mode);
 
+#ifndef HAVE_STRLCPY
+/* size bounded string copy function */
+size_t strlcpy(char *dst, const char *src, size_t size);
+#endif
+
+#ifndef HAVE_STRLCAT
+/* size bounded string copy function */
+size_t strlcat(char *dst, const char *src, size_t size);
+#endif
+
 #endif /* __RVD_UTIL_H__ */

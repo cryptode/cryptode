@@ -125,7 +125,7 @@ static void send_cmd_response(int clnt_sock, int resp_code, const char *buffer, 
 
 		/* get error message by errcode */
 		for (i = 0; g_rvd_resp_errs[i].err_msg != NULL; i++) {
-			if (g_rvd_resp_errs[i].resp_code == resp_code) {
+			if ((int)g_rvd_resp_errs[i].resp_code == resp_code) {
 				err_buf = g_rvd_resp_errs[i].err_msg;
 				break;
 			}
@@ -406,7 +406,7 @@ static void *rvd_cmd_proc(void *p)
 		int i, ret;
 
 		/* set temporary fdset */
-		FD_COPY(&fds, &tmp_fds);
+		memcpy(&tmp_fds, &fds, sizeof(fd_set));
 
 		/* set timeout */
 		tv.tv_sec = 0;
