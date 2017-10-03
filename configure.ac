@@ -76,10 +76,16 @@ if test "x$isdarwin" = "xyes"; then
     OPENVPN_BINARY_PATH=/opt/rvc/sbin/openvpn
     RVD_CONFIG_PATH=/opt/rvc/etc/rvd.json
     RVC_CONFDIR_PATH=/opt/rvc/etc/vpn.d
+
+    RVD_LDADD="$JSONC_LIBDIR/libjson-c.a"
+    RVC_LDADD="$JSONC_LIBDIR/libjson-c.a $OPENSSL_LIBDIR/libcrypto.a"
 else
     OPENVPN_BINARY_PATH=/usr/sbin/openvpn
     RVD_CONFIG_PATH=/etc/rvc/rvd.json
     RVC_CONFDIR_PATH=/etc/rvc/vpn.d
+
+    RVD_LDADD="$JSONC_LIBS"
+    RVC_LDADD="$JSONC_LIBS $OPENSSL_LIBS"
 fi
 
 AC_DEFINE_UNQUOTED([OPENVPN_BINARY_PATH], ["$OPENVPN_BINARY_PATH"], [The path to OpenVPN binrary])
@@ -90,6 +96,9 @@ AC_SUBST(RVD_CONFIG_PATH)
 
 AC_DEFINE_UNQUOTED([RVC_CONFDIR_PATH], ["$RVC_CONFDIR_PATH"], [The directory path to RVC configuration])
 AC_SUBST(RVC_CONFDIR_PATH)
+
+AC_SUBST(RVD_LDADD)
+AC_SUBST(RVC_LDADD)
 
 AC_ARG_ENABLE(debug,
      AS_HELP_STRING(--enable-debug, turn on debugging (disabled by default)),
