@@ -49,7 +49,7 @@ static rvd_ctx_opt_t g_default_opts = {
 	RVD_DEFAULT_UID,
 	true,
 	RVD_DEFAULT_LOGDIR_PATH,
-	RVD_DEFAULT_VPN_CONFIG_DIR,
+	RVC_CONFDIR_PATH,
 };
 
 /*
@@ -312,7 +312,7 @@ rvd_ctx_init(rvd_ctx_t *c, const char *config_path)
 	memset(c, 0, sizeof(rvd_ctx_t));
 
 	/* read configruation */
-	if (parse_config(&c->opt, config_path ? config_path : RVD_DEFAULT_CONFIG_PATH) != 0)
+	if (parse_config(&c->opt, config_path ? config_path : RVD_CONFIG_PATH) != 0)
 		exit(-1);
 
 	/* initialize logging */
@@ -430,10 +430,10 @@ main(int argc, char *argv[])
 	if (check_mode) {
 		rvd_ctx_opt_t opt;
 
-		if (parse_config(&opt, config_path ? config_path : RVD_DEFAULT_CONFIG_PATH) != 0)
+		if (parse_config(&opt, config_path ? config_path : RVD_CONFIG_PATH) != 0)
 			exit(-1);
 
-		printf("Success to parse the configuration file '%s'\n", config_path ? config_path : RVD_DEFAULT_CONFIG_PATH);
+		printf("Success to parse the configuration file '%s'\n", config_path ? config_path : RVD_CONFIG_PATH);
 		exit(0);
 	}
 

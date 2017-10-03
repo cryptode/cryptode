@@ -29,6 +29,8 @@ src/rvcd.dSYM
 *tar.gz
 platforms/osx/rvc.dist
 rvc.pkg
+src/rvd
+etc/rvd.json
 
 # Intellij IdeaC
 .idea/

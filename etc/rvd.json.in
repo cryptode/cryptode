@@ -1,9 +1,9 @@
 {
-  "openvpn_bin": "/opt/openvpn/sbin/openvpn",
+  "openvpn_bin": "@OPENVPN_BINARY_PATH@",
   "openvpn_root_check": true,
   "ovpn_up_down_scripts": false,
   "user_id": 501,
   "restrict_socket": true,
   "log_directory": "/var/log/rvd",
-  "vpn_config_paths": "/opt/rvc/etc/vpn.d"
+  "vpn_config_paths": "@RVC_CONFDIR_PATH@"
 }
