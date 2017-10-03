@@ -72,7 +72,24 @@ AM_CONDITIONAL([OPENBSD], [test "x$isopenbsd" = "xyes"])
 if test "x$isdarwin" = "xyes"; then
     CFLAGS="$CFLAGS -mmacosx-version-min=10.12 -D_DARWIN_C_SOURCE"
     LDFLAGS="$LDFLAGS -mmacosx-version-min=10.12"
+
+    OPENVPN_BINARY_PATH=/opt/rvc/sbin/openvpn
+    RVD_CONFIG_PATH=/opt/rvc/etc/rvd.json
+    RVC_CONFDIR_PATH=/opt/rvc/etc/vpn.d
+else
+    OPENVPN_BINARY_PATH=/usr/sbin/openvpn
+    RVD_CONFIG_PATH=/etc/rvc/rvd.json
+    RVC_CONFDIR_PATH=/etc/rvc/vpn.d
 fi
+
+AC_DEFINE_UNQUOTED([OPENVPN_BINARY_PATH], ["$OPENVPN_BINARY_PATH"], [The path to OpenVPN binrary])
+AC_SUBST(OPENVPN_BINARY_PATH)
+
+AC_DEFINE_UNQUOTED([RVD_CONFIG_PATH], ["$RVD_CONFIG_PATH"], [The path to RVD configuration])
+AC_SUBST(RVD_CONFIG_PATH)
+
+AC_DEFINE_UNQUOTED([RVC_CONFDIR_PATH], ["$RVC_CONFDIR_PATH"], [The directory path to RVC configuration])
+AC_SUBST(RVC_CONFDIR_PATH)
 
 AC_ARG_ENABLE(debug,
      AS_HELP_STRING(--enable-debug, turn on debugging (disabled by default)),
@@ -90,26 +107,14 @@ if test "x$enable_profiling" = "xyes" ; then
     CFLAGS="$CFLAGS -pg"
 fi
 
-AC_ARG_WITH(openvpn, AC_HELP_STRING([--with-openvpn=OPENVPN_BINARY_PATH], [specify location of openvpn binary]), [path_openvpn=${withval}])
-if (test -z "${path_openvpn}"); then
-    AC_PATH_PROG(OPENVPN_BINARY_PATH, [openvpn], [], $PATH:/sbin:/usr/sbin:/usr/local/sbin)
-else
-    OPENVPN_BINARY_PATH="${path_openvpn}"
-fi
-
-if ! test -x "$OPENVPN_BINARY_PATH"; then
-    AC_MSG_ERROR([Couldn't find openvpn binary path... try 'brew install openvpn or specify correct location of openvpn'])
-fi
-
-AC_DEFINE_UNQUOTED([OPENVPN_BINARY_PATH], ["$OPENVPN_BINARY_PATH"], [Path to OpenVPN])
-AC_SUBST(OPENVPN_BINARY_PATH)
-
 AC_CONFIG_FILES([Makefile
                 utils/Makefile
+                etc/rvd.json
                 etc/Makefile
                 platforms/Makefile
                 platforms/osx/Makefile
                 platforms/epel/Makefile
-                src/Makefile])
+                src/Makefile
+                ])
 
 AC_OUTPUT

@@ -14,8 +14,7 @@ URL: https://github.com/riboseinc/rvc
 Group: System Environment/Daemons
 
 Source0: rvc-0.9.0.tar.gz
-Source1: rvd.init
-Source2: rvd.json
+Source1: rvd.json
 
 Requires(post): /sbin/chkconfig
 Requires(preun): /sbin/chkconfig
@@ -47,6 +46,7 @@ rm -rf %{buildroot}/usr/var
 %files
 %defattr(-,root,root,-)
 %config(noreplace) %{rvc_confdir}/rvd.json
+%attr(0600, root, root) %{rvc_confdir}/rvd.json
 %{_initrddir}/rvd
 %{_sbindir}/rvd
 %{_bindir}/%{name}
@@ -59,6 +59,9 @@ rm -rf %{buildroot}
 %post
 /sbin/chkconfig --add rvd
 
+mkdir -p %{rvc_confdir}/vpn.d
+mkdir -p %{_localstatedir}/log/rvd
+
 %preun
 if [ "$1" -eq 0 ]; then
     /sbin/service rvd stop >/dev/null 2>&1
@@ -69,6 +72,8 @@ fi
 if [ "$1" -ge 1 ]; then
     /sbin/service rvd condrestart >/dev/null 2>&1 || :
 fi
+
+rm -rf %{_localstatedir}/log/rvd
 
 %changelog
 * Sun Oct 01 2017 Jin JinRu <jin.jinru840430@gmail.com> - 0.9.0

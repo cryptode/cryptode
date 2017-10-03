@@ -15,12 +15,6 @@
 
 #define RVC_MAX_IMPORT_SIZE			10240
 
-/* rvd default configuration path */
-#define RVD_DEFAULT_CONFIG_PATH			"/opt/rvc/etc/rvd.json"
-
-/* rvd default directory path of configuration for VPN connections */
-#define RVD_DEFAULT_VPN_CONFIG_DIR		"/opt/rvc/etc/vpn.d"
-
 /* rvd default command listen socket path */
 #define RVD_LISTEN_SOCK_PATH			"/var/run/rvd"
 

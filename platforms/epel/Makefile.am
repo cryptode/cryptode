@@ -4,4 +4,3 @@ EXTRA_DIST = rvc.spec \
 
 bin_initrddir = $(sysconfdir)/../rc.d/init.d
 bin_initrd_SCRIPTS = rvd
-
