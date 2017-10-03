@@ -59,7 +59,6 @@ static void print_help(void)
 {
 	printf("usage: rvc <options>\n"
 		"  options:\n"
-		"    list [--json]\t\t\t\tshow list of VPN connections\n"
 		"    connect <all|connection name> [--json]\tconnect to a VPN with given name\n"
 		"    disconnect <all|connection name> [--json]\tdisconnect VPN with given name\n"
 		"    status [all|connection name] [--json]\tget status of VPN connection with given name\n"
