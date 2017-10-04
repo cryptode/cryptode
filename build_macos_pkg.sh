@@ -9,9 +9,12 @@ rm -r "$PKGBUILD_DIR"
 # install dependencies
 brew install openssl json-c
 
+# get openssl installation directory
+OPENSSL_DIR=$(brew --prefix openssl)
+
 # compile and install binaries
 ./autogen.sh
-./configure --prefix="$PKGBUILD_DIR" --sysconfdir='${prefix}/etc' --with-openssl=/usr/local/opt/openssl
+./configure --prefix="$PKGBUILD_DIR" --sysconfdir='${prefix}/etc' --with-openssl=$OPENSSL_DIR
 make
 make install
 
