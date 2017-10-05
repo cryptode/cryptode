@@ -329,10 +329,6 @@ static void *stop_vpn_conn(void *p)
 	/* init openvpn process ID */
 	vpn_conn->ovpn_pid = -1;
 
-	/* set total bytes */
-	vpn_conn->total_bytes_in += vpn_conn->curr_bytes_in;
-	vpn_conn->total_bytes_out += vpn_conn->curr_bytes_out;
-
 	/* set connection state */
 	vpn_conn->conn_state = RVD_CONN_STATE_DISCONNECTED;
 	vpn_conn->ovpn_state = OVPN_STATE_DISCONNECTED;
@@ -666,7 +662,7 @@ static int run_openvpn_proc(struct rvd_vpnconn *vpn_conn)
 			    "--connect-retry", OVPN_CONN_RETRY_TIMEOUT_MIN, OVPN_CONN_RETRY_TIMEOUT_MAX,
 			    NULL};
 
-		/* child process */
+		/* run child process */
 		execv(c->opt.ovpn_bin_path, ovpn_params);
 
 		/* if failed, then exit child with error */
@@ -903,6 +899,10 @@ static void stop_single_conn(struct rvd_vpnconn *vpn_conn)
 	/* set connection state */
 	vpn_conn->conn_state = RVD_CONN_STATE_DISCONNECTING;
 
+	/* update total bytes */
+	vpn_conn->total_bytes_in += vpn_conn->curr_bytes_in;
+	vpn_conn->total_bytes_out += vpn_conn->curr_bytes_out;
+
 	/* create thread to start vpn connection */
 	if (pthread_create(&vpn_conn->pt_conn, NULL, stop_vpn_conn, (void *) vpn_conn) != 0) {
 		RVD_DEBUG_ERR("VPN: Couldn't create thread to start VPN connection with name '%s'", vpn_conn->config.name);
@@ -963,7 +963,17 @@ static void get_single_conn_status(struct rvd_vpnconn *vpn_conn, bool json_forma
 {
 	char *ret_str;
 
+	long total_bytes_in, total_bytes_out;
 	time_t ts = time(NULL);
+
+	/* calculate total in-bytes and out-bytes */
+	if (vpn_conn->conn_state == RVD_CONN_STATE_CONNECTED) {
+		total_bytes_in = vpn_conn->total_bytes_in + vpn_conn->curr_bytes_in;
+		total_bytes_out = vpn_conn->total_bytes_out + vpn_conn->curr_bytes_out;
+	} else {
+		total_bytes_in = vpn_conn->total_bytes_in;
+		total_bytes_out = vpn_conn->total_bytes_out;
+	}
 
 	RVD_DEBUG_MSG("VPN: Getting status of VPN connection with name '%s'", vpn_conn->config.name);
 
@@ -973,8 +983,8 @@ static void get_single_conn_status(struct rvd_vpnconn *vpn_conn, bool json_forma
 			{"profile", RVD_JTYPE_STR, (void *)vpn_conn->config.ovpn_profile_path, 0, false, NULL},
 			{"status", RVD_JTYPE_STR, (void *)g_rvd_state[vpn_conn->conn_state].state_str, 0, false, NULL},
 			{"ovpn-status", RVD_JTYPE_STR, (void *)g_ovpn_state[vpn_conn->ovpn_state].ovpn_state_str, 0, false, NULL},
-			{"in-total", RVD_JTYPE_INT64, &vpn_conn->total_bytes_in, 0, false, NULL},
-			{"out-total", RVD_JTYPE_INT64, &vpn_conn->total_bytes_out, 0, false, NULL},
+			{"in-total", RVD_JTYPE_INT64, &total_bytes_in, 0, false, NULL},
+			{"out-total", RVD_JTYPE_INT64, &total_bytes_out, 0, false, NULL},
 			{"timestamp", RVD_JTYPE_INT64, &ts, 0, false, NULL},
 			{"auto-connect", RVD_JTYPE_BOOL, &vpn_conn->config.auto_connect, 0, false, NULL},
 			{"pre-exec-cmd", RVD_JTYPE_STR, vpn_conn->config.pre_exec_cmd, 0, false, NULL},
@@ -1002,6 +1012,15 @@ static void get_single_conn_status(struct rvd_vpnconn *vpn_conn, bool json_forma
 		}
 	} else {
 		char status_buffer[RVD_MAX_CONN_STATUS_LEN];
+		char pre_exec_status[64];
+
+		/* set pre-exec status */
+		if (strlen(vpn_conn->config.pre_exec_cmd) == 0)
+			pre_exec_status[0] = '\0';
+		else
+			snprintf(pre_exec_status, sizeof(pre_exec_status), "%s [%d]",
+				vpn_conn->config.pre_exec_status == 0 ? "SUCCESSFUL" : "FAILED",
+				vpn_conn->config.pre_exec_status);
 
 		/* set status buffer by plain format */
 		if (vpn_conn->conn_state == RVD_CONN_STATE_CONNECTED)
@@ -1017,19 +1036,18 @@ static void get_single_conn_status(struct rvd_vpnconn *vpn_conn, bool json_forma
 				"\ttimestamp: %lu\n"
 				"\tauto-connect: %s\n"
 				"\tpre-exec-cmd: %s\n"
-				"\tpre-exec-status: %s [%d]\n",
+				"\tpre-exec-status: %s\n",
 				vpn_conn->config.name,
 				vpn_conn->config.ovpn_profile_path,
 				g_rvd_state[vpn_conn->conn_state].state_str,
 				g_ovpn_state[vpn_conn->ovpn_state].ovpn_state_str,
-				vpn_conn->total_bytes_in, vpn_conn->curr_bytes_out,
+				total_bytes_in, total_bytes_out,
 				vpn_conn->connected_tm,
 				vpn_conn->curr_bytes_in, vpn_conn->curr_bytes_out,
 				ts,
 				vpn_conn->config.auto_connect ? "Enabled" : "Disabled",
 				vpn_conn->config.pre_exec_cmd,
-				vpn_conn->config.pre_exec_status == 0 ? "SUCCESSFUL" : "FAILED",
-				vpn_conn->config.pre_exec_status);
+				pre_exec_status);
 		else
 			snprintf(status_buffer, sizeof(status_buffer), "name: %s\n"
 				"\tprofile: %s\n"
@@ -1040,26 +1058,19 @@ static void get_single_conn_status(struct rvd_vpnconn *vpn_conn, bool json_forma
 				"\ttimestamp: %lu\n"
 				"\tauto-connect: %s\n"
 				"\tpre-exec-cmd: %s\n"
-				"\tpre-exec-status: %s [%d]\n",
+				"\tpre-exec-status: %s\n",
 				vpn_conn->config.name,
 				vpn_conn->config.ovpn_profile_path,
 				g_rvd_state[vpn_conn->conn_state].state_str,
 				g_ovpn_state[vpn_conn->ovpn_state].ovpn_state_str,
-				vpn_conn->total_bytes_in, vpn_conn->curr_bytes_out,
+				total_bytes_in, total_bytes_out,
 				ts,
 				vpn_conn->config.auto_connect ? "Enabled" : "Disabled",
 				vpn_conn->config.pre_exec_cmd,
-				vpn_conn->config.pre_exec_status == 0 ? "SUCCESSFUL" : "FAILED",
-				vpn_conn->config.pre_exec_status);
+				pre_exec_status);
 
 		/* allocate buffer for ret_str */
-		ret_str = (char *) malloc(strlen(status_buffer) + 1);
-		if (ret_str) {
-			size_t size;
-
-			size = strlen(status_buffer) + 1;
-			strlcpy(ret_str, status_buffer, size);
-		}
+		ret_str = strdup(status_buffer);
 	}
 
 	*status_str = ret_str;
@@ -1333,32 +1344,32 @@ static void read_config(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *dir_path)
 	}
 
 	while ((dp = readdir(dir)) != NULL) {
+		char conf_name[RVD_MAX_FILE_NAME];
+		size_t conf_name_len;
+
 		char ovpn_profile_path[RVD_MAX_PATH];
 		char conf_json_path[RVD_MAX_PATH];
-
-		char conf_name[RVD_MAX_CONN_NAME_LEN];
 
 		struct stat st;
 		const char *p;
 
 		bool conf_exist = true;
 
-		/* init paths */
-		strlcpy(ovpn_profile_path, dir_path, sizeof(ovpn_profile_path));
-		strlcpy(conf_json_path, dir_path, sizeof(conf_json_path));
-
-		if (dir_path[strlen(dir_path) - 1] != '/') {
-			strlcat(conf_json_path, "/", sizeof(conf_json_path));
-			strlcat(ovpn_profile_path, "/", sizeof(ovpn_profile_path));
-		}
-
 		/* check whether the file is ovpn file */
-		p = strstr(dp->d_name, ".ovpn");
-		if (!p || strlen(p) != 5)
+		p = strstr(dp->d_name, OVPN_CONFIG_EXTENSION);
+		if (!p || strlen(p) != strlen(OVPN_CONFIG_EXTENSION))
 			continue;
 
-		/* set openvpn profile path */
-		strlcat(ovpn_profile_path, dp->d_name, sizeof(ovpn_profile_path));
+		/* set conf name */
+		conf_name_len = strlen(dp->d_name) - strlen(OVPN_CONFIG_EXTENSION);
+		if (conf_name_len <= 0)
+			continue;
+
+		strncpy(conf_name, dp->d_name, conf_name_len);
+		conf_name[conf_name_len] = '\0';
+
+		/* get full paths */
+		get_full_path(dir_path, dp->d_name, ovpn_profile_path, sizeof(ovpn_profile_path));
 
 		/* check whether openvpn profile is exist */
 		if (stat(ovpn_profile_path, &st) != 0 || !S_ISREG(st.st_mode)
@@ -1366,16 +1377,13 @@ static void read_config(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *dir_path)
 			continue;
 
 		/* set json configuration path */
-		strncat(conf_json_path, dp->d_name, strlen(dp->d_name) - strlen(p));
-		strlcat(conf_json_path, ".json", sizeof(conf_json_path));
+		get_full_path(dir_path, conf_name, conf_json_path, sizeof(conf_json_path));
+		strlcat(conf_json_path, RVC_CONFIG_EXTENSION, sizeof(conf_json_path));
 
 		/* check whether configuration file is exist */
 		if (stat(conf_json_path, &st) != 0 || !S_ISREG(st.st_mode) ||
-			st.st_size == 0) {
-			/* set connection name */
-			strncpy(conf_name, dp->d_name, strlen(dp->d_name) - 5);
+			st.st_size == 0)
 			conf_exist = false;
-		}
 
 		/* parse configuration file */
 		parse_config(vpnconn_mgr, conf_exist ? conf_json_path : NULL, conf_name, ovpn_profile_path);

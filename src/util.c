@@ -132,8 +132,6 @@ int rvd_json_parse(const char *jbuf, rvd_json_object_t *objs, int objs_count)
 				struct rvd_json_array *arr_val;
 				int arr_idx, arr_len;
 
-				size_t val_size;
-
 				/* allocate memory for array */
 				arr_val = (struct rvd_json_array *)malloc(sizeof(struct rvd_json_array));
 				if (!arr_val)
@@ -163,12 +161,7 @@ int rvd_json_parse(const char *jbuf, rvd_json_object_t *objs, int objs_count)
 						continue;
 
 					/* set array value */
-					val_size = strlen(str) + 1;
-					arr_val->val[arr_idx] = (char *) malloc(val_size);
-					if (!arr_val->val[arr_idx])
-						continue;
-
-					strlcpy(arr_val->val[arr_idx], str, val_size);
+					arr_val->val[arr_idx] = strdup(str);
 
 					/* increase array size */
 					arr_val->arr_size++;
@@ -262,14 +255,8 @@ int rvd_json_build(rvd_json_object_t *objs, int objs_count, char **jbuf)
 
 	p = json_object_get_string(j_obj);
 	if (p && strlen(p) > 0) {
-		size_t size;
-
-		size = strlen(p) + 1;
-		*jbuf = (char *) malloc(size);
-		if (*jbuf) {
-			strlcpy(*jbuf, p, size);
-			ret = 0;
-		}
+		*jbuf = strdup(p);
+		ret = 0;
 	}
 
 	/* free json object */
@@ -342,14 +329,8 @@ int rvd_json_add(const char *jbuf, rvd_json_object_t *objs, int objs_count, char
 
 	p = json_object_get_string(j_obj);
 	if (p && strlen(p) > 0) {
-		size_t size;
-
-		size = strlen(p) + 1;
-		*ret_jbuf = (char *) malloc(size);
-		if (*ret_jbuf) {
-			strlcpy(*ret_jbuf, p, size);
-			ret = 0;
-		}
+		*ret_jbuf = strdup(p);
+		ret = 0;
 	}
 
 	/* free json object */
@@ -647,39 +628,45 @@ int get_file_name_by_path(const char *file_path, char *file_name, size_t size)
 	return 0;
 }
 
-/* copy file into directory */
-int copy_file_into_dir(const char *file_path, const char *dir_path, mode_t mode)
+/* check whether the file is exist in the directory */
+int is_exist_file_in_dir(const char *dir_path, const char *file_path)
 {
-	char dst_path[RVD_MAX_PATH];
-	size_t dir_path_len;
-
 	char file_name[RVD_MAX_FILE_NAME];
+	char dst_path[RVD_MAX_PATH];
+
 	struct stat st;
+
+	/* get filename by path */
+	if (get_file_name_by_path(file_path, file_name, sizeof(file_name)) != 0)
+		return 0;
+
+	/* get full path of file */
+	get_full_path(dir_path, file_name, dst_path, sizeof(dst_path));
+
+	/* get stat of file */
+	if (stat(dst_path, &st) == 0)
+		return 1;
+
+	return 0;
+}
+
+/* copy file into directory */
+int copy_file_into_dir(const char *dir_path, const char *file_path, mode_t mode)
+{
+	char file_name[RVD_MAX_FILE_NAME];
+	char dst_path[RVD_MAX_PATH];
 
 	int src_fd = -1, dst_fd = -1;
 	int ret = 0;
 
 	ssize_t read_bytes = 0;
 
-	/* get file name from file path */
+	/* get file name */
 	if (get_file_name_by_path(file_path, file_name, sizeof(file_name)) != 0)
 		return -1;
 
-	/* check path size */
-	dir_path_len = strlen(dir_path);
-	if (dir_path[dir_path_len - 1] != '/')
-		dir_path_len++;
-
-	/* make destination path */
-	strlcpy(dst_path, dir_path, sizeof(dst_path));
-	if (dst_path[strlen(dst_path) - 1] != '/')
-		strlcat(dst_path, "/", sizeof(dst_path));
-
-	strlcat(dst_path, file_name, sizeof(dst_path));
-
-	/* check whether file is already exist */
-	if (stat(dst_path, &st) == 0)
-		return -1;
+	/* get full path of destination file */
+	get_full_path(dir_path, file_name, dst_path, sizeof(dst_path));
 
 	/* open source file */
 	src_fd = open(file_path, O_RDONLY);

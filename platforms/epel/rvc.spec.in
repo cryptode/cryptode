@@ -54,12 +54,15 @@ rm -rf %{buildroot}/usr/var
 rm -rf %{buildroot}
 
 %pre
+/sbin/service rvd stop >/dev/null 2>&1
+/sbin/chkconfig --del rvd
 
 %post
-/sbin/chkconfig --add rvd
-
 mkdir -p %{rvc_confdir}/vpn.d
 mkdir -p %{_localstatedir}/log/rvd
+
+/sbin/service rvd start
+/sbin/chkconfig --add rvd
 
 %preun
 if [ "$1" -eq 0 ]; then
