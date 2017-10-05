@@ -329,10 +329,6 @@ static void *stop_vpn_conn(void *p)
 	/* init openvpn process ID */
 	vpn_conn->ovpn_pid = -1;
 
-	/* set total bytes */
-	vpn_conn->total_bytes_in += vpn_conn->curr_bytes_in;
-	vpn_conn->total_bytes_out += vpn_conn->curr_bytes_out;
-
 	/* set connection state */
 	vpn_conn->conn_state = RVD_CONN_STATE_DISCONNECTED;
 	vpn_conn->ovpn_state = OVPN_STATE_DISCONNECTED;
@@ -903,6 +899,10 @@ static void stop_single_conn(struct rvd_vpnconn *vpn_conn)
 	/* set connection state */
 	vpn_conn->conn_state = RVD_CONN_STATE_DISCONNECTING;
 
+	/* update total bytes */
+	vpn_conn->total_bytes_in += vpn_conn->curr_bytes_in;
+	vpn_conn->total_bytes_out += vpn_conn->curr_bytes_out;
+
 	/* create thread to start vpn connection */
 	if (pthread_create(&vpn_conn->pt_conn, NULL, stop_vpn_conn, (void *) vpn_conn) != 0) {
 		RVD_DEBUG_ERR("VPN: Couldn't create thread to start VPN connection with name '%s'", vpn_conn->config.name);
@@ -963,7 +963,17 @@ static void get_single_conn_status(struct rvd_vpnconn *vpn_conn, bool json_forma
 {
 	char *ret_str;
 
+	long total_bytes_in, total_bytes_out;
 	time_t ts = time(NULL);
+
+	/* calculate total in-bytes and out-bytes */
+	if (vpn_conn->conn_state == RVD_CONN_STATE_CONNECTED) {
+		total_bytes_in = vpn_conn->total_bytes_in + vpn_conn->curr_bytes_in;
+		total_bytes_out = vpn_conn->total_bytes_out + vpn_conn->curr_bytes_out;
+	} else {
+		total_bytes_in = vpn_conn->total_bytes_in;
+		total_bytes_out = vpn_conn->total_bytes_out;
+	}
 
 	RVD_DEBUG_MSG("VPN: Getting status of VPN connection with name '%s'", vpn_conn->config.name);
 
@@ -973,8 +983,8 @@ static void get_single_conn_status(struct rvd_vpnconn *vpn_conn, bool json_forma
 			{"profile", RVD_JTYPE_STR, (void *)vpn_conn->config.ovpn_profile_path, 0, false, NULL},
 			{"status", RVD_JTYPE_STR, (void *)g_rvd_state[vpn_conn->conn_state].state_str, 0, false, NULL},
 			{"ovpn-status", RVD_JTYPE_STR, (void *)g_ovpn_state[vpn_conn->ovpn_state].ovpn_state_str, 0, false, NULL},
-			{"in-total", RVD_JTYPE_INT64, &vpn_conn->total_bytes_in, 0, false, NULL},
-			{"out-total", RVD_JTYPE_INT64, &vpn_conn->total_bytes_out, 0, false, NULL},
+			{"in-total", RVD_JTYPE_INT64, &total_bytes_in, 0, false, NULL},
+			{"out-total", RVD_JTYPE_INT64, &total_bytes_out, 0, false, NULL},
 			{"timestamp", RVD_JTYPE_INT64, &ts, 0, false, NULL},
 			{"auto-connect", RVD_JTYPE_BOOL, &vpn_conn->config.auto_connect, 0, false, NULL},
 			{"pre-exec-cmd", RVD_JTYPE_STR, vpn_conn->config.pre_exec_cmd, 0, false, NULL},
@@ -1022,7 +1032,7 @@ static void get_single_conn_status(struct rvd_vpnconn *vpn_conn, bool json_forma
 				vpn_conn->config.ovpn_profile_path,
 				g_rvd_state[vpn_conn->conn_state].state_str,
 				g_ovpn_state[vpn_conn->ovpn_state].ovpn_state_str,
-				vpn_conn->total_bytes_in, vpn_conn->curr_bytes_out,
+				total_bytes_in, total_bytes_out,
 				vpn_conn->connected_tm,
 				vpn_conn->curr_bytes_in, vpn_conn->curr_bytes_out,
 				ts,
@@ -1045,7 +1055,7 @@ static void get_single_conn_status(struct rvd_vpnconn *vpn_conn, bool json_forma
 				vpn_conn->config.ovpn_profile_path,
 				g_rvd_state[vpn_conn->conn_state].state_str,
 				g_ovpn_state[vpn_conn->ovpn_state].ovpn_state_str,
-				vpn_conn->total_bytes_in, vpn_conn->curr_bytes_out,
+				total_bytes_in, total_bytes_out,
 				ts,
 				vpn_conn->config.auto_connect ? "Enabled" : "Disabled",
 				vpn_conn->config.pre_exec_cmd,
