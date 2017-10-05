@@ -56,14 +56,33 @@ static rvd_ctx_opt_t g_default_opts = {
  * print help message
  */
 
-static void print_help(void)
+static void
+print_help(void)
 {
 	printf("usage: rvd <options>\n"
 		"  Options:\n"
 		"    -f <config file>\tset configuration file\n"
 		"    -D\t\t\tgoes daemon\n"
 		"    -c\t\t\tonly check config and exit\n"
+		"    -v\t\t\tprint version\n"
 		"    -h\t\t\tprint help message\n");
+
+	exit(0);
+}
+
+/*
+ * print version
+ */
+
+static void
+print_version(void)
+{
+	static const char build_time[] = { __DATE__ " " __TIME__ };
+
+	printf("Relaxed VPN client daemon - %s (built on %s)\n%s\n",
+			PACKAGE_VERSION,
+			build_time,
+			RVC_COPYRIGHT_MSG);
 
 	exit(0);
 }
@@ -405,7 +424,7 @@ main(int argc, char *argv[])
 	/* parse command line options */
 	if (argc > 1) {
 		int opt;
-		while ((opt = getopt(argc, argv, "Df:ch")) != -1) {
+		while ((opt = getopt(argc, argv, "Df:chv")) != -1) {
 			switch (opt) {
 				case 'f':
 					config_path = optarg;
@@ -417,6 +436,10 @@ main(int argc, char *argv[])
 
 				case 'c':
 					check_mode = true;
+					break;
+
+				case 'v':
+					print_version();
 					break;
 
 				default:

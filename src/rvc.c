@@ -52,6 +52,21 @@ static struct {
 };
 
 /*
+ * print version
+ */
+
+static void print_version(void)
+{
+	static const char build_time[] = { __DATE__ " " __TIME__ };
+
+	printf("Relaxed VPN command line client - %s (built on %s)\n%s\n",
+			PACKAGE_VERSION,
+			build_time,
+			RVC_COPYRIGHT_MSG);
+}
+
+
+/*
  * print help message
  */
 
@@ -64,6 +79,7 @@ static void print_help(void)
 		"    status [all|connection name] [--json]\tget status of VPN connection with given name\n"
 		"    script-security <enable|disable>\t\tenable/disable script security\n"
 		"    help\t\t\t\t\tshow help message\n"
+		"    version\t\t\t\t\tprint version\n"
 		"    reload\t\t\t\t\treload configuration (sudo required)\n"
 		"    import <new-from-tblk|new-from-ovpn> <path>\timport VPN connection (sudo required)\n"
 		"    remove <connection name> [--force]\t\tremove VPN connection (sudo required)\n"
@@ -93,8 +109,15 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
+	/* print help message */
 	if (strcmp(argv[1], "help") == 0) {
 		print_help();
+		exit(0);
+	}
+
+	/* print version */
+	if (strcmp(argv[1], "version") == 0) {
+		print_version();
 		exit(0);
 	}
 

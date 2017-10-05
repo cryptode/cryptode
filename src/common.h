@@ -15,6 +15,9 @@
 
 #define RVC_MAX_IMPORT_SIZE			10240
 
+/* copyright message */
+#define RVC_COPYRIGHT_MSG			"Copyright 2017 Ribose Inc <https://www.ribose.com>"
+
 /* rvd default command listen socket path */
 #define RVD_LISTEN_SOCK_PATH			"/var/run/rvd"
 

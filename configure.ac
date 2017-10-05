@@ -118,12 +118,13 @@ fi
 
 AC_CONFIG_FILES([Makefile
                 utils/Makefile
-                etc/rvd.json
                 etc/Makefile
                 platforms/Makefile
                 platforms/osx/Makefile
                 platforms/epel/Makefile
                 src/Makefile
+                etc/rvd.json
+                platforms/epel/rvc.spec
                 ])
 
 AC_OUTPUT
