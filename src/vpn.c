@@ -666,7 +666,7 @@ static int run_openvpn_proc(struct rvd_vpnconn *vpn_conn)
 			    "--connect-retry", OVPN_CONN_RETRY_TIMEOUT_MIN, OVPN_CONN_RETRY_TIMEOUT_MAX,
 			    NULL};
 
-		/* child process */
+		/* run child process */
 		execv(c->opt.ovpn_bin_path, ovpn_params);
 
 		/* if failed, then exit child with error */

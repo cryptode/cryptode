@@ -164,42 +164,6 @@ check_process_running()
 }
 
 /*
- * daemonize the process
- */
-
-static void daemonize(void)
-{
-	int pid, sid;
-
-	/* fork new process */
-	pid = fork();
-	if (pid < 0)
-		exit(1);
-
-	/* if child has created, then exit parent */
-	if (pid > 0)
-		exit(0);
-
-	/* set file permission */
-	umask(027);
-
-	/* set new process group */
-	sid = setsid();
-	if (sid < 0)
-		exit(1);
-
-	/* disable standard output and err */
-	close(0);
-	close(1);
-	close(2);
-
-	open("/dev/null", O_RDWR);
-
-	dup(0);
-	dup(0);
-}
-
-/*
  * write PID file
  */
 
@@ -468,7 +432,7 @@ main(int argc, char *argv[])
 
 	/* if daemon mode is enabled, then daemonize the process */
 	if (go_daemon)
-		daemonize();
+		daemon(0, 0);
 
 	/* write PID file */
 	write_pid_file();
