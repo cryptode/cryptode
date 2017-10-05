@@ -1012,6 +1012,15 @@ static void get_single_conn_status(struct rvd_vpnconn *vpn_conn, bool json_forma
 		}
 	} else {
 		char status_buffer[RVD_MAX_CONN_STATUS_LEN];
+		char pre_exec_status[64];
+
+		/* set pre-exec status */
+		if (strlen(vpn_conn->config.pre_exec_cmd) == 0)
+			pre_exec_status[0] = '\0';
+		else
+			snprintf(pre_exec_status, sizeof(pre_exec_status), "%s [%d]",
+				vpn_conn->config.pre_exec_status == 0 ? "SUCCESSFUL" : "FAILED",
+				vpn_conn->config.pre_exec_status);
 
 		/* set status buffer by plain format */
 		if (vpn_conn->conn_state == RVD_CONN_STATE_CONNECTED)
@@ -1027,7 +1036,7 @@ static void get_single_conn_status(struct rvd_vpnconn *vpn_conn, bool json_forma
 				"\ttimestamp: %lu\n"
 				"\tauto-connect: %s\n"
 				"\tpre-exec-cmd: %s\n"
-				"\tpre-exec-status: %s [%d]\n",
+				"\tpre-exec-status: %s\n",
 				vpn_conn->config.name,
 				vpn_conn->config.ovpn_profile_path,
 				g_rvd_state[vpn_conn->conn_state].state_str,
@@ -1038,8 +1047,7 @@ static void get_single_conn_status(struct rvd_vpnconn *vpn_conn, bool json_forma
 				ts,
 				vpn_conn->config.auto_connect ? "Enabled" : "Disabled",
 				vpn_conn->config.pre_exec_cmd,
-				vpn_conn->config.pre_exec_status == 0 ? "SUCCESSFUL" : "FAILED",
-				vpn_conn->config.pre_exec_status);
+				pre_exec_status);
 		else
 			snprintf(status_buffer, sizeof(status_buffer), "name: %s\n"
 				"\tprofile: %s\n"
@@ -1050,7 +1058,7 @@ static void get_single_conn_status(struct rvd_vpnconn *vpn_conn, bool json_forma
 				"\ttimestamp: %lu\n"
 				"\tauto-connect: %s\n"
 				"\tpre-exec-cmd: %s\n"
-				"\tpre-exec-status: %s [%d]\n",
+				"\tpre-exec-status: %s\n",
 				vpn_conn->config.name,
 				vpn_conn->config.ovpn_profile_path,
 				g_rvd_state[vpn_conn->conn_state].state_str,
@@ -1059,17 +1067,10 @@ static void get_single_conn_status(struct rvd_vpnconn *vpn_conn, bool json_forma
 				ts,
 				vpn_conn->config.auto_connect ? "Enabled" : "Disabled",
 				vpn_conn->config.pre_exec_cmd,
-				vpn_conn->config.pre_exec_status == 0 ? "SUCCESSFUL" : "FAILED",
-				vpn_conn->config.pre_exec_status);
+				pre_exec_status);
 
 		/* allocate buffer for ret_str */
-		ret_str = (char *) malloc(strlen(status_buffer) + 1);
-		if (ret_str) {
-			size_t size;
-
-			size = strlen(status_buffer) + 1;
-			strlcpy(ret_str, status_buffer, size);
-		}
+		ret_str = strdup(status_buffer);
 	}
 
 	*status_str = ret_str;
