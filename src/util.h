@@ -68,8 +68,11 @@ int is_valid_extension(const char *file_path, const char *extension);
 /* get size of given file */
 size_t get_file_size(const char *file_path);
 
+/* check whether the file is exist in the directory */
+int is_exist_file_in_dir(const char *dir_path, const char *file_path);
+
 /* copy file into directory */
-int copy_file_into_dir(const char *file_path, const char *dir_path, mode_t mode);
+int copy_file_into_dir(const char *dir_path, const char *file_path, mode_t mode);
 
 /* get full path of file */
 void get_full_path(const char *dir_path, const char *file_name, char *full_path, size_t size);

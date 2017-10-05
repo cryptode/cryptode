@@ -647,39 +647,45 @@ int get_file_name_by_path(const char *file_path, char *file_name, size_t size)
 	return 0;
 }
 
-/* copy file into directory */
-int copy_file_into_dir(const char *file_path, const char *dir_path, mode_t mode)
+/* check whether the file is exist in the directory */
+int is_exist_file_in_dir(const char *dir_path, const char *file_path)
 {
-	char dst_path[RVD_MAX_PATH];
-	size_t dir_path_len;
-
 	char file_name[RVD_MAX_FILE_NAME];
+	char dst_path[RVD_MAX_PATH];
+
 	struct stat st;
+
+	/* get filename by path */
+	if (get_file_name_by_path(file_path, file_name, sizeof(file_name)) != 0)
+		return 0;
+
+	/* get full path of file */
+	get_full_path(dir_path, file_name, dst_path, sizeof(dst_path));
+
+	/* get stat of file */
+	if (stat(dst_path, &st) == 0)
+		return 1;
+
+	return 0;
+}
+
+/* copy file into directory */
+int copy_file_into_dir(const char *dir_path, const char *file_path, mode_t mode)
+{
+	char file_name[RVD_MAX_FILE_NAME];
+	char dst_path[RVD_MAX_PATH];
 
 	int src_fd = -1, dst_fd = -1;
 	int ret = 0;
 
 	ssize_t read_bytes = 0;
 
-	/* get file name from file path */
+	/* get file name */
 	if (get_file_name_by_path(file_path, file_name, sizeof(file_name)) != 0)
 		return -1;
 
-	/* check path size */
-	dir_path_len = strlen(dir_path);
-	if (dir_path[dir_path_len - 1] != '/')
-		dir_path_len++;
-
-	/* make destination path */
-	strlcpy(dst_path, dir_path, sizeof(dst_path));
-	if (dst_path[strlen(dst_path) - 1] != '/')
-		strlcat(dst_path, "/", sizeof(dst_path));
-
-	strlcat(dst_path, file_name, sizeof(dst_path));
-
-	/* check whether file is already exist */
-	if (stat(dst_path, &st) == 0)
-		return -1;
+	/* get full path of destination file */
+	get_full_path(dir_path, file_name, dst_path, sizeof(dst_path));
 
 	/* open source file */
 	src_fd = open(file_path, O_RDONLY);

@@ -19,6 +19,9 @@
 #define RVD_OVPN_STOP_TIMEOUT			10
 #define RVD_PRE_EXEC_TIMEOUT			60
 
+#define OVPN_CONFIG_EXTENSION			".ovpn"
+#define RVC_CONFIG_EXTENSION			".json"
+
 struct rvd_vpnconn_mgr;
 
 /* OpenVPN connection state */

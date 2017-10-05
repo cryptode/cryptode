@@ -41,7 +41,7 @@
 #include "util.h"
 #include "log.h"
 
-static FILE *g_log_fp;
+static FILE *g_log_fp = NULL;
 static char g_log_path[RVD_MAX_PATH];
 static int g_log_fsize;
 static pthread_mutex_t g_log_mt = PTHREAD_MUTEX_INITIALIZER;
@@ -125,8 +125,10 @@ void rvd_log_finalize()
 	closelog();
 
 	/* close log file */
-	if (g_log_fp)
+	if (g_log_fp) {
 		fclose(g_log_fp);
+		g_log_fp = NULL;
+	}
 
 	/* destroy mutex */
 	pthread_mutex_destroy(&g_log_mt);

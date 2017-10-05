@@ -348,7 +348,7 @@ static int convert_tblk_to_ovpn(const char *conf_dir, const char *container_path
 
 	/* copy new profile to rvd configuratio directory */
 	if (ret == 0)
-		ret = copy_file_into_dir(new_ovpn_path, conf_dir, S_IRUSR | S_IWUSR);
+		ret = copy_file_into_dir(conf_dir, new_ovpn_path, S_IRUSR | S_IWUSR);
 
 	/* remove new profile */
 	remove(new_ovpn_path);
@@ -610,8 +610,14 @@ int rvc_import(int import_type, const char *import_path)
 			return RVD_RESP_IMPORT_TOO_LARGE;
 		}
 
+		/* checks whether same profile is exist */
+		if (is_exist_file_in_dir(conf_dir, import_path)) {
+			fprintf(stderr, "The same configuration is already exist in '%s'\n", conf_dir);
+			return RVD_RESP_IMPORT_EXIST_PROFILE;
+		}
+
 		/* copy files into rvd config directory */
-		if (copy_file_into_dir(import_path, conf_dir, S_IRUSR | S_IWUSR) != 0) {
+		if (copy_file_into_dir(conf_dir, import_path, S_IRUSR | S_IWUSR) != 0) {
 			fprintf(stderr, "Couldn't copy file '%s' into '%s'\n", import_path, conf_dir);
 			return RVD_RESP_UNKNOWN_ERR;
 		}
@@ -677,7 +683,7 @@ int rvc_remove(const char *conn_name, int force)
 	}
 
 	if (state != RVD_CONN_STATE_DISCONNECTED && !force) {
-		fprintf(stderr, "The connection '%s' is in connected or pending progress.", conn_name);
+		fprintf(stderr, "The connection '%s' is in connected or pending progress.\n", conn_name);
 		return RVD_RESP_CONN_IN_PROGRESS;
 	}
 
