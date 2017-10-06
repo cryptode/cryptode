@@ -164,6 +164,54 @@ check_process_running()
 }
 
 /*
+ * daemonize the process
+ */
+
+static void
+daemonize(void)
+{
+	pid_t pid = 0;
+	int fd;
+
+	/* fork off the parent process */
+	pid = fork();
+	if (pid < 0)
+		exit(1);
+	else if (pid > 0)
+		exit(0);
+
+	/* set child process to session leader */
+	if (setsid() < 0)
+		exit(1);
+
+	/* ignore signal sent from child to parent */
+	signal(SIGCHLD, SIG_IGN);
+
+	/* fork for the second time */
+	pid = fork();
+	if (pid < 0)
+		exit(1);
+	else if (pid > 0)
+		exit(0);
+
+	/* set new file permissions */
+	umask(0);
+
+	/* change working directory to root */
+	if (chdir("/") < 0)
+		exit(1);
+
+	/* close all open file descriptors */
+	for (fd = sysconf(_SC_OPEN_MAX); fd > 0; fd--)
+		close(fd);
+
+	/* reopen stdin, stdout, stderr */
+	stdin = fopen("/dev/null", "r");
+	stdout = fopen("/dev/null", "w+");
+	stderr = fopen("/dev/null", "w+");
+}
+
+/*
  * write PID file
  */
 
@@ -432,7 +480,7 @@ main(int argc, char *argv[])
 
 	/* if daemon mode is enabled, then daemonize the process */
 	if (go_daemon)
-		daemon(0, 0);
+		daemonize();
 
 	/* write PID file */
 	write_pid_file();

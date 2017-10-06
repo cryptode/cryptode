@@ -395,7 +395,7 @@ static void log_pre_exec_output(int fd, const char *log_path, const char *cmd, i
 	}
 
 	/* open log file for append mode */
-	log_fd = open(log_path, O_CREAT | O_WRONLY | O_APPEND);
+	log_fd = open(log_path, O_CREAT | O_WRONLY | O_APPEND, S_IRUSR | S_IWUSR);
 	if (log_fd < 0) {
 		RVD_DEBUG_ERR("VPN: Couldn't open openvpn log file '%s'", log_path);
 
@@ -503,19 +503,21 @@ static int run_preconn_cmd(struct rvd_vpnconn *vpn_conn, const char *log_path)
 	if (pre_cmd_pid == 0) {
 		gid_t gid;
 
-		/* set UID */
-		setuid(vpn_conn->config.pre_exec_uid);
-
-		/* set gid */
-		if (get_gid_by_uid(vpn_conn->config.pre_exec_uid, &gid) == 0)
-			setgid(gid);
-
 		/* redirect output to pipe */
 		close(pipeout[0]);
 		close(pipeerr[0]);
 
 		dup2(pipeout[1], STDOUT_FILENO);
 		dup2(pipeerr[1], STDERR_FILENO);
+
+		/* set UID */
+		if (setuid(vpn_conn->config.pre_exec_uid) < 0)
+			exit(1);
+
+		/* set gid */
+		if (get_gid_by_uid(vpn_conn->config.pre_exec_uid, &gid) != 0 ||
+			setgid(gid) < 0)
+			exit(1);
 
 		/* run command */
 		execvp(args[0], args);
@@ -683,8 +685,10 @@ static int run_openvpn_proc(struct rvd_vpnconn *vpn_conn)
 	if (uid > 0) {
 		gid_t gid;
 
-		if (get_gid_by_uid(uid, &gid) == 0)
-			chown(ovpn_log_fpath, uid, gid);
+		if (get_gid_by_uid(uid, &gid) != 0 ||
+			chown(ovpn_log_fpath, uid, gid) != 0) {
+			RVD_DEBUG_WARN("VPN: Couldn't set the permission for OpenVPN log file '%s'", ovpn_log_fpath);
+		}
 	}
 
 	return 0;
