@@ -1,6 +1,6 @@
 #!/bin/bash
 
-PLATFORM_DIR="$PWD/platforms/osx"
+PLATFORM_DIR="$PWD/platforms/macos"
 PKGBUILD_DIR="$PLATFORM_DIR/rvc.dist"
 
 # remove old dist directory

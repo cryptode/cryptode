@@ -120,7 +120,7 @@ AC_CONFIG_FILES([Makefile
                 utils/Makefile
                 etc/Makefile
                 platforms/Makefile
-                platforms/osx/Makefile
+                platforms/macos/Makefile
                 platforms/epel/Makefile
                 src/Makefile
                 etc/rvd.json
