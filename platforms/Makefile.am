@@ -1,2 +1,8 @@
+
 AUTOMAKE_OPTIONS = foreign
-SUBDIRS = osx epel
+
+if DARWIN
+SUBDIRS = macos
+else
+SUBDIRS = epel
+endif

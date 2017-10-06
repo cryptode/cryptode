@@ -27,7 +27,7 @@ m4/*.m4
 src/.deps
 src/rvcd.dSYM
 *tar.gz
-platforms/osx/rvc.dist
+platforms/macos/rvc.dist
 rvc.pkg
 src/rvd
 etc/rvd.json

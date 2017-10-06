@@ -73,7 +73,7 @@ if test "x$isdarwin" = "xyes"; then
     CFLAGS="$CFLAGS -mmacosx-version-min=10.12 -D_DARWIN_C_SOURCE"
     LDFLAGS="$LDFLAGS -mmacosx-version-min=10.12"
 
-    OPENVPN_BINARY_PATH=/opt/rvc/sbin/openvpn
+    OPENVPN_BINARY_PATH=/opt/openvpn/sbin/openvpn
     RVD_CONFIG_PATH=/opt/rvc/etc/rvd.json
     RVC_CONFDIR_PATH=/opt/rvc/etc/vpn.d
 
@@ -88,7 +88,7 @@ else
     RVC_LDADD="$JSONC_LIBS $OPENSSL_LIBS"
 fi
 
-AC_DEFINE_UNQUOTED([OPENVPN_BINARY_PATH], ["$OPENVPN_BINARY_PATH"], [The path to OpenVPN binrary])
+AC_DEFINE_UNQUOTED([OPENVPN_BINARY_PATH], ["$OPENVPN_BINARY_PATH"], [The path to OpenVPN binary])
 AC_SUBST(OPENVPN_BINARY_PATH)
 
 AC_DEFINE_UNQUOTED([RVD_CONFIG_PATH], ["$RVD_CONFIG_PATH"], [The path to RVD configuration])
@@ -120,7 +120,7 @@ AC_CONFIG_FILES([Makefile
                 utils/Makefile
                 etc/Makefile
                 platforms/Makefile
-                platforms/osx/Makefile
+                platforms/macos/Makefile
                 platforms/epel/Makefile
                 src/Makefile
                 etc/rvd.json

@@ -223,7 +223,7 @@ static int check_ovpn_binary(const char *ovpn_bin_path, bool root_check)
 {
 	struct stat st;
 
-	/* get stat of openvpn binrary file */
+	/* get stat of openvpn binary file */
 	if (stat(ovpn_bin_path, &st) != 0 || !S_ISREG(st.st_mode)) {
 		RVD_DEBUG_ERR("VPN: Wrong path of OpenVPN binary '%s'", ovpn_bin_path);
 		return -1;

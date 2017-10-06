@@ -337,14 +337,14 @@ static void *stop_vpn_conn(void *p)
 }
 
 /*
- * check whether openvpn binrary is available
+ * check whether openvpn binary is available
  */
 
 static int check_ovpn_binary(const char *ovpn_bin_path, bool root_check)
 {
 	struct stat st;
 
-	/* get stat of openvpn binrary file */
+	/* get stat of openvpn binary file */
 	if (stat(ovpn_bin_path, &st) != 0 || !S_ISREG(st.st_mode)) {
 		RVD_DEBUG_ERR("VPN: Wrong path of OpenVPN binary '%s'", ovpn_bin_path);
 		return -1;
@@ -622,9 +622,9 @@ static int run_openvpn_proc(struct rvd_vpnconn *vpn_conn)
 
 	RVD_DEBUG_MSG("VPN: Running OpenVPN process for connection '%s'", vpn_conn->config.name);
 
-	/* check openvpn binrary */
+	/* check openvpn binary */
 	if (check_ovpn_binary(c->opt.ovpn_bin_path, c->opt.ovpn_root_check) != 0) {
-		RVD_DEBUG_ERR("VPN: Failed to check openvpn binrary availability.");
+		RVD_DEBUG_ERR("VPN: Failed to check openvpn binary availability.");
 		return -1;
 	}
 

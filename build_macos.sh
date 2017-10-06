@@ -1,8 +1,16 @@
 #!/bin/bash
 
+# check if brew is installed
 readonly brew="/usr/local/bin/brew"
 if [ ! -x "${brew}" ]; then
 	echo "Couldn't execute '${brew}'. (Hint: install Homebrew 'https://brew.sh/')"
+	exit 1
+fi
+
+# check if json-c is installed
+readonly JSONC_DIR="$(${brew} --prefix json-c)"
+if [ -z "${JSONC_DIR}" ]; then
+	echo "Couldn't find json-c installation directory. (Hint: 'brew install json-c')"
 	exit 1
 fi
 
@@ -13,6 +21,22 @@ if [ -z "${OPENSSL_DIR}" ]; then
 	exit 1
 fi
 
+# check if OpenVPN is installed when build the package
+if [ ! -z "$RVC_BUILD_PKG" ]; then
+	readonly OPENVPN_DIR="$(${brew} --prefix openvpn)"
+	if [ -z "${OPENVPN_DIR}" ]; then
+		echo "Couldn't find OpenVPN installation directory. (Hint: 'brew install openvpn')"
+		exit 1
+	fi
+fi
+
+# compile project
 ./autogen.sh
-./configure --with-openssl="${OPENSSL_DIR}"
+
+if [ -z "$RVC_BUILD_PKG" ]; then
+	./configure --with-openssl="${OPENSSL_DIR}"
+else
+	./configure --prefix="$PKGBUILD_DIR" --sysconfdir='${prefix}/etc' --with-openssl="$OPENSSL_DIR"
+fi
+
 make
