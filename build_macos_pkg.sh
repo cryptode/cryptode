@@ -1,33 +1,21 @@
 #!/bin/bash
 
+# export variables
+RVC_BUILD_PKG=1
 PLATFORM_DIR="$PWD/platforms/macos"
 PKGBUILD_DIR="$PLATFORM_DIR/rvc.dist"
 
-readonly brew="/usr/local/bin/brew"
-if [ ! -x "${brew}" ]; then
-	echo "Couldn't execute '${brew}'. (Hint: install Homebrew 'https://brew.sh/')"
-	exit 1
-fi
-
-readonly OPENVPN_DIR="$(${brew} --prefix openvpn)"
-
-# remove old dist directory
+# remove old dist directorys
 rm -r "$PKGBUILD_DIR"
 
-# install dependencies
-brew install openssl json-c
+# run build script
+. build_macos.sh
 
-# get openssl installation directory
-OPENSSL_DIR=$(brew --prefix openssl)
-
-# compile and install binaries
-./autogen.sh
-./configure --prefix="$PKGBUILD_DIR" --sysconfdir='${prefix}/etc' --with-openssl=$OPENSSL_DIR
-make
+# install binaries
 make install
 
 # copy openvpn binrary to dist directory
-install -c $OPENVPN_DIR/sbin/openvpn $PKGBUILD_DIR/sbin
+install -c "$OPENVPN_DIR/sbin/openvpn" "$PKGBUILD_DIR/sbin"
 
 # build package
 pkgbuild \
