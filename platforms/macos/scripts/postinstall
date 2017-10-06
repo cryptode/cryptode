@@ -30,4 +30,6 @@ launchctl unload /Library/LaunchDaemons/$RVD_PLIST_FILE
 install -m 600 -g wheel -o root $RVC_DATA_DIR/var/plist/$RVD_PLIST_FILE /Library/LaunchDaemons
 launchctl load -w /Library/LaunchDaemons/$RVD_PLIST_FILE
 
+rm -rf $RVC_DATA_DIR
+
 exit 0
