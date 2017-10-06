@@ -1,41 +1,33 @@
 #!/bin/bash
 
-RVC_DATA_DIR=/opt/rvc.dist
-RVC_INST_DIR=/opt/rvc
+RVC_DATA_DIR=/tmp/rvc.dist
+
+TARGET_PREFIX=/opt/rvc
+OPT_OPENVPN=/opt/openvpn
 
 RVD_PLIST_FILE=com.ribose.rvd.plist
 
-# copy installation files
-mkdir -p $RVC_INST_DIR
+# rvd and rvc requires to be installed in `/opt`
+mkdir -m 755 -p $TARGET_PREFIX/bin $TARGET_PREFIX/sbin $OPT_OPENVPN/sbin
+mkdir -m 755 -p $TARGET_PREFIX/etc/vpn.d
 
-mkdir -p $RVC_INST_DIR/bin
-mkdir -p $RVC_INST_DIR/etc
-mkdir -p $RVC_INST_DIR/etc/vpn.d
-mkdir -p $RVC_INST_DIR/sbin
+chown -R root:wheel $TARGET_PREFIX $OPT_OPENVPN
 
-cp $RVC_DATA_DIR/bin/rvc $RVC_INST_DIR/bin/
-cp $RVC_DATA_DIR/bin/dns_util.sh $RVC_INST_DIR/bin/
+install -m 500 -g wheel -o root $RVC_DATA_DIR/sbin/rvd $TARGET_PREFIX/sbin
+install -m 555 -g wheel -o root $RVC_DATA_DIR/bin/rvc $TARGET_PREFIX/bin
+install -m 500 -g wheel -o root $RVC_DATA_DIR/bin/dns_util.sh $TARGET_PREFIX/bin
+install -m 600 -g wheel -o root $RVC_DATA_DIR/etc/rvd.json $TARGET_PREFIX/etc
+install -m 500 -g wheel -o root $RVC_DATA_DIR/sbin/openvpn $OPT_OPENVPN/sbin
 
-cp $RVC_DATA_DIR/etc/rvd.json $RVC_INST_DIR/etc/
+# ensure that `/opt/rvc/bin` is in your PATH and is set before `/usr/local/bin`. E.g.:
+PATH=/opt/rvc/bin:/opt/rvc/sbin:$PATH
 
-cp $RVC_DATA_DIR/sbin/rvd $RVC_INST_DIR/sbin/
+# if this is an upgrade and you already have the plist loaded:
+launchctl unload /Library/LaunchDaemons/$RVD_PLIST_FILE
 
-# set owner and permission
-chown -R root:wheel $RVC_INST_DIR/bin/rvc
-chown -R root:wheel $RVC_INST_DIR/bin/dns_util.sh
-chown -R root:wheel $RVC_INST_DIR/sbin/rvd
-
-chown -R root:wheel $RVC_INST_DIR/etc/rvd.json
-chmod 600 $RVC_INST_DIR/etc/rvd.json
-
-# install and start rvd daemon
-cp $RVC_DATA_DIR/var/plist/$RVD_PLIST_FILE /Library/LaunchDaemons/
-
-chown -R root:wheel /Library/LaunchDaemons/$RVD_PLIST_FILE
-chmod 644 /Library/LaunchDaemons/$RVD_PLIST_FILE
-
-launchctl load /Library/LaunchDaemons/$RVD_PLIST_FILE
-
-rm -rf $RVC_DATA_DIR
+# to load rvd at startup, activate the included LaunchDaemon:
+# if this is your first install, automatically load on startup with:
+install -m 600 -g wheel -o root $RVC_DATA_DIR/var/plist/$RVD_PLIST_FILE /Library/LaunchDaemons
+launchctl load -w /Library/LaunchDaemons/$RVD_PLIST_FILE
 
 exit 0

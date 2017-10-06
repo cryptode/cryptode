@@ -73,7 +73,7 @@ if test "x$isdarwin" = "xyes"; then
     CFLAGS="$CFLAGS -mmacosx-version-min=10.12 -D_DARWIN_C_SOURCE"
     LDFLAGS="$LDFLAGS -mmacosx-version-min=10.12"
 
-    OPENVPN_BINARY_PATH=/opt/rvc/sbin/openvpn
+    OPENVPN_BINARY_PATH=/opt/openvpn/sbin/openvpn
     RVD_CONFIG_PATH=/opt/rvc/etc/rvd.json
     RVC_CONFDIR_PATH=/opt/rvc/etc/vpn.d
 
