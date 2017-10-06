@@ -300,7 +300,7 @@ static int convert_tblk_to_ovpn(const char *conf_dir, const char *container_path
 	}
 
 	/* open new profile */
-	new_fd = open(new_ovpn_path, O_CREAT | O_WRONLY);
+	new_fd = open(new_ovpn_path, O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR);
 	if (new_fd < 0) {
 		fclose(fp);
 		return -1;

@@ -85,9 +85,13 @@ static int create_listen_socket(rvd_ctx_opt_t *op)
 	}
 
 	/* set permission of socket */
-	if (op->restrict_cmd_sock) {
-		chown(RVD_LISTEN_SOCK_PATH, op->allowed_uid, 0);
-		chmod(RVD_LISTEN_SOCK_PATH, S_IRUSR | S_IWUSR);
+	if (op->restrict_cmd_sock &&
+		(chown(RVD_LISTEN_SOCK_PATH, op->allowed_uid, 0) != 0 ||
+		 chmod(RVD_LISTEN_SOCK_PATH, S_IRUSR | S_IWUSR) != 0)) {
+		RVD_DEBUG_ERR("CMD: Couldn't set the permissions for unix domain socket '%s'(err:%d)",
+				RVD_LISTEN_SOCK_PATH, errno);
+		close(listen_sock);
+		return -1;
 	} else
 		chmod(RVD_LISTEN_SOCK_PATH, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 

@@ -70,7 +70,7 @@ static int create_log_file()
 	rename(g_log_path, backup_log_path);
 
 	/* open log file */
-	fd = open(g_log_path, O_CREAT | O_WRONLY);
+	fd = open(g_log_path, O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR);
 	if (fd > 0)
 		g_log_fp = fdopen(fd, "w");
 
