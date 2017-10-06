@@ -256,7 +256,6 @@ backdoored `rvc` that is put in `/usr/local/bin` by a local attacker.
 ```console
 usage: rvc <options>
   options:
-    list [--json]				show list of VPN connections
     connect <all|connection name> [--json]	connect to a VPN with given name
     disconnect <all|connection name> [--json]	disconnect from VPN with given name
     status [all|connection name] [--json]	get status of VPN connection with given name
