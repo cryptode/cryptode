@@ -24,3 +24,5 @@ pkgbuild \
 	--install-location /tmp/rvc.dist \
 	--scripts "$PLATFORM_DIR/scripts" \
 	"$PLATFORM_DIR/rvc.pkg"
+
+rm -r "$PKGBUILD_DIR"
