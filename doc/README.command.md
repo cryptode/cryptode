@@ -8,11 +8,15 @@ The interface between rvd and UI is a socket that takes commands and provides re
 ## Command Codes
 
 ```
-RVD_CMD_LIST = 0,
-RVD_CMD_CONNECT = 1,
-RVD_CMD_DISCONNECT = 2,
-RVD_CMD_STATUS = 3,
-RVD_CMD_SCRIPT_SECURITY = 4
+RVD_CMD_CONNECT = 0,
+RVD_CMD_DISCONNECT = 1,
+RVD_CMD_STATUS = 2,
+RVD_CMD_SCRIPT_SECURITY = 3,
+RVD_CMD_RELOAD = 4,
+RVD_CMD_IMPORT = 5,
+RVD_CMD_REMOVE = 6,
+RVD_CMD_DNS_OVERRIDE = 7,
+RVD_CMD_GET_CONFDIR = 8,
 
 ```
 
@@ -20,54 +24,30 @@ RVD_CMD_SCRIPT_SECURITY = 4
 
 ```
 RVD_RESP_OK = 0,
-RVD_RESP_INVALID_CMD  = 1,
-RVD_RESP_NO_MEMORY = 2,
-RVD_RESP_EMPTY_LIST = 3,
-RVD_RESP_CONN_NOT_FOUND = 4,
-RVD_RESP_CONN_ALREADY_CONNECTED = 5,
-RVD_RESP_CONN_ALREADY_DISCONNECTED = 6,
-RVD_RESP_CONN_IN_PROGRESS = 7,
+RVD_RESP_INVALID_CMD = 1,
+RVD_RESP_SOCK_CONN = 2,
+RVD_RESP_JSON_INVALID = 3,
+RVD_RESP_NO_MEMORY = 4,
+RVD_RESP_SUDO_REQUIRED = 5,
+RVD_RESP_RVD_NOT_RUNNING = 6,
+RVD_RESP_SEND_SIG = 7,
+RVD_RESP_INVALID_PROFILE_TYPE = 8,
+RVD_RESP_INVALID_CONF_DIR = 9,
+RVD_RESP_IMPORT_TOO_LARGE = 10,
+RVD_RESP_IMPORT_EXIST_PROFILE = 11,
+RVD_RESP_EMPTY_LIST = 12,
+RVD_RESP_WRONG_PERMISSION = 13,
+RVD_RESP_CONN_NOT_FOUND = 14,
+RVD_RESP_CONN_ALREADY_CONNECTED = 15,
+RVD_RESP_CONN_ALREADY_DISCONNECTED = 16,
+RVD_RESP_CONN_IN_PROGRESS = 17,
+RVD_RESP_NO_EXIST_DNS_UTIL = 18,
+RVD_RESP_ERR_DNS_UTIL = 19,
+RVD_RESP_UNKNOWN_ERR = 20,
 
 ```
 
 ## JSON commands and responses
-
-### LIST command and response
-
-- Command
-
-```
-{
-    "cmd": RVD_CMD_LIST(0),
-    "json": true | false,
-}
-
-```
-
-- Response
-
-If json field is true,
-
-```
-{
-    "code": RESPONSE_CODE,
-    "data":
-    [
-        {
-            "name": connection name,
-            "profile": openvpn profile path,
-            "auto-connect": true | false,
-            "up-script": script when up openvpn connection,
-            "down-script": script when down openvpn connection
-        },
-
-        ...
-    ]
-}
-
-```
-
-If json field is false, then print the response in general text format.
 
 ### CONNECT command and response
 
@@ -75,8 +55,8 @@ If json field is false, then print the response in general text format.
 
 ```
 {
-    "cmd": RVD_CMD_CONNECT(1),
-    "param": all | connection name
+    "cmd": RVD_CMD_CONNECT(0),
+    "param": <all | connection name>
 }
 
 ```
@@ -86,7 +66,7 @@ If json field is false, then print the response in general text format.
 ```
 {
     "code": RESPONSE_CODE,
-    "data": Refer status response
+    "data": <connection status list | connection status>
 }
 
 ```
@@ -98,7 +78,7 @@ If json field is false, then print the response in general text format.
 ```
 {
     "cmd": RVD_CMD_DISCONNECT(2),
-    "param": all | connection name
+    "param": <all | connection name>
 }
 
 ```
@@ -114,7 +94,7 @@ Same as RVD_CMD_CONNECT
 ```
 {
     "cmd": RVD_CMD_STATUS(3),
-    "param": all | connection name
+    "param": <all | connection name>
 }
 
 ```
@@ -126,17 +106,22 @@ Same as RVD_CMD_CONNECT
     "code": RESPONSE_CODE,
     "data": [
         {
-            "name": connection name,
-            "status": CONNECTED | CONNECTING | DISCONNECTED | DISCONNECTING | RECONNECTING,
-            "ovpn-status": CONNECTED | DISCONNECTED | TCP_CONNECT | WAIT | AUTH | GET_CONFIG | ASSIGN_IP |
-                            ADD_ROUTES | RECONNECTING | EXITING,
-            "connected-time": connected timestamp,
-            "timestamp": current timestamp,
+            "name": <connection name>,
+            "profile": <profile path>,
+            "status": <CONNECTED | CONNECTING | DISCONNECTED | DISCONNECTING | RECONNECTING>,
+            "ovpn-status": <CONNECTED | DISCONNECTED | TCP_CONNECT | WAIT | AUTH | GET_CONFIG | ASSIGN_IP |
+                            ADD_ROUTES | RECONNECTING | EXITING>,
+            "timestamp": <current timestamp>,
+            "in-total": <total IN bytes after started rvd>,
+            "out-total": <total OUT bytes after started rvd>,
+            "auto-connect": <auto connect flag>,
+            "pre-exec-cmd": <pre-execution command>,
+            "pre-exec-status": <status of pre-execution command>,
             "network": {
-                "in-current": IN bytes in current connection,
-                "out-current": OUT bytes in current connection,
-                "in-total": total IN bytes since rvd started,
-                "out-total": total OUT bytes since rvd started
+                "in-current": <IN bytes in current connection>,
+                "out-current": <OUT bytes in current connection>,
+                "in-total": <total IN bytes since rvd started>,
+                "out-total": <total OUT bytes since rvd started>
             }
         }
 
@@ -153,7 +138,7 @@ Same as RVD_CMD_CONNECT
 ```
 {
     "cmd": RVD_CMD_SCRIPT_SECURITY(4),
-    "param": enable | disable
+    "param": <enable | disable>
 }
 
 ```
