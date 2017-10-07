@@ -2,7 +2,7 @@
 
 The **R**elaxed **V**PN **C**lient
 
-RVC is a command line driven OpenVPN client for macOS and RHEL/CentOS/Fedora with two focus areas:
+RVC is a command line driven OpenVPN client for macOS (Sierra and High Sierra) and RHEL/CentOS (7) with two focus areas:
 * CLI usage for automation
 * Security for protection of your OpenVPN private keys + certificates and ensuring that only approved routes are added to your route table
 
@@ -15,7 +15,7 @@ Don't get fooled by the word *Relaxed*. It is meant that you can relax when usin
 
 Operating system specific target directories:
 * macOS RVC path: `/opt/rvc`
-* BSD and RHEL/CentOS/Fedora RVC path: `/usr/local`
+* RHEL/CentOS 7+ RVC path: `/usr/local`
 
 RVC has the following structure:
 * `<RVC path>/bin/rvd`: the daemon that is responsible for starting and stopping OpenVPN connections
@@ -28,7 +28,7 @@ RVC has the following structure:
 macOS:
 * `/Library/LaunchDaemons/com.ribose.rvd.plist`: the `rvd` plist for use by `launchd`
 
-RHEL:
+RHEL/CentOS:
 * `/lib/systemd/system/rvd.service`: the `systemd` unit file
 
 VPN configuration files (example):
@@ -41,12 +41,11 @@ VPN log files (example):
 macOS dependencies:
 * `/opt/openvpn/sbin/openvpn`: a copy of the OpenVPN executable that is owned by `root`
 
-RHEL dependencies:
+RHEL/CentOS dependencies:
 * `/usr/sbin/openvpn`: the location of the OpenVPN executable as installed via `yum`
 
 
 ## Overview:
-
 
 ```
 +-----------------+
@@ -90,7 +89,7 @@ RHEL dependencies:
 
 ## <RVC path>/etc/rvd.json configuration file
 
-The `<RVC path>/etc/rvd.json` configuration file looks like this:
+The `<RVC path>/etc/rvd.json` configuration file looks like this on macOS:
 ```json
 {
   "openvpn_bin": "/opt/openvpn/sbin/openvpn",
@@ -106,9 +105,9 @@ The `<RVC path>/etc/rvd.json` configuration file looks like this:
 
 ### rvd.json configuration file details
 
-`openvpn_bin`: the location of the OpenVPN executable. Since this executable will be ran with `uid 0` it is important
-to place this in a directory not writable by unprivileged users.
-Note: On macOS OpenVPN will be most likely installed by `brew` in `/usr/local/sbin` and for security purposes must therefore be copied to `/opt/openvpn/sbin`. If you wish to have `rvd` use the OpenVPN executable in `/usr/local/sbin` then you can, **but this is not advised as a local attacker could replace anything in `/usr/local/`.
+`openvpn_bin`: the location of the OpenVPN executable. Since this executable will run as `uid 0` it is important
+to place this executable in a directory not writable by unprivileged users.
+Note: On macOS OpenVPN will be most likely installed by `brew` in `/usr/local/sbin` and for security purposes therefore must be copied to `/opt/openvpn/sbin`. If you wish to have `rvd` use the OpenVPN executable in `/usr/local/sbin` then you can, **but this is not advised as a local attacker could replace anything in `/usr/local/`.
 
 `openvpn_root_check`: `rvd` can perform a check whether the OpenVPN executable is owned by root. On macOS `rvd` will
 expect OpenVPN to live in `/opt/openvpn/sbin` which must be owned by root. In case you want to use the OpenVPN executable
@@ -125,7 +124,7 @@ access to your VPN connections on multi-user systems. **Disabling this restricti
 
 `log`: this is the log file `rvd` will write to.
 
-`vpn_config_paths`: `rvd` stores OpenVPN files on macOS in `/opt/rvc/etc/vpn.d` and on RHEL in `/usr/local/etc/vpn.d/`.
+`vpn_config_paths`: `rvd` stores OpenVPN files on macOS in `/opt/rvc/etc/vpn.d` and on RHEL/CentOS in `/usr/local/etc/vpn.d/`.
 
 This file is mandatory.
 
@@ -266,10 +265,10 @@ usage: rvc <options>
     remove <connection name> [--force]		remove VPN connection (sudo required)
 ```
 
-## RVC RHEL Installation instructions
+## RVC RHEL/CentOS Installation instructions
 
 ```sh
-sudo yum install https://github.com/riboseinc/rvc/rpm/rvc-1.rpm
+sudo yum install https://github.com/<TODO>
 ```
 
 

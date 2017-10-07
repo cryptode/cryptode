@@ -1,9 +1,8 @@
+# Documentation for the interface between `rvd` and `rvc` or UI
 
-# Documentation for the interface between rvd and UI
+The interface between `rvd` and `rvc` or UI is a socket that takes commands and provides responses.
 
-The interface between rvd and UI is a socket that takes commands and provides responses.
-
-`rvd daemon` listens on unix domain socket `/var/run/rvd`
+`rvd` listens on Unix domain socket `/var/run/rvd`
 
 ## Command Codes
 
@@ -17,7 +16,6 @@ RVD_CMD_IMPORT = 5,
 RVD_CMD_REMOVE = 6,
 RVD_CMD_DNS_OVERRIDE = 7,
 RVD_CMD_GET_CONFDIR = 8,
-
 ```
 
 ## Response Codes
@@ -44,7 +42,6 @@ RVD_RESP_CONN_IN_PROGRESS = 17,
 RVD_RESP_NO_EXIST_DNS_UTIL = 18,
 RVD_RESP_ERR_DNS_UTIL = 19,
 RVD_RESP_UNKNOWN_ERR = 20,
-
 ```
 
 ## JSON commands and responses
@@ -53,34 +50,31 @@ RVD_RESP_UNKNOWN_ERR = 20,
 
 - Command
 
-```
+```json
 {
     "cmd": RVD_CMD_CONNECT(0),
     "param": <all | connection name>
 }
-
 ```
 
 - Response
 
-```
+```json
 {
     "code": RESPONSE_CODE,
     "data": <connection status list | connection status>
 }
-
 ```
 
 ### DISCONNECT command and response
 
 - Command
 
-```
+```json
 {
     "cmd": RVD_CMD_DISCONNECT(2),
     "param": <all | connection name>
 }
-
 ```
 
 - Response
@@ -91,17 +85,16 @@ Same as RVD_CMD_CONNECT
 
 - Command
 
-```
+```json
 {
     "cmd": RVD_CMD_STATUS(3),
     "param": <all | connection name>
 }
-
 ```
 
 - Response
 
-```
+```json
 {
     "code": RESPONSE_CODE,
     "data": [
@@ -128,26 +121,23 @@ Same as RVD_CMD_CONNECT
         ...
     ]
 }
-
 ```
 
 ### SCRIPT_SECURITY command and response
 
 - Command
 
-```
+```json
 {
     "cmd": RVD_CMD_SCRIPT_SECURITY(4),
     "param": <enable | disable>
 }
-
 ```
 
 - Response
 
-```
+```json
 {
     "code": RESPONSE_CODE
 }
-
 ```
