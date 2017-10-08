@@ -8,19 +8,19 @@ OPT_OPENVPN=/opt/openvpn
 RVD_PLIST_FILE=com.ribose.rvd.plist
 
 # rvd and rvc requires to be installed in `/opt`
-mkdir -m 755 -p $TARGET_PREFIX/bin $TARGET_PREFIX/sbin $OPT_OPENVPN/sbin
+mkdir -m 755 -p $TARGET_PREFIX/bin $OPT_OPENVPN/sbin
 mkdir -m 755 -p $TARGET_PREFIX/etc/vpn.d
 
 chown -R root:wheel $TARGET_PREFIX $OPT_OPENVPN
 
-install -m 500 -g wheel -o root $RVC_DATA_DIR/sbin/rvd $TARGET_PREFIX/sbin
+install -m 500 -g wheel -o root $RVC_DATA_DIR/bin/rvd $TARGET_PREFIX/bin
 install -m 555 -g wheel -o root $RVC_DATA_DIR/bin/rvc $TARGET_PREFIX/bin
 install -m 500 -g wheel -o root $RVC_DATA_DIR/bin/dns_util.sh $TARGET_PREFIX/bin
 install -m 600 -g wheel -o root $RVC_DATA_DIR/etc/rvd.json $TARGET_PREFIX/etc
 install -m 500 -g wheel -o root $RVC_DATA_DIR/sbin/openvpn $OPT_OPENVPN/sbin
 
 # ensure that `/opt/rvc/bin` is in your PATH and is set before `/usr/local/bin`. E.g.:
-PATH=/opt/rvc/bin:/opt/rvc/sbin:$PATH
+PATH=/opt/rvc/bin:$PATH
 
 # if this is an upgrade and you already have the plist loaded:
 launchctl unload /Library/LaunchDaemons/$RVD_PLIST_FILE
