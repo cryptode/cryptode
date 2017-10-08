@@ -1,6 +1,17 @@
 #!/bin/bash
 
-RVC_DATA_DIR=/tmp/rvc.dist
+# check root privilege
+if ! [ $(id -u) = 0 ]; then
+	echo "Please run as root privilege"
+	exit 1
+fi
+
+# source directory to be copied
+if [ "$#" -eq 0 ]; then
+	RVC_DATA_DIR=/tmp/rvc.dist
+else
+	RVC_DATA_DIR="$1"
+fi
 
 TARGET_PREFIX=/opt/rvc
 OPT_OPENVPN=/opt/openvpn
@@ -23,13 +34,15 @@ install -m 500 -g wheel -o root $RVC_DATA_DIR/sbin/openvpn $OPT_OPENVPN/sbin
 PATH=/opt/rvc/bin:$PATH
 
 # if this is an upgrade and you already have the plist loaded:
-launchctl unload /Library/LaunchDaemons/$RVD_PLIST_FILE
+launchctl unload "/Library/LaunchDaemons/$RVD_PLIST_FILE"
 
 # to load rvd at startup, activate the included LaunchDaemon:
 # if this is your first install, automatically load on startup with:
-install -m 600 -g wheel -o root $RVC_DATA_DIR/var/plist/$RVD_PLIST_FILE /Library/LaunchDaemons
-launchctl load -w /Library/LaunchDaemons/$RVD_PLIST_FILE
+install -m 600 -g wheel -o root "$RVC_DATA_DIR/var/plist/$RVD_PLIST_FILE" /Library/LaunchDaemons
+launchctl load -w "/Library/LaunchDaemons/$RVD_PLIST_FILE"
 
-rm -rf $RVC_DATA_DIR
+if [ "$#" -eq 0 ]; then
+	rm -rf $RVC_DATA_DIR
+fi
 
 exit 0
