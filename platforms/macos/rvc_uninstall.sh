@@ -2,9 +2,9 @@
 
 RVD_LAUNCHD_PLIST=/Library/LaunchDaemons/com.ribose.rvd.plist
 
-# check root privilege
-if ! [ $(id -u) = 0 ]; then
-	echo "Please run as root privilege"
+# check root
+if [ "$(id -u)" -ne 0 ]; then
+	echo "Please run as root"
 	exit 1
 fi
 
