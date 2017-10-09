@@ -1,8 +1,7 @@
 
 AM_CFLAGS = $(JSONC_INCLUDES) $(OPENSSL_INCLUDES) -Wall -Wextra
 
-sbin_PROGRAMS = rvd
-bin_PROGRAMS = rvc
+bin_PROGRAMS = rvd rvc
 
 rvd_SOURCES = rvd.c log.c cmd.c util.c vpn.c
 rvd_LDADD = $(RVD_LDADD)

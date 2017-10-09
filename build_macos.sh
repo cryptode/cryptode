@@ -9,25 +9,23 @@ fi
 
 # check if json-c is installed
 readonly JSONC_DIR="$(${brew} --prefix json-c)"
-if [ -z "${JSONC_DIR}" ]; then
+if [ ! -d "${JSONC_DIR}" ]; then
 	echo "Couldn't find json-c installation directory. (Hint: 'brew install json-c')"
 	exit 1
 fi
 
 # check if OpenSSL is installed
 readonly OPENSSL_DIR="$(${brew} --prefix openssl)"
-if [ -z "${OPENSSL_DIR}" ]; then
+if [ ! -d "${OPENSSL_DIR}" ]; then
 	echo "Couldn't find OpenSSL installation directory. (Hint: 'brew install openssl')"
 	exit 1
 fi
 
 # check if OpenVPN is installed when build the package
-if [ ! -z "$RVC_BUILD_PKG" ]; then
-	readonly OPENVPN_DIR="$(${brew} --prefix openvpn)"
-	if [ -z "${OPENVPN_DIR}" ]; then
-		echo "Couldn't find OpenVPN installation directory. (Hint: 'brew install openvpn')"
-		exit 1
-	fi
+export OPENVPN_DIR="$(${brew} --prefix openvpn)"
+if [ ! -d "${OPENVPN_DIR}" ]; then
+	echo "Couldn't find OpenVPN installation directory. (Hint: 'brew install openvpn')"
+	exit 1
 fi
 
 # compile project
@@ -40,3 +38,4 @@ else
 fi
 
 make
+make install
