@@ -6,11 +6,13 @@ if ! [ $(id -u) = 0 ]; then
 	exit 1
 fi
 
-# source directory to be copied
-if [ "$#" -eq 0 ]; then
-	RVC_DATA_DIR=/tmp/rvc.dist
+# check base directory is /usr/local/bin
+BASEDIR=$(dirname "$0")
+
+if [ "$BASEDIR" = "/usr/local/bin" ]; then
+	RVC_DATA_DIR=/usr/local
 else
-	RVC_DATA_DIR="$1"
+	RVC_DATA_DIR=/tmp/rvc.dist
 fi
 
 TARGET_PREFIX=/opt/rvc
@@ -40,9 +42,5 @@ launchctl unload "/Library/LaunchDaemons/$RVD_PLIST_FILE"
 # if this is your first install, automatically load on startup with:
 install -m 600 -g wheel -o root "$RVC_DATA_DIR/var/plist/$RVD_PLIST_FILE" /Library/LaunchDaemons
 launchctl load -w "/Library/LaunchDaemons/$RVD_PLIST_FILE"
-
-if [ "$#" -eq 0 ]; then
-	rm -rf $RVC_DATA_DIR
-fi
 
 exit 0
