@@ -29,6 +29,7 @@ if [ ! -d "${OPENVPN_DIR}" ]; then
 fi
 
 # compile project
+echo "running './autogen.sh':"
 ./autogen.sh
 
 if [ -z "$RVC_BUILD_PKG" ]; then
@@ -37,5 +38,8 @@ else
 	./configure --prefix="$PKGBUILD_DIR" --sysconfdir='${prefix}/etc' --with-openssl="$OPENSSL_DIR"
 fi
 
+echo "running 'make':"
 make
+
+echo "running 'make install':"
 make install
