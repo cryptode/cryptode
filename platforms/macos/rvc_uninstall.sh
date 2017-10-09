@@ -15,6 +15,6 @@ rm -f "$RVD_LAUNCHD_PLIST"
 # remove log directory
 rm -rf /var/log/rvd
 
-# remove /opt/rvc, /opt/openvpn directory
-rm -rf /opt/rvc
+# remove /opt/rvc/bin, /opt/openvpn directory but keep /opt/rvc/etc to preserve any .ovpn files
+rm -rf /opt/rvc/bin
 rm -rf /opt/openvpn
