@@ -41,5 +41,5 @@ fi
 echo "running 'make':"
 make
 
-echo "running 'make install':"
-make install
+#echo "running 'make install':"
+#make install
