@@ -39,7 +39,6 @@ make
 %install
 make install
 rm -rf %{buildroot}/usr/include
-rm -rf %{buildroot}/usr/bin/dns_util.sh
 rm -rf %{buildroot}/usr/var
 
 %files
