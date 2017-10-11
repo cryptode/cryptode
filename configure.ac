@@ -117,7 +117,6 @@ if test "x$enable_profiling" = "xyes" ; then
 fi
 
 AC_CONFIG_FILES([Makefile
-                utils/Makefile
                 etc/Makefile
                 platforms/Makefile
                 platforms/macos/Makefile
