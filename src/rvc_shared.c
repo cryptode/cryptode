@@ -550,14 +550,17 @@ static const char *g_rvc_allowed_paths[] = {
 static int check_rvc_bin_path(void)
 {
 	char run_path[RVD_MAX_PATH];
-	unsigned int len;
-
 	int i = 0;
 
 #if _DARWIN_C_SOURCE
+	unsigned int len;
+
 	/* get current working directory */
 	len = sizeof(run_path);
 	if (_NSGetExecutablePath(run_path, &len) != 0)
+		return -1;
+#else
+	if (readlink("/proc/self/exe", run_path, sizeof(run_path)) < 0)
 		return -1;
 #endif
 
