@@ -17,7 +17,7 @@ fi
 
 TARGET_PREFIX="/opt/rvc"
 OPT_OPENVPN="/opt/openvpn"
-RVD_PLIST_FILE="com.ribose.rvd.plist"
+RVD_PLIST_NAME="com.ribose.rvd.plist"
 LAUNCHD="/Library/LaunchDaemons"
 
 # install files
@@ -32,7 +32,15 @@ install -m 500 -g wheel -o root "${RVC_DATA_DIR}/sbin/openvpn" "${OPT_OPENVPN}/s
 # unload rvd daemon
 launchctl unload "${LAUNCHD}/${RVD_PLIST_FILE}" >/dev/null 2>&1
 
-install -m 600 -g wheel -o root "${RVC_DATA_DIR}/var/plist/${RVD_PLIST_FILE}" "${LAUNCHD}"
-launchctl load -w "${LAUNCHD}/${RVD_PLIST_FILE}"
+# check homebrew for rvc has installed
+readonly RVC_BREW_DIR="$(brew --prefix rvc)"
+if [ -d ${RVC_BREW_DIR} ]; then
+	RVD_PLIST_FILE="${RVC_BREW_DIR}/var/plist/${RVD_PLIST_NAME}"
+else
+	RVD_PLIST_FILE="${RVC_DATA_DIR}/var/plist/${RVD_PLIST_NAME}"
+fi
+
+install -m 600 -g wheel -o root "${RVD_PLIST_FILE}" "${LAUNCHD}"
+launchctl load -w "${LAUNCHD}/${RVD_PLIST_NAME}"
 
 exit 0
