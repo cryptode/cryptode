@@ -158,7 +158,7 @@ Typically macOS clients are GUI based and require you to enter a password every 
 makes it impossible to automate VPN management and operation. RVC can only be managed via the command line. You need `sudo` for operations
 that require access to root owned directories and files.
 
-* `rvd` is owned by `root:wheel` and has the following permissions: `-r-x------`. `rvd` is meant to be only executed by `launchd`. So don't
+* `rvd` is owned by `root:wheel` and has the following permissions: `-r-x------`. `rvd` is meant to be only executed by `launchd` or `systemd`. So don't
 start it manually. Upon starting `rvd` will create a socket in `/var/run/rvd` which will be writable only by a predefined userid that is
 set in `<RVC path>/etc/rvd.conf`. It looks like this:
 ```console
@@ -247,7 +247,7 @@ static int check_ovpn_binary(const char *ovpn_bin_path, bool root_check)
 * On macOS Brew and/or a manual `make install` installs `rvc` to `/usr/local/bin`, follow the instructions to also install the executables in `/opt/rvc/bin`.
 Your `PATH` will most likely have `/usr/local/bin` in it. **It is of upmost importance that you put `/opt/rvc/bin` in the beginning of your `PATH`.**
 Example: `PATH=/opt/rvc/bin:/usr/local/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin`. This is to prevent you from running `sudo` on a
-backdoored `rvc` that is put in `/usr/local/bin` by a local attacker.
+backdoored `rvc` that was placed in `/usr/local/bin` by a local attacker.
 
 
 ## CLI usage of rvc
@@ -287,7 +287,7 @@ brew install --HEAD rvc
 And take a look at the homebrew formula: [homebrew-rvc](https://github.com/riboseinc/homebrew-rvc)
 
 
-### Installation via source
+### Installation via source on macOS
 
 Install dependencies:
 ```sh
@@ -298,23 +298,13 @@ Compilation:
 ```sh
 git clone https://github.com/riboseinc/rvc
 cd rvc
-sh autogen.sh
-./configure
-make
-make install
+./build_macos.sh
 ```
 
 Extra installation steps on macOS:
 ```sh
-sudo mkdir -m 755 -p /opt/rvc/bin /opt/openvpn/sbin
-sudo mkdir -m 755 -p /opt/rvc/etc/vpn.d
-sudo chown -R root:wheel /opt/rvc /opt/openvpn
-sudo install -m 500 -g wheel -o root /usr/local/bin/rvd /opt/rvc/bin
-sudo install -m 555 -g wheel -o root /usr/local/bin/rvc /opt/rvc/bin
-sudo install -m 600 -g wheel -o root /usr/local/etc/rvd/rvd.json"} /opt/rvc/etc
-sudo install -m 500 -g wheel -o root /usr/local/sbin/openvpn /opt/openvpn/sbin
-sudo install -m 600 -g wheel -o root /usr/local/bin/com.ribose.rvd.plist /Library/LaunchDaemons
-sudo launchctl load -w /Library/LaunchDaemons/com.ribose.rvd.plist
+make install
+sudo /usr/local/bin/rvc_install.sh
 ```
 
 ## Pro tip for macOS
