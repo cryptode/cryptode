@@ -37,6 +37,10 @@
 #include <signal.h>
 #include <dirent.h>
 
+#ifdef _DARWIN_C_SOURCE
+#include <mach-o/dyld.h>
+#endif
+
 #include <json-c/json.h>
 
 #include <openssl/bio.h>
@@ -529,6 +533,66 @@ int rvc_get_confdir(char **conf_dir)
 	return send_cmd_to_rvd(RVD_CMD_GET_CONFDIR, NULL, false, conf_dir);
 }
 
+/*
+ * check whether rvc is located into desired installation directory
+ */
+
+static const char *g_rvc_allowed_paths[] = {
+#ifdef _DARWIN_C_SOURCE
+	"/opt/rvc/bin/rvc",
+#else
+	"/usr/bin/rvc",
+	"/usr/local/bin/rvc",
+#endif
+	NULL
+};
+
+static int check_rvc_bin_path(void)
+{
+	char run_path[RVD_MAX_PATH];
+	unsigned int len;
+
+	int i = 0;
+
+#if _DARWIN_C_SOURCE
+	/* get current working directory */
+	len = sizeof(run_path);
+	if (_NSGetExecutablePath(run_path, &len) != 0)
+		return -1;
+#endif
+
+	for (i = 0; g_rvc_allowed_paths[i] != NULL; i++) {
+		if (strcmp(g_rvc_allowed_paths[i], run_path) == 0)
+			return 0;
+	}
+
+	return -1;
+}
+
+/*
+ * pre-checks for running environment of rvc utility
+ */
+
+static int pre_check_running_env(void)
+{
+	/* check UID is root */
+	if (getuid() != 0) {
+		fprintf(stderr, "This option requires root privilege. Please run with 'sudo'\n");
+		return RVD_RESP_SUDO_REQUIRED;
+	}
+
+	/* check rvc binrary path */
+	if (check_rvc_bin_path() != 0) {
+#ifdef _DARWIN_C_SOURCE
+		fprintf(stderr, "Wrong path of rvc executable. Please install it to /opt/rvc/bin/ directory and try again\n");
+#else
+		fprintf(stderr, "Wrong path of rvc executable. Please install it to /usr/bin/ or /usr/local/bin/ directory and try again\n");
+#endif
+		return RVD_RESP_ERR_WRONG_RVC_PATH;
+	}
+
+	return 0;
+}
 
 /*
  * reload VPN connections
@@ -537,12 +601,12 @@ int rvc_get_confdir(char **conf_dir)
 int rvc_reload()
 {
 	pid_t pid_rvd;
+	int ret;
 
-	/* check UID is root */
-	if (getuid() != 0) {
-		fprintf(stderr, "This option requires root privilege. Please run with 'sudo'\n");
-		return RVD_RESP_SUDO_REQUIRED;
-	}
+	/* pre-checking for running enviroment of rvc */
+	ret = pre_check_running_env();
+	if (ret != 0)
+		return ret;
 
 	/* get process ID of rvd */
 	pid_rvd = get_pid_of_rvd();
@@ -567,14 +631,13 @@ int rvc_reload()
 
 int rvc_import(int import_type, const char *import_path)
 {
-	int ret;
 	char *conf_dir = NULL;
+	int ret;
 
-	/* check UID */
-	if (getuid() != 0) {
-		fprintf(stderr, "This option requires root privilege. Please run with 'sudo'\n");
-		return RVD_RESP_SUDO_REQUIRED;
-	}
+	/* pre-checking for running enviroment of rvc */
+	ret = pre_check_running_env();
+	if (ret != 0)
+		return ret;
 
 	/* get configuration directory path */
 	if (rvc_get_confdir(&conf_dir) != 0) {
@@ -648,11 +711,12 @@ int rvc_remove(const char *conn_name, int force)
 		{"profile", RVD_JTYPE_STR, profile_path, sizeof(profile_path), true, "data"}
 	};
 
-	/* check UID is root */
-	if (getuid() != 0) {
-		fprintf(stderr, "This option requires root privilege. Please run with 'sudo'\n");
-		return RVD_RESP_SUDO_REQUIRED;
-	}
+	int ret;
+
+	/* pre-checking for running enviroment of rvc */
+	ret = pre_check_running_env();
+	if (ret != 0)
+		return ret;
 
 	/* check connection status */
 	if (rvc_get_status(conn_name, 1, &conn_status) != 0) {
@@ -725,11 +789,10 @@ int rvc_dns_override(int enabled, const char *dns_ip_list)
 	char cmd[RVD_MAX_PATH];
 	int ret;
 
-	/* check UID is root */
-	if (getuid() != 0) {
-		fprintf(stderr, "This option requires root privilege. Please run with 'sudo'\n");
-		return RVD_RESP_SUDO_REQUIRED;
-	}
+	/* pre-checking for running enviroment of rvc */
+	ret = pre_check_running_env();
+	if (ret != 0)
+		return ret;
 
 	/* check utility path */
 	ret = check_dns_util_path();
@@ -759,11 +822,10 @@ int rvc_dns_print(void)
 	char cmd[RVD_MAX_PATH];
 	int ret;
 
-	/* check UID is root */
-	if (getuid() != 0) {
-		fprintf(stderr, "This option requires root privilege. Please run with 'sudo'\n");
-		return RVD_RESP_SUDO_REQUIRED;
-	}
+	/* pre-checking for running enviroment of rvc */
+	ret = pre_check_running_env();
+	if (ret != 0)
+		return ret;
 
 	/* check utility path */
 	ret = check_dns_util_path();
