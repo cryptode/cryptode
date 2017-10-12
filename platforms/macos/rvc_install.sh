@@ -8,11 +8,13 @@ fi
 
 # check base directory is /usr/local/bin
 BASEDIR=$(dirname "$0")
+BUILD_PACKAGE=0
 
 if [ "${BASEDIR}" == "/usr/local/bin" ]; then
 	RVC_DATA_DIR="/usr/local"
 else
 	RVC_DATA_DIR="/tmp/rvc.dist"
+	BUILD_PACKAGE=1
 fi
 
 TARGET_PREFIX="/opt/rvc"
@@ -33,11 +35,15 @@ install -m 500 -g wheel -o root "${RVC_DATA_DIR}/sbin/openvpn" "${OPT_OPENVPN}/s
 launchctl unload "${LAUNCHD}/${RVD_PLIST_FILE}" >/dev/null 2>&1
 
 # check homebrew for rvc has installed
-readonly RVC_BREW_DIR="$(brew --prefix rvc)"
-if [ -d ${RVC_BREW_DIR} ]; then
-	RVD_PLIST_FILE="${RVC_BREW_DIR}/var/plist/${RVD_PLIST_NAME}"
-else
+if [ "$BUILD_PACKAGE" -eq 1 ]; then
 	RVD_PLIST_FILE="${RVC_DATA_DIR}/var/plist/${RVD_PLIST_NAME}"
+else
+	readonly RVC_BREW_DIR="$(brew --prefix rvc)"
+	if [ -d ${RVC_BREW_DIR} ]; then
+		RVD_PLIST_FILE="${RVC_BREW_DIR}/var/plist/${RVD_PLIST_NAME}"
+	else
+		RVD_PLIST_FILE="${RVC_DATA_DIR}/var/plist/${RVD_PLIST_NAME}"
+	fi
 fi
 
 install -m 600 -g wheel -o root "${RVD_PLIST_FILE}" "${LAUNCHD}"
