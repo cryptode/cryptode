@@ -6,10 +6,10 @@ PLATFORM_DIR="$PWD/platforms/macos"
 PKGBUILD_DIR="$PLATFORM_DIR/rvc.dist"
 
 # remove old dist directories
-rm -r "$PKGBUILD_DIR"
+rm -r "$PKGBUILD_DIR" >/dev/null 2&>1
 
 # run build script
-./build_macos.sh
+. build_macos.sh
 make install
 
 # copy rvc_install.sh binary to dist directory
