@@ -1,0 +1,16 @@
+Source: @PACKAGE_NAME@
+Section: net
+Priority: optional
+Maintainer: Jin JinRu <jin.jinru840430@gmail.com>
+Build-Depends: libssl-dev (>=1.0.0), libjson-c-dev (>=0.11)
+Standards-Version: "@PACKAGE_VERSION@"
+Vcs-Git: git@github.com:riboseinc/rvc.git
+Vcs-Browser: https://github.com/riboseinc/rvc
+
+Package: @PACKAGE_NAME@
+Section: net
+Priority: optional
+Architecture: any
+Depends: libssl1.0.0 (>= 1.0.0), libjson-c (>=0.11), openvpn (>= 2.3.10)
+Description: Relaxed VPN client
+ RVC is a command line driven OpenVPN client

@@ -1,0 +1,3 @@
+etc/rvd.json etc/rvc
+src/rvc usr/bin
+src/rvd usr/sbin

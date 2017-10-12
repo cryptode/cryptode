@@ -1,2 +1,7 @@
+
 AUTOMAKE_OPTIONS = foreign
-SUBDIRS = etc utils platforms src
+SUBDIRS = etc platforms src
+
+if DARWIN
+SUBDIRS += utils
+endif

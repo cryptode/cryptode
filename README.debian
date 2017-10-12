@@ -1,0 +1,2 @@
+
+sudo apt install build-essential dh-make packaging-dev

@@ -1,0 +1,31 @@
+#!/usr/bin/make -f
+
+configure: configure-rvc
+configure-rvc:
+	dh_testdir
+	./configure --prefix=/usr --sysconfdir=/etc/rvc
+	touch configure-rvc
+
+build: configure-rvc build-rvc
+build-rvc:
+	dh_testdir
+	$(MAKE)
+	touch build-rvc
+
+clean: clean-rvc
+clean-rvc:
+	dh_testdir
+	dh_testroot
+	rm -rf configure-rvc build-rvc
+	[ ! -f Makefile ] || $(MAKE) distclean
+
+	rm -rf ../builddebian;
+	dh_clean
+
+
+install: build
+	dh_testdir
+	dh_testroot
+	dh_installdirs
+
+	$(MAKE) install prefix=$(CURDIR)/debian/rvc/usr

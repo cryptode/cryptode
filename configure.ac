@@ -122,9 +122,11 @@ AC_CONFIG_FILES([Makefile
                 platforms/Makefile
                 platforms/macos/Makefile
                 platforms/epel/Makefile
+                platforms/debian/Makefile
                 src/Makefile
                 etc/rvd.json
                 platforms/epel/rvc.spec
+                platforms/debian/control
                 ])
 
 AC_OUTPUT
