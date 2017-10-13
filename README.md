@@ -126,7 +126,7 @@ access to your VPN connections on multi-user systems. **Disabling this restricti
 
 `vpn_config_paths`: `rvd` stores OpenVPN files on macOS in `/opt/rvc/etc/vpn.d` and on RHEL/CentOS in `/usr/local/etc/vpn.d/`.
 
-This file is mandatory.
+This file is **mandatory**.
 
 
 ### VPN configuration file
@@ -141,12 +141,12 @@ Example `rvd` configuration for a VPN:
 }
 ```
 
-This file is optional.
+This file is **optional**.
 
 
 ### VPN configuration file details
 
-`name`: The VPN name as it will appear in `rvc list`.
+`name`: The VPN name as it will appear in `rvc status`.
 `auto-connect`: Set this to `true` when you want to automatically connect to a VPN when `rvd` starts. This is useful when you have Jenkins slaves auto connecting to VPNs upon boot.
 `pre-connect-exec`: Run a script or executable before connecting to the VPN. This can be used to execute a script for MFA purposes.
 
@@ -244,10 +244,8 @@ static int check_ovpn_binary(const char *ovpn_bin_path, bool root_check)
 }
 ```
 
-* On macOS Brew and/or a manual `make install` installs `rvc` to `/usr/local/bin`, follow the instructions to also install the executables in `/opt/rvc/bin`.
-Your `PATH` will most likely have `/usr/local/bin` in it. **It is of upmost importance that you put `/opt/rvc/bin` in the beginning of your `PATH`.**
-Example: `PATH=/opt/rvc/bin:/usr/local/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin`. This is to prevent you from running `sudo` on a
-backdoored `rvc` that was placed in `/usr/local/bin` by a local attacker.
+* On macOS Brew and/or a manual `make install` installs `rvc` to `/usr/local/bin`, follow the instructions to install the executables in `/opt/rvc/bin`.
+`rvc` performs a check whether it is executed from `/opt/rvc/bin` or not. If it isn't then it will exit. This will force you to put `/opt/rvc/bin` in the beginning of your `PATH`. This is to prevent you from running `sudo` on a backdoored `rvc` that was placed in `/usr/local/bin` by a local attacker.
 
 
 ## CLI usage of rvc
@@ -277,9 +275,9 @@ sudo yum install https://github.com/<TODO>
 ### Installation via homebrew
 
 ```sh
-brew install openvpn
 brew tap riboseinc/rvc
 brew install --HEAD rvc
+sudo /usr/local/bin/rvc_install.sh
 ```
 
 **Be sure to follow the instructions in the caveats section during the brew installation**
@@ -394,11 +392,12 @@ Sending reload signal to rvd process '3667' has succeeded.
 ```
 
 ```console
-$ rvc list
+$ rvc status
 name: vpn1
 	profile: /opt/rvc/etc/vpn.d/vpn1.ovpn
 	auto-connect: Disabled
 	pre-exec-cmd:
+
 ```
 
 ```console
