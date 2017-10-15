@@ -580,16 +580,16 @@ static int pre_check_running_env(void)
 {
 	/* check UID is root */
 	if (getuid() != 0) {
-		fprintf(stderr, "This option requires root privilege. Please run with 'sudo'\n");
+		fprintf(stderr, "This option requires root privileges. Please run with 'sudo'\n");
 		return RVD_RESP_SUDO_REQUIRED;
 	}
 
 	/* check rvc binrary path */
 	if (check_rvc_bin_path() != 0) {
 #ifdef _DARWIN_C_SOURCE
-		fprintf(stderr, "Wrong path of rvc executable. Please install it to /opt/rvc/bin/ directory and try again\n");
+		fprintf(stderr, "Wrong path, rvc needs to be installed in '/opt/rvc/bin'\n");
 #else
-		fprintf(stderr, "Wrong path of rvc executable. Please install it to /usr/bin/ or /usr/local/bin/ directory and try again\n");
+		fprintf(stderr, "Wrong path, rvc needs to be installed in '/usr/bin' or '/usr/local/bin'\n");
 #endif
 		return RVD_RESP_ERR_WRONG_RVC_PATH;
 	}
