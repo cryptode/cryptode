@@ -603,6 +603,7 @@ static int pre_check_running_env(void)
 		return RVD_RESP_SUDO_REQUIRED;
 	}
 
+#ifdef ENABLE_STRICT_PATH
 	/* check rvc binrary path */
 	if (check_rvc_bin_path() != 0) {
 #ifdef _DARWIN_C_SOURCE
@@ -612,6 +613,7 @@ static int pre_check_running_env(void)
 #endif
 		return RVD_RESP_ERR_WRONG_RVC_PATH;
 	}
+#endif
 
 	return 0;
 }
