@@ -19,9 +19,6 @@
 #define RVD_OVPN_STOP_TIMEOUT			10
 #define RVD_PRE_EXEC_TIMEOUT			60
 
-#define OVPN_CONFIG_EXTENSION			".ovpn"
-#define RVC_CONFIG_EXTENSION			".json"
-
 struct rvd_vpnconn_mgr;
 
 /* OpenVPN connection state */
@@ -39,25 +36,12 @@ enum OVPN_CONN_STATE {
 	OVPN_STATE_UNKNOWN
 };
 
-/* vpn configuration structure */
-struct rvd_vpnconfig {
-	char name[RVD_MAX_CONN_NAME_LEN + 1];
-	char ovpn_profile_path[RVD_MAX_PATH];
-
-	bool auto_connect;
-
-	uid_t pre_exec_uid;
-	char pre_exec_cmd[512];
-
-	int pre_exec_status;
-};
-
 /* vpn connection structure */
-struct rvd_vpnconn {
+struct rvc_vpn_conn {
 	bool end_flag;
 	bool conn_cancel;
 
-	struct rvd_vpnconfig config;
+	struct rvc_vpn_config config;
 
 	enum RVD_VPNCONN_STATE conn_state;
 	enum OVPN_CONN_STATE ovpn_state;
@@ -79,8 +63,8 @@ struct rvd_vpnconn {
 
 	struct rvd_vpnconn_mgr *vpnconn_mgr;
 
-	struct rvd_vpnconn *next;
-	struct rvd_vpnconn *prev;
+	struct rvc_vpn_conn *next;
+	struct rvc_vpn_conn *prev;
 };
 
 /* rvd VPN connection manager structure */
@@ -89,7 +73,7 @@ typedef struct rvd_vpnconn_mgr {
 	bool end_flag;
 
 	int vpn_conns_count;
-	struct rvd_vpnconn *vpn_conns;
+	struct rvc_vpn_conn *vpn_conns;
 
 	pthread_mutex_t conn_mt;
 
@@ -105,7 +89,7 @@ void rvd_vpnconn_disconnect(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_nam
 
 void rvd_vpnconn_getstatus(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name, bool json_format, char **state_jstr);
 
-struct rvd_vpnconn *rvd_vpnconn_get_byname(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name);
+struct rvc_vpn_conn *rvd_vpnconn_get_byname(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name);
 
 void rvd_vpnconn_enable_script_sec(rvd_vpnconn_mgr_t *vpnconn_mgr, bool enable_script_security);
 

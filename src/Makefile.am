@@ -8,7 +8,7 @@ bin_PROGRAMS = rvc
 sbin_PROGRAMS = rvd
 endif
 
-rvd_SOURCES = rvd.c log.c cmd.c util.c vpn.c
+rvd_SOURCES = rvd.c log.c cmd.c util.c vpn.c conf.c
 rvd_LDADD = $(RVD_LDADD)
 rvd_LDFLAGS = $(JSONC_LDFLAGS)
 

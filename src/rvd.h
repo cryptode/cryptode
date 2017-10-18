@@ -13,6 +13,7 @@ struct rvd_ctx;
 #include "util.h"
 
 #include "cmd.h"
+#include "conf.h"
 #include "vpn.h"
 
 /* rvd context options */

@@ -12,6 +12,27 @@ enum RVC_VPN_PROFILE_TYPE {
 	RVC_VPN_PROFILE_TBLK			/* TunnelBlick profile */
 };
 
+/* rvc VPN connction options */
+enum RVC_VPNCONN_OPTION {
+	RVC_VPNCONN_OPT_AUTO_CONNECT,
+	RVC_VPNCONN_OPT_PREEXEC_CMD,
+	RVC_VPNCONN_OPT_PROFIEL,
+	RVC_VPNCONN_OPT_CERT,
+	RVC_VPNCONN_OPT_KEYCHAIN,
+	RVC_VPNCONN_OPT_UNKNOWN
+};
+
+/*
+ * VPN connection status
+ */
+
+struct rvc_vpnconn_status {
+	enum RVD_VPNCONN_STATE conn_state;
+	bool auto_connect;
+	char ovpn_profile_path[RVD_MAX_PATH];
+	char pre_exec_cmd[RVD_MAX_CMD_LEN];
+};
+
 /** Try to connect to RVC VPN server
  *
  * The JSON buffer to be returned may have two types, single or array JSON buffer
@@ -90,6 +111,20 @@ int rvc_reload(void);
  */
 
 int rvc_import(int import_type, const char *import_path);
+
+/*
+ * Edit RVC VPN connection info
+ *
+ * This function requires sudo privilege, so it needs to gain root privilege before calling.
+ * 
+ * @param [in] conn_name VPN connection name to be edited
+ * @param [in] opt option for VPN connection info
+ * @param [in] opt_val option value for VPN connection info
+ * @return 0 If success, otherwise non-zero will be returned.
+ */
+
+int rvc_edit(const char *conn_name, const char *opt, const char *opt_val);
+
 
 /** Remove RVD VPN connections
  *

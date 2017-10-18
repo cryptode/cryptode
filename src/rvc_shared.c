@@ -30,6 +30,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/un.h>
@@ -63,7 +64,7 @@
 static int g_sock;
 
 /*
- * rvd connection state strings
+ * rvc connection state strings
  */
 
 struct rvd_vpn_state {
@@ -76,6 +77,22 @@ struct rvd_vpn_state {
 	{RVD_CONN_STATE_DISCONNECTING, "DISCONNECTING"},
 	{RVD_CONN_STATE_RECONNECTING, "RECONNECTING"},
 	{RVD_CONN_STATE_UNKNOWN, NULL}
+};
+
+/*
+ * rvc VPN connection option names
+ */
+
+struct rvc_vpnconn_opts {
+	enum RVC_VPNCONN_OPTION opt;
+	const char *opt_str;
+} g_vpnconn_opts[] = {
+	{RVC_VPNCONN_OPT_AUTO_CONNECT, "auto-connect"},
+	{RVC_VPNCONN_OPT_PREEXEC_CMD, "pre-exec-cmd"},
+	{RVC_VPNCONN_OPT_PROFIEL, "profile"},
+	{RVC_VPNCONN_OPT_CERT, "certificate"},
+	{RVC_VPNCONN_OPT_KEYCHAIN, "keychain-item"},
+	{RVC_VPNCONN_OPT_UNKNOWN, NULL}
 };
 
 /*
@@ -697,25 +714,139 @@ int rvc_import(int import_type, const char *import_path)
 }
 
 /*
+ * check if the connection is exist
+ */
+
+static int check_connection_exist(const char *conn_name, struct rvc_vpnconn_status *vpnconn_status)
+{
+	int resp_code;
+	char state_str[64];
+	char auto_connect[64];
+
+	char *resp_data;
+
+	int i;
+
+	rvd_json_object_t status_jobjs[] = {
+		{"code", RVD_JTYPE_INT, &resp_code, 0, true, NULL},
+		{"status", RVD_JTYPE_STR, state_str, sizeof(state_str), true, "data"},
+		{"profile", RVD_JTYPE_STR, vpnconn_status->ovpn_profile_path, sizeof(vpnconn_status->ovpn_profile_path),
+							true, "data"},
+		{"auto-connect", RVD_JTYPE_STR, auto_connect, sizeof(auto_connect), true, "data"},
+		{"pre-exec-cmd", RVD_JTYPE_STR, vpnconn_status->pre_exec_cmd, sizeof(vpnconn_status->pre_exec_cmd),
+							true, "data"}
+	};
+
+	/* initiailize connection status */
+	memset(vpnconn_status, 0, sizeof(struct rvc_vpnconn_status));
+
+	/* check connection status */
+	if (rvc_get_status(conn_name, 1, &resp_data) != 0) {
+		fprintf(stderr, "Couldn't get status for VPN connection '%s'\n", conn_name);
+		return RVD_RESP_RVD_NOT_RUNNING;
+	}
+
+	/* parse response */
+	if (rvd_json_parse(resp_data, status_jobjs, sizeof(status_jobjs) / sizeof(rvd_json_object_t)) != 0) {
+		fprintf(stderr, "Couldn't parse connection status response '%s'\n", resp_data);
+		free(resp_data);
+
+		return RVD_RESP_JSON_INVALID;
+	}
+
+	/* free response data */
+	free(resp_data);
+
+	/* set connection status */
+	vpnconn_status->conn_state = RVD_CONN_STATE_UNKNOWN;
+	for (i = 0; g_conn_state[i].state_str != NULL; i++) {
+		if (strcmp(g_conn_state[i].state_str, state_str) == 0) {
+			vpnconn_status->conn_state = g_conn_state[i].state;
+			break;
+		}
+	}
+
+	/* set auto connect flag */
+	vpnconn_status->auto_connect = strcmp(auto_connect, "Enabled") == 0 ? true : false;
+
+	/* check response code */
+	if (resp_code != RVD_RESP_OK) {
+		fprintf(stderr, "Couldn't find VPN connection with name '%s'\n", conn_name);
+		return RVD_RESP_CONN_NOT_FOUND;
+	}
+
+	return RVD_RESP_OK;
+}
+
+/*
+ * edit VPN connection
+ */
+
+int rvc_edit(const char *conn_name, const char *opt, const char *opt_val)
+{
+	struct rvc_vpnconn_status vpnconn_status;
+	int ret;
+
+	enum RVC_VPNCONN_OPTION opt_type = RVC_VPNCONN_OPT_UNKNOWN;
+
+	int i;
+
+	/* pre-checking for running enviroment of rvc */
+	ret = pre_check_running_env();
+	if (ret != 0)
+		return ret;
+
+	/* check connection status */
+	ret = check_connection_exist(conn_name, &vpnconn_status);
+	if (ret != RVD_RESP_OK)
+		return ret;
+
+	if (vpnconn_status.conn_state != RVD_CONN_STATE_DISCONNECTED) {
+		fprintf(stderr, "The connection '%s' is in connected or pending progress.\n", conn_name);
+		return RVD_RESP_CONN_IN_PROGRESS;
+	}
+
+	/* check option */
+	for (i = 0; g_vpnconn_opts[i].opt_str != NULL; i++) {
+		if (strcmp(opt, g_vpnconn_opts[i].opt_str) == 0) {
+			opt_type = g_vpnconn_opts[i].opt;
+			break;
+		}
+	}
+
+	/* check option type is valid */
+	if (opt_type == RVC_VPNCONN_OPT_UNKNOWN) {
+		fprintf(stderr, "Unknown VPN configuration option '%s'", opt);
+		return RVD_RESP_ERR_INVALID_VPNCONF_OPT;
+	}
+
+	switch (opt_type) {
+	case RVC_VPNCONN_OPT_AUTO_CONNECT:
+		break;
+
+	case RVC_VPNCONN_OPT_PREEXEC_CMD:
+		break;
+
+	case RVC_VPNCONN_OPT_PROFIEL:
+		break;
+
+	case RVC_VPNCONN_OPT_CERT:
+		break;
+
+	default:
+		break;		
+	}
+
+	return RVD_RESP_OK;
+}
+
+/*
  * remove VPN connection
  */
 
 int rvc_remove(const char *conn_name, int force)
 {
-	char *conn_status = NULL;
-
-	int i, resp_code;
-
-	enum RVD_VPNCONN_STATE state = RVD_CONN_STATE_UNKNOWN;
-	char state_str[64];
-	char profile_path[RVD_MAX_PATH];
-
-	rvd_json_object_t status_jobjs[] = {
-		{"code", RVD_JTYPE_INT, &resp_code, 0, true, NULL},
-		{"status", RVD_JTYPE_STR, state_str, sizeof(state_str), true, "data"},
-		{"profile", RVD_JTYPE_STR, profile_path, sizeof(profile_path), true, "data"}
-	};
-
+	struct rvc_vpnconn_status vpnconn_status;
 	int ret;
 
 	/* pre-checking for running enviroment of rvc */
@@ -724,40 +855,17 @@ int rvc_remove(const char *conn_name, int force)
 		return ret;
 
 	/* check connection status */
-	if (rvc_get_status(conn_name, 1, &conn_status) != 0) {
-		fprintf(stderr, "Couldn't get status for VPN connection '%s'\n", conn_name);
-		return RVD_RESP_RVD_NOT_RUNNING;
-	}
+	ret = check_connection_exist(conn_name, &vpnconn_status);
+	if (ret != RVD_RESP_OK)
+		return ret;
 
-	/* parse response */
-	if (rvd_json_parse(conn_status, status_jobjs, sizeof(status_jobjs) / sizeof(rvd_json_object_t)) != 0) {
-		fprintf(stderr, "Couldn't parse connection status response '%s'\n", conn_status);
-		free(conn_status);
-
-		return RVD_RESP_JSON_INVALID;
-	}
-
-	/* check response code */
-	if (resp_code != RVD_RESP_OK) {
-		fprintf(stderr, "Couldn't find VPN connection with name '%s'\n", conn_name);
-		return RVD_RESP_CONN_NOT_FOUND;
-	}
-
-	/* get connection status */
-	for (i = 0; g_conn_state[i].state_str != NULL; i++) {
-		if (strcmp(g_conn_state[i].state_str, state_str) == 0) {
-			state = g_conn_state[i].state;
-			break;
-		}
-	}
-
-	if (state != RVD_CONN_STATE_DISCONNECTED && !force) {
+	if (vpnconn_status.conn_state != RVD_CONN_STATE_DISCONNECTED && !force) {
 		fprintf(stderr, "The connection '%s' is in connected or pending progress.\n", conn_name);
 		return RVD_RESP_CONN_IN_PROGRESS;
 	}
 
 	/* remove profile connection */
-	remove(profile_path);
+	remove(vpnconn_status.ovpn_profile_path);
 
 	/* reload rvd */
 	return rvc_reload();

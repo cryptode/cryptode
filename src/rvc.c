@@ -30,6 +30,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 #include "common.h"
 #include "rvc_shared.h"
@@ -48,6 +49,7 @@ static struct {
 	{RVD_CMD_SCRIPT_SECURITY, "script-security"},
 	{RVD_CMD_RELOAD, "reload"},
 	{RVD_CMD_IMPORT, "import"},
+	{RVD_CMD_EDIT, "edit"},
 	{RVD_CMD_REMOVE, "remove"},
 	{RVD_CMD_DNS_OVERRIDE, "dns-override"},
 	{RVD_CMD_UNKNOWN, NULL}
@@ -84,6 +86,7 @@ static void print_help(void)
 		"    version\t\t\t\t\tprint version\n"
 		"    reload\t\t\t\t\treload configuration (sudo required)\n"
 		"    import <new-from-tblk|new-from-ovpn> <path>\timport VPN connection (sudo required)\n"
+		"    edit <connection name> <auto-connect|pre-exec-cmd|profile|certificate|keychain-item> <value>\n"
 		"    remove <connection name> [--force]\t\tremove VPN connection (sudo required)\n"
 		"    dns-override <enable|disable|status> [DNS server IP list]\n"
 		"           override DNS settings. DNS server IP addresses should be separated by comma (sudo required)\n"
@@ -216,6 +219,19 @@ int main(int argc, char *argv[])
 			}
 
 			ret = rvc_import(import_type, argv[3]);
+			exit(ret);
+		}
+
+		break;
+
+	case RVD_CMD_EDIT:
+		if (argc != 5)
+			opt_invalid = 1;
+		else {
+			int ret;
+
+			/* edit connection info */
+			ret = rvc_edit(argv[2], argv[3], argv[4]);
 			exit(ret);
 		}
 
