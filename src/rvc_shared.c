@@ -51,6 +51,7 @@
 #include <openssl/pem.h>
 
 #include "common.h"
+#include "conf.h"
 #include "util.h"
 
 #include "rvc_shared.h"
@@ -552,6 +553,9 @@ int rvc_get_confdir(char **conf_dir)
 	return send_cmd_to_rvd(RVD_CMD_GET_CONFDIR, NULL, false, conf_dir);
 }
 
+
+#ifdef ENABLE_STRICT_PATH
+
 /*
  * check whether rvc is located into desired installation directory
  */
@@ -590,6 +594,7 @@ static int check_rvc_bin_path(void)
 
 	return -1;
 }
+#endif
 
 /*
  * pre-checks for running environment of rvc utility
@@ -786,6 +791,9 @@ static int check_connection_exist(const char *conn_name, struct rvc_vpnconn_stat
 
 int rvc_edit(const char *conn_name, const char *opt, const char *opt_val)
 {
+	struct rvc_vpn_config vpn_config;
+	char *conf_dir = NULL;
+
 	struct rvc_vpnconn_status vpnconn_status;
 	int ret;
 
@@ -819,25 +827,62 @@ int rvc_edit(const char *conn_name, const char *opt, const char *opt_val)
 	/* check option type is valid */
 	if (opt_type == RVC_VPNCONN_OPT_UNKNOWN) {
 		fprintf(stderr, "Unknown VPN configuration option '%s'", opt);
-		return RVD_RESP_ERR_INVALID_VPNCONF_OPT;
+		return RVD_RESP_ERR_VPNCONF_OPT_TYPE;
 	}
+
+	/* get configuration directory path */
+	if (rvc_get_confdir(&conf_dir) != 0) {
+		fprintf(stderr, "Couldn't get the configuration directory of rvd\n");
+		return RVD_RESP_INVALID_CONF_DIR;
+	}
+
+	/* read old configuration */
+	if (rvc_read_vpn_config(conf_dir, conn_name, &vpn_config) != 0) {
+		fprintf(stderr, "Couldn't get the VPN configuration with name '%s'", conn_name);
+		free(conf_dir);
+		return RVD_RESP_ERR_NOT_FOUND_VPNCONF;
+	}
+
+	ret = RVD_RESP_OK;
 
 	switch (opt_type) {
 	case RVC_VPNCONN_OPT_AUTO_CONNECT:
+		if (strcmp(opt_val, "enable") == 0)
+			vpn_config.auto_connect = true;
+		else if (strcmp(opt_val, "disable") == 0)
+			vpn_config.auto_connect = false;
+		else {
+			fprintf(stderr, "Wrong option value. Please try to specify 'enable' or 'disable'\n");
+			ret = RVD_RESP_ERR_VPNCONF_OPT_VAL;
+		}
+
 		break;
 
 	case RVC_VPNCONN_OPT_PREEXEC_CMD:
+		strlcpy(vpn_config.pre_exec_cmd, opt_val, sizeof(vpn_config.pre_exec_cmd));
 		break;
 
 	case RVC_VPNCONN_OPT_PROFIEL:
+		strlcpy(vpn_config.ovpn_profile_path, opt_val, sizeof(vpn_config.ovpn_profile_path));
 		break;
 
 	case RVC_VPNCONN_OPT_CERT:
 		break;
 
 	default:
-		break;		
+		break;
 	}
+
+	/* write the configuration */
+	if (ret == RVD_RESP_OK) {
+		ret = rvc_write_vpn_config(conf_dir, conn_name, &vpn_config);
+		if (ret != 0) {
+			fprintf(stderr, "Couldn't edit VPN confiugration with name '%s'\n", conn_name);
+		}
+	}
+
+	/* free configuration directory buffer */
+	free(conf_dir);
 
 	return RVD_RESP_OK;
 }

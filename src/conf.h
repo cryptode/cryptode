@@ -24,12 +24,12 @@ struct rvc_vpn_config {
  * parse RVC configuration file
  */
 
-int rvc_read_vpn_config(const char *conf_dir, const char *conf_name, struct rvc_vpn_config *vpn_config);
+int rvc_read_vpn_config(const char *conf_dir, const char *config_name, struct rvc_vpn_config *vpn_config);
 
 /*
  * write RVC configuration file
  */
 
-int rvc_write_vpn_config(const char *config_name, struct rvc_vpn_config *vpn_config);
+int rvc_write_vpn_config(const char *config_dir, const char *config_name, struct rvc_vpn_config *vpn_config);
 
 #endif /* __RVD_CONF_H__ */

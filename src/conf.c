@@ -62,15 +62,24 @@ static int check_vpn_config(struct rvc_vpn_config *config)
 {
 	/* check whether connection name is valid */
 	if (!is_valid_conn_name(config->name)) {
-		RVD_DEBUG_ERR("VPN: Invalid VPN connection name '%s'", config->name);
+#ifdef _RVD_SOURCE
+		RVD_DEBUG_ERR("CONF: Invalid VPN connection name '%s'", config->name);
+#else
+		fprintf(stderr, "Invalid VPN connection name '%s'\n", config->name);
+#endif
 		return -1;
 	}
 
 	/* check whether VPN profile has valid owner and permission */
 	if (!is_owned_by_user(config->ovpn_profile_path, "root") ||
 	    !is_valid_permission(config->ovpn_profile_path, S_IRUSR | S_IWUSR)) {
-		RVD_DEBUG_ERR("VPN: Invalid owner or permission for VPN configuration file '%s'",
+#ifdef _RVD_SOURCE
+		RVD_DEBUG_ERR("CONF: Invalid owner or permission for VPN configuration file '%s'",
 				config->ovpn_profile_path);
+#else
+		fprintf(stderr, "Invalid owner or permission for VPN configuration file '%s'\n",
+				config->ovpn_profile_path);
+#endif
 		return -1;
 	}
 
@@ -92,7 +101,11 @@ int rvc_read_vpn_config(const char *config_dir, const char *config_name, struct 
 
 	struct stat st;
 
+#ifdef _RVD_SOURCE
 	RVD_DEBUG_MSG("CONF: Parsing the configuration with name '%s'", config_name);
+#else
+	fprintf(stderr, "Parsing the configuration with name '%s'\n", config_name);
+#endif
 
 	/* get full paths */
 	get_full_path(config_dir, config_name, ovpn_profile_path, sizeof(ovpn_profile_path));
@@ -101,7 +114,11 @@ int rvc_read_vpn_config(const char *config_dir, const char *config_name, struct 
 	/* check whether openvpn profile is exist */
 	if (stat(ovpn_profile_path, &st) != 0 || !S_ISREG(st.st_mode)
 		|| st.st_size == 0) {
+#ifdef _RVD_SOURCE
 		RVD_DEBUG_ERR("CONF: Couldn't find OpenVPN configuration file '%s'", ovpn_profile_path);
+#else
+		fprintf(stderr, "Couldn't find OpenVPN configuration file '%s'\n", ovpn_profile_path);
+#endif
 		return -1;
 	}
 
@@ -133,20 +150,34 @@ int rvc_read_vpn_config(const char *config_dir, const char *config_name, struct 
 			{"pre-connect-exec", RVD_JTYPE_STR, config.pre_exec_cmd, sizeof(config.pre_exec_cmd), false, NULL}
 		};
 
-		RVD_DEBUG_MSG("VPN: Parsing configuration file '%s'", json_config_path);
+#ifdef _RVD_SOURCE
+		RVD_DEBUG_MSG("CONF: Parsing configuration file '%s'", json_config_path);
+#else
+		fprintf(stderr, "Parsing configuration file '%s'\n", json_config_path);
+#endif
 
 		/* open configuration file */
 		fd = open(json_config_path, O_RDONLY);
 		if (fd < 0) {
-			RVD_DEBUG_ERR("VPN: Couldn't open configuration file '%s' for reading(err:%d)",
+#ifdef _RVD_SOURCE
+			RVD_DEBUG_ERR("CONF: Couldn't open configuration file '%s' for reading(err:%d)",
 					json_config_path, errno);
+#else
+			fprintf(stderr, "Couldn't open configuration file '%s' for reading(err:%d)\n",
+					json_config_path, errno);
+#endif
 			return -1;
 		}
 
 		fp = fdopen(fd, "r");
 		if (!fp) {
-			RVD_DEBUG_ERR("VPN: Couldn't open configuration file '%s' for reading(err:%d)",
+#ifdef _RVD_SOURCE
+			RVD_DEBUG_ERR("CONF: Couldn't open configuration file '%s' for reading(err:%d)",
 					json_config_path, errno);
+#else
+			fprintf(stderr, "Couldn't open configuration file '%s' for reading(err:%d)\n",
+					json_config_path, errno);
+#endif
 			close(fd);
 
 			return -1;
@@ -167,7 +198,11 @@ int rvc_read_vpn_config(const char *config_dir, const char *config_name, struct 
 
 		if (read_len <= 0 ||
 			rvd_json_parse(config_buf, vpn_config, sizeof(vpn_config) / sizeof(rvd_json_object_t)) != 0) {
-			RVD_DEBUG_ERR("VPN: Invalid the configuration file '%s'", json_config_path);
+#ifdef _RVD_SOURCE
+			RVD_DEBUG_ERR("CONF: Invalid the configuration file '%s'", json_config_path);
+#else
+			fprintf(stderr, "Invalid the configuration file '%s'\n", json_config_path);
+#endif
 			free(config_buf);
 
 			return -1;
@@ -191,7 +226,58 @@ int rvc_read_vpn_config(const char *config_dir, const char *config_name, struct 
  * write RVD configuration file
  */
 
-int rvc_write_vpn_config(const char *config_path, struct rvc_vpn_config *vpn_config)
+int rvc_write_vpn_config(const char *config_dir, const char *config_name, struct rvc_vpn_config *vpn_config)
 {
+	int fd;
+	FILE *fp;
+
+	char json_config_path[RVD_MAX_PATH];
+	char *config_buffer;
+
+	rvd_json_object_t vpn_config_jobjs[] = {
+		{"name", RVD_JTYPE_STR, vpn_config->name, 0, false, NULL},
+		{"auto-connect", RVD_JTYPE_BOOL, &vpn_config->auto_connect, 0, false, NULL},
+		{"pre-connect-exec", RVD_JTYPE_STR, vpn_config->pre_exec_cmd, 0, false, NULL}
+	};
+
+#ifdef _RVD_SOURCE
+	RVD_DEBUG_MSG("CONF: Writting the RVC configuration with name '%s'", config_name);
+#else
+	fprintf(stderr, "Writting the RVC configuration with name '%s'\n", config_name);
+#endif
+
+	/* set json configuration path */
+	get_full_path(config_dir, config_name, json_config_path, sizeof(json_config_path));
+	strlcat(json_config_path, RVC_CONFIG_EXTENSION, sizeof(json_config_path));
+
+	/* write configuration buffer to config file */
+	fd = open(json_config_path, O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR);
+	if (fd > 0)
+		fp = fdopen(fd, "w");
+
+	if (fd < 0 || !fp) {
+#ifdef _RVD_SOURCE
+		RVD_DEBUG_ERR("CONF: Couldn't open RVC configuration file '%s' for writting(err:%d)",
+				json_config_path, errno);
+#else
+		fprintf(stderr, "Couldn't open RVC configuration file '%s' for writting(err:%d)\n",
+				json_config_path, errno);
+#endif
+
+		if (fd > 0)
+			close(fd);
+
+		return -1;
+	}
+
+	/* build json buffer */
+	rvd_json_build(vpn_config_jobjs, sizeof(vpn_config_jobjs) / sizeof(rvd_json_object_t), &config_buffer);
+
+	fwrite(config_buffer, 1, strlen(config_buffer), fp);
+	fclose(fp);
+
+	/* free config buffer */
+	free(config_buffer);
+
 	return 0;
 }
