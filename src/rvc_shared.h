@@ -66,6 +66,23 @@ int rvc_connect(const char *name, int json_format, char **conn_status);
 
 int rvc_disconnect(const char *name, int json_format, char **conn_status);
 
+/** Try to reconnect to RVC VPN server
+ *
+ * The JSON buffer to be returned may have two types, single or array JSON buffer
+ * by connection name.
+ *
+ * Note that the allocated memory for connection status should be freed
+ * after used.
+ *
+ * @param [in] name 'all' or VPN connection name to be reconnected
+ * @param [in] json_format set output format
+ * @param [out] conn_status JSON buffer which keeps connection status
+ *			    for given connection name.
+ * @return 0 If success, otherwise non-zero will be returned.
+ */
+
+int rvc_reconnect(const char *name, int json_format, char **conn_status);
+
 /** Get connection status
  *
  * The JSON buffer to be returned may have two types, single or array JSON buffer

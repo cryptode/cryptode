@@ -156,21 +156,21 @@ int rvc_read_vpn_config(const char *config_dir, const char *config_name, struct 
 		fprintf(stderr, "Parsing configuration file '%s'\n", json_config_path);
 #endif
 
-		/* open configuration file */
-		fd = open(json_config_path, O_RDONLY);
-		if (fd < 0) {
+		/* get the size of json configuration file */
+		if (stat(json_config_path, &st) != 0 || st.st_size <= 0) {
 #ifdef _RVD_SOURCE
-			RVD_DEBUG_ERR("CONF: Couldn't open configuration file '%s' for reading(err:%d)",
-					json_config_path, errno);
+			RVD_DEBUG_MSG("CONF: Invalid JSON configuration file '%s'", json_config_path);
 #else
-			fprintf(stderr, "Couldn't open configuration file '%s' for reading(err:%d)\n",
-					json_config_path, errno);
+			fprintf(stderr, "Invalid JSON configuration file '%s'\n", json_config_path);
 #endif
-			return -1;
 		}
 
-		fp = fdopen(fd, "r");
-		if (!fp) {
+		/* open configuration file */
+		fd = open(json_config_path, O_RDONLY);
+		if (fd > 0)
+			fp = fdopen(fd, "r");
+
+		if (fd < 0 || !fp) {
 #ifdef _RVD_SOURCE
 			RVD_DEBUG_ERR("CONF: Couldn't open configuration file '%s' for reading(err:%d)",
 					json_config_path, errno);
@@ -178,7 +178,8 @@ int rvc_read_vpn_config(const char *config_dir, const char *config_name, struct 
 			fprintf(stderr, "Couldn't open configuration file '%s' for reading(err:%d)\n",
 					json_config_path, errno);
 #endif
-			close(fd);
+			if (fd > 0)
+				close(fd);
 
 			return -1;
 		}

@@ -233,12 +233,13 @@ write_pid_file()
 
 	/* open pid file and write */
 	fd = open(RVD_PID_FPATH, O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR);
-	if (fd < 0)
-		return;
+	if (fd > 0)
+		pid_fp = fdopen(fd, "w");
 
-	pid_fp = fdopen(fd, "w");
-	if (!pid_fp) {
-		close(fd);
+	if (fd < 0 || !pid_fp) {
+		if (fd > 0)
+			close(fd);
+
 		return;
 	}
 

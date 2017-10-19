@@ -314,26 +314,24 @@ static int convert_tblk_to_ovpn(const char *conf_dir, const char *container_path
 
 	/* open the profile */
 	fd = open(ovpn_path, O_RDONLY);
-	if (fd < 0)
-		return -1;
+	if (fd > 0)
+		fp = fdopen(fd, "r");
 
-	fp = fdopen(fd, "r");
-	if (!fp) {
-		close(fd);
+	if (fd < 0 || !fp) {
+		if (fd > 0)
+			close(fd);
+
 		return -1;
 	}
 
 	/* open new profile */
 	new_fd = open(new_ovpn_path, O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR);
-	if (new_fd < 0) {
-		fclose(fp);
-		return -1;
-	}
+	if (new_fd > 0)
+		new_fp = fdopen(new_fd, "w");
 
-	new_fp = fdopen(new_fd, "w");
-	if (!new_fp) {
-		close(new_fd);
-		fclose(fp);
+	if (new_fd < 0 || !new_fp) {
+		if (new_fd > 0)
+			close(new_fd);
 
 		return -1;
 	}
@@ -533,6 +531,15 @@ int rvc_connect(const char *name, int json_format, char **conn_status)
 int rvc_disconnect(const char *name, int json_format, char **conn_status)
 {
 	return send_cmd_to_rvd(RVD_CMD_DISCONNECT, name, json_format, conn_status);
+}
+
+/*
+ * Try to reconnect VPN server
+ */
+
+int rvc_reconnect(const char *name, int json_format, char **conn_status)
+{
+	return send_cmd_to_rvd(RVD_CMD_RECONNECT, name, json_format, conn_status);
 }
 
 /*

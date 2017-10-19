@@ -45,6 +45,7 @@ static struct {
 } g_cmd_names[] = {
 	{RVD_CMD_CONNECT, "connect"},
 	{RVD_CMD_DISCONNECT, "disconnect"},
+	{RVD_CMD_RECONNECT, "reconnect"},
 	{RVD_CMD_STATUS, "status"},
 	{RVD_CMD_SCRIPT_SECURITY, "script-security"},
 	{RVD_CMD_RELOAD, "reload"},
@@ -80,6 +81,7 @@ static void print_help(void)
 		"  options:\n"
 		"    connect <all|connection name> [--json]\tconnect to a VPN with given name\n"
 		"    disconnect <all|connection name> [--json]\tdisconnect VPN with given name\n"
+		"    reconnect <all|connection name> [--json]\treconnect VPN with given name\n"
 		"    status [all|connection name] [--json]\tget status of VPN connection with given name\n"
 		"    script-security <enable|disable>\t\tenable/disable script security\n"
 		"    help\t\t\t\t\tshow help message\n"
@@ -145,6 +147,7 @@ int main(int argc, char *argv[])
 	switch (cmd_code) {
 	case RVD_CMD_CONNECT:
 	case RVD_CMD_DISCONNECT:
+	case RVD_CMD_RECONNECT:
 		if (argc == 3)
 			cmd_param = argv[2];
 		else if (argc == 4 && strcmp(argv[3], "--json") == 0) {
@@ -157,8 +160,10 @@ int main(int argc, char *argv[])
 
 		if (cmd_code == RVD_CMD_CONNECT)
 			ret = rvc_connect(cmd_param, use_json, &resp_data);
-		else
+		else if (cmd_code == RVD_CMD_DISCONNECT)
 			ret = rvc_disconnect(cmd_param, use_json, &resp_data);
+		else
+			ret = rvc_reconnect(cmd_param, use_json, &resp_data);
 
 		break;
 

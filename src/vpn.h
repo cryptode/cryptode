@@ -58,7 +58,7 @@ struct rvc_vpn_conn {
 	long total_bytes_in, total_bytes_out;
 	long curr_bytes_in, curr_bytes_out;
 
-	pthread_t pt_conn;
+	pthread_t pt_conn, pt_disconn, pt_reconn;
 	pthread_t pt_conn_mon;
 
 	struct rvd_vpnconn_mgr *vpnconn_mgr;
@@ -86,6 +86,8 @@ void rvd_vpnconn_mgr_finalize(rvd_vpnconn_mgr_t *vpnconn_mgr);
 
 void rvd_vpnconn_connect(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name);
 void rvd_vpnconn_disconnect(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name);
+
+void rvd_vpnconn_reconnect(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name);
 
 void rvd_vpnconn_getstatus(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name, bool json_format, char **state_jstr);
 

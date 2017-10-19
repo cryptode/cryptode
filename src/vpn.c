@@ -398,23 +398,18 @@ static void log_pre_exec_output(int fd, const char *log_path, const char *cmd, i
 
 	/* open log file for append mode */
 	log_fd = open(log_path, O_CREAT | O_WRONLY | O_APPEND, S_IRUSR | S_IWUSR);
-	if (log_fd < 0) {
+	if (log_fd > 0)
+		log_fp = fdopen(log_fd, "a");
+
+	if (log_fd < 0 || !log_fp) {
 		RVD_DEBUG_ERR("VPN: Couldn't open openvpn log file '%s'", log_path);
+
+		if (log_fd > 0)
+			close(log_fd);
 
 		if (cmd_out)
 			free(cmd_out);
 
-		return;
-	}
-
-	log_fp = fdopen(log_fd, "a");
-	if (!log_fp) {
-		RVD_DEBUG_ERR("VPN: Couldn't open openvpn log file '%s'", log_path);
-
-		if (cmd_out)
-			free(cmd_out);
-
-		close(log_fd);
 		return;
 	}
 
@@ -910,7 +905,7 @@ static void stop_single_conn(struct rvc_vpn_conn *vpn_conn)
 	vpn_conn->total_bytes_out += vpn_conn->curr_bytes_out;
 
 	/* create thread to start vpn connection */
-	if (pthread_create(&vpn_conn->pt_conn, NULL, stop_vpn_conn, (void *) vpn_conn) != 0) {
+	if (pthread_create(&vpn_conn->pt_disconn, NULL, stop_vpn_conn, (void *) vpn_conn) != 0) {
 		RVD_DEBUG_ERR("VPN: Couldn't create thread to start VPN connection with name '%s'", vpn_conn->config.name);
 		return;
 	}
@@ -957,6 +952,87 @@ void rvd_vpnconn_disconnect(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_nam
 
 	/* stop VPN connection */
 	stop_single_conn(vpn_conn);
+
+	return;
+}
+
+/*
+ * VPN reconnection thread
+ */
+
+static void *reconnect_vpn_conn(void *p)
+{
+	struct rvc_vpn_conn *vpn_conn = (struct rvc_vpn_conn *) p;
+
+	RVD_DEBUG_MSG("VPN: Reconnecting VPN connection with name '%s'", vpn_conn->config.name);
+
+	/* stop the connection */
+	vpn_conn->conn_cancel = true;
+	if (vpn_conn->conn_state != RVD_CONN_STATE_DISCONNECTED) {
+		if (vpn_conn->conn_state == RVD_CONN_STATE_DISCONNECTING)
+			pthread_join(vpn_conn->pt_disconn, NULL);
+		else
+			stop_vpn_conn((void *)vpn_conn);
+	}
+
+	/* start the connection */
+	start_single_conn(p);
+
+	return 0;
+}
+
+/*
+ * reconnect single VPN connection
+ */
+
+static void reconnect_single_conn(struct rvc_vpn_conn *vpn_conn)
+{
+	/* create thread to start vpn connection */
+	if (pthread_create(&vpn_conn->pt_reconn, NULL, reconnect_vpn_conn, (void *) vpn_conn) != 0) {
+		RVD_DEBUG_ERR("VPN: Couldn't create thread to start VPN connection with name '%s'", vpn_conn->config.name);
+		return;
+	}
+}
+
+/*
+ * reconnect all VPN connections
+ */
+
+static void reconnect_all_conns(rvd_vpnconn_mgr_t *vpnconn_mgr)
+{
+	struct rvc_vpn_conn *vpn_conn = vpnconn_mgr->vpn_conns;
+
+	while (vpn_conn) {
+		reconnect_single_conn(vpn_conn);
+		vpn_conn = vpn_conn->next;
+	}
+}
+
+/*
+ * reconnect VPN connection
+ */
+
+void rvd_vpnconn_reconnect(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name)
+{
+	struct rvc_vpn_conn *vpn_conn;
+
+	RVD_DEBUG_MSG("VPN: Try to reconnect a VPN with name '%s'", conn_name);
+
+	/* if connection name is 'all', try stop all connections */
+	if (strcmp(conn_name, "all") == 0) {
+		reconnect_all_conns(vpnconn_mgr);
+		return;
+	}
+
+	/* get configuration item by connection name */
+	vpn_conn = get_vpnconn_byname(vpnconn_mgr, conn_name);
+	if (!vpn_conn) {
+		RVD_DEBUG_ERR("VPN: Couldn't find VPN connection with name '%s'", conn_name);
+		return;
+	}
+
+	/* stop VPN connection */
+	reconnect_single_conn(vpn_conn);
 
 	return;
 }
@@ -1193,7 +1269,7 @@ static void finalize_vpn_conns(rvd_vpnconn_mgr_t *vpnconn_mgr)
 		vpn_conn->conn_cancel = true;
 		if (vpn_conn->conn_state != RVD_CONN_STATE_DISCONNECTED) {
 			if (vpn_conn->conn_state == RVD_CONN_STATE_DISCONNECTING)
-				pthread_join(vpn_conn->pt_conn, NULL);
+				pthread_join(vpn_conn->pt_disconn, NULL);
 			else
 				stop_vpn_conn(vpn_conn);
 		}
