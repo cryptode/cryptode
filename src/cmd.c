@@ -260,10 +260,6 @@ static int process_cmd_reconnect(rvd_cmd_proc_t *cmd_proc, const char *conn_name
 		if (!vpn_conn) {
 			RVD_DEBUG_ERR("CMD: Couldn't find VPN connection with name '%s'", conn_name);
 			return RVD_RESP_CONN_NOT_FOUND;
-		} else if (vpn_conn->conn_state != RVD_CONN_STATE_DISCONNECTED) {
-			RVD_DEBUG_ERR("CMD: Connection is already established or is pending", conn_name);
-			return (vpn_conn->conn_state == RVD_CONN_STATE_CONNECTED) ? RVD_RESP_CONN_ALREADY_CONNECTED :
-				RVD_RESP_CONN_IN_PROGRESS;
 		}
 	}
 
