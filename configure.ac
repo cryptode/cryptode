@@ -100,6 +100,16 @@ AC_SUBST(RVC_CONFDIR_PATH)
 AC_SUBST(RVD_LDADD)
 AC_SUBST(RVC_LDADD)
 
+AC_ARG_ENABLE(
+  [strict-path],
+  [AS_HELP_STRING([--enable-strict-path], [enable strict for the paths of rvd and rvc processes @<:@default=yes@:>@])],
+  ,
+  [enable_strict_path="yes"]
+)
+if test "x$enable_strict_path" = "xyes" ; then
+    CFLAGS="$CFLAGS -g3 -O0 -DENABLE_STRICT_PATH"
+fi
+
 AC_ARG_ENABLE(debug,
      AS_HELP_STRING(--enable-debug, turn on debugging (disabled by default)),
      [], [enable_debug=no]

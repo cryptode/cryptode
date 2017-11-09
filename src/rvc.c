@@ -30,6 +30,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 #include "common.h"
 #include "rvc_shared.h"
@@ -44,10 +45,12 @@ static struct {
 } g_cmd_names[] = {
 	{RVD_CMD_CONNECT, "connect"},
 	{RVD_CMD_DISCONNECT, "disconnect"},
+	{RVD_CMD_RECONNECT, "reconnect"},
 	{RVD_CMD_STATUS, "status"},
 	{RVD_CMD_SCRIPT_SECURITY, "script-security"},
 	{RVD_CMD_RELOAD, "reload"},
 	{RVD_CMD_IMPORT, "import"},
+	{RVD_CMD_EDIT, "edit"},
 	{RVD_CMD_REMOVE, "remove"},
 	{RVD_CMD_DNS_OVERRIDE, "dns-override"},
 	{RVD_CMD_UNKNOWN, NULL}
@@ -78,12 +81,14 @@ static void print_help(void)
 		"  options:\n"
 		"    connect <all|connection name> [--json]\tconnect to a VPN with given name\n"
 		"    disconnect <all|connection name> [--json]\tdisconnect VPN with given name\n"
+		"    reconnect <all|connection name> [--json]\treconnect VPN with given name\n"
 		"    status [all|connection name] [--json]\tget status of VPN connection with given name\n"
 		"    script-security <enable|disable>\t\tenable/disable script security\n"
 		"    help\t\t\t\t\tshow help message\n"
 		"    version\t\t\t\t\tprint version\n"
 		"    reload\t\t\t\t\treload configuration (sudo required)\n"
 		"    import <new-from-tblk|new-from-ovpn> <path>\timport VPN connection (sudo required)\n"
+		"    edit <connection name> <auto-connect|pre-exec-cmd|profile|certificate|keychain-item> <value>\n"
 		"    remove <connection name> [--force]\t\tremove VPN connection (sudo required)\n"
 		"    dns-override <enable|disable|status> [DNS server IP list]\n"
 		"           override DNS settings. DNS server IP addresses should be separated by comma (sudo required)\n"
@@ -142,6 +147,7 @@ int main(int argc, char *argv[])
 	switch (cmd_code) {
 	case RVD_CMD_CONNECT:
 	case RVD_CMD_DISCONNECT:
+	case RVD_CMD_RECONNECT:
 		if (argc == 3)
 			cmd_param = argv[2];
 		else if (argc == 4 && strcmp(argv[3], "--json") == 0) {
@@ -154,8 +160,10 @@ int main(int argc, char *argv[])
 
 		if (cmd_code == RVD_CMD_CONNECT)
 			ret = rvc_connect(cmd_param, use_json, &resp_data);
-		else
+		else if (cmd_code == RVD_CMD_DISCONNECT)
 			ret = rvc_disconnect(cmd_param, use_json, &resp_data);
+		else
+			ret = rvc_reconnect(cmd_param, use_json, &resp_data);
 
 		break;
 
@@ -216,6 +224,19 @@ int main(int argc, char *argv[])
 			}
 
 			ret = rvc_import(import_type, argv[3]);
+			exit(ret);
+		}
+
+		break;
+
+	case RVD_CMD_EDIT:
+		if (argc != 5)
+			opt_invalid = 1;
+		else {
+			int ret;
+
+			/* edit connection info */
+			ret = rvc_edit(argv[2], argv[3], argv[4]);
 			exit(ret);
 		}
 

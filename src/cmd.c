@@ -180,7 +180,7 @@ static int process_cmd_connect(rvd_cmd_proc_t *cmd_proc, const char *conn_name, 
 
 	/* check connection status */
 	if (strcmp(conn_name, "all") != 0) {
-		struct rvd_vpnconn *vpn_conn = rvd_vpnconn_get_byname(&cmd_proc->c->vpnconn_mgr, conn_name);
+		struct rvc_vpn_conn *vpn_conn = rvd_vpnconn_get_byname(&cmd_proc->c->vpnconn_mgr, conn_name);
 
 		if (!vpn_conn) {
 			RVD_DEBUG_ERR("CMD: Couldn't find VPN connection with name '%s'", conn_name);
@@ -217,7 +217,7 @@ static int process_cmd_disconnect(rvd_cmd_proc_t *cmd_proc, const char *conn_nam
 
 	/* check connection status */
 	if (strcmp(conn_name, "all") != 0) {
-		struct rvd_vpnconn *vpn_conn = rvd_vpnconn_get_byname(&cmd_proc->c->vpnconn_mgr, conn_name);
+		struct rvc_vpn_conn *vpn_conn = rvd_vpnconn_get_byname(&cmd_proc->c->vpnconn_mgr, conn_name);
 
 		if (!vpn_conn) {
 			RVD_DEBUG_ERR("CMD: Couldn't find VPN connection with name '%s'", conn_name);
@@ -232,6 +232,39 @@ static int process_cmd_disconnect(rvd_cmd_proc_t *cmd_proc, const char *conn_nam
 
 	/* disconnect from rvd servers */
 	rvd_vpnconn_disconnect(&cmd_proc->c->vpnconn_mgr, conn_name);
+
+	/* get connection status */
+	rvd_vpnconn_getstatus(&cmd_proc->c->vpnconn_mgr, conn_name, json_format, status_jstr);
+
+	return RVD_RESP_OK;
+}
+
+/*
+ * process 'reconnect' command
+ */
+
+static int process_cmd_reconnect(rvd_cmd_proc_t *cmd_proc, const char *conn_name, bool json_format, char **status_jstr)
+{
+	RVD_DEBUG_MSG("CMD: Processing 'reconnect' command");
+
+	/* check connection name */
+	if (!conn_name) {
+		RVD_DEBUG_ERR("CMD: Missing connection name");
+		return RVD_RESP_INVALID_CMD;
+	}
+
+	/* check connection status */
+	if (strcmp(conn_name, "all") != 0) {
+		struct rvc_vpn_conn *vpn_conn = rvd_vpnconn_get_byname(&cmd_proc->c->vpnconn_mgr, conn_name);
+
+		if (!vpn_conn) {
+			RVD_DEBUG_ERR("CMD: Couldn't find VPN connection with name '%s'", conn_name);
+			return RVD_RESP_CONN_NOT_FOUND;
+		}
+	}
+
+	/* reconnect to rvd servers */
+	rvd_vpnconn_reconnect(&cmd_proc->c->vpnconn_mgr, conn_name);
 
 	/* get connection status */
 	rvd_vpnconn_getstatus(&cmd_proc->c->vpnconn_mgr, conn_name, json_format, status_jstr);
@@ -255,7 +288,7 @@ static int process_cmd_status(rvd_cmd_proc_t *cmd_proc, const char *conn_name, b
 
 	/* check connection is exist */
 	if (strcmp(conn_name, "all") != 0) {
-		struct rvd_vpnconn *vpn_conn = rvd_vpnconn_get_byname(&cmd_proc->c->vpnconn_mgr, conn_name);
+		struct rvc_vpn_conn *vpn_conn = rvd_vpnconn_get_byname(&cmd_proc->c->vpnconn_mgr, conn_name);
 
 		if (!vpn_conn) {
 			RVD_DEBUG_ERR("CMD: Couldn't find VPN connection with name '%s'", conn_name);
@@ -341,6 +374,10 @@ static int process_cmd(rvd_cmd_proc_t *cmd_proc, const char *cmd,
 
 	case RVD_CMD_DISCONNECT:
 		resp_code = process_cmd_disconnect(cmd_proc, cmd_param, *json_format, resp_data);
+		break;
+
+	case RVD_CMD_RECONNECT:
+		resp_code = process_cmd_reconnect(cmd_proc, cmd_param, *json_format, resp_data);
 		break;
 
 	case RVD_CMD_STATUS:
