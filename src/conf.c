@@ -83,6 +83,17 @@ static int check_vpn_config(struct rvc_vpn_config *config)
 		return -1;
 	}
 
+	/* check if interval is in valid range */
+	if (config->pre_exec_interval != 0 &&
+		(config->pre_exec_interval < MIN_PRE_EXEC_INTERVAL ||
+		config->pre_exec_interval > MAX_PRE_EXEC_INTERVAL)) {
+#ifdef _RVD_SOURCE
+		RVD_DEBUG_ERR("CONF: Invalid interval of pre-exec-cmd '%d'", config->pre_exec_interval);
+#else
+		fprintf(stderr, "Invalid interval of pre-exec-cmd '%d'\n", config->pre_exec_interval);
+#endif
+	}
+
 	return 0;
 }
 
@@ -147,7 +158,8 @@ int rvc_read_vpn_config(const char *config_dir, const char *config_name, struct 
 		rvd_json_object_t vpn_config[] = {
 			{"name", RVD_JTYPE_STR, config.name, sizeof(config.name), true, NULL},
 			{"auto-connect", RVD_JTYPE_BOOL, &config.auto_connect, 0, false, NULL},
-			{"pre-connect-exec", RVD_JTYPE_STR, config.pre_exec_cmd, sizeof(config.pre_exec_cmd), false, NULL}
+			{"pre-connect-exec", RVD_JTYPE_STR, config.pre_exec_cmd, sizeof(config.pre_exec_cmd), false, NULL},
+			{"pre-connect-exec-interval", RVD_JTYPE_INT, &config.pre_exec_interval, 0, false, NULL}
 		};
 
 #ifdef _RVD_SOURCE
@@ -238,7 +250,8 @@ int rvc_write_vpn_config(const char *config_dir, const char *config_name, struct
 	rvd_json_object_t vpn_config_jobjs[] = {
 		{"name", RVD_JTYPE_STR, vpn_config->name, 0, false, NULL},
 		{"auto-connect", RVD_JTYPE_BOOL, &vpn_config->auto_connect, 0, false, NULL},
-		{"pre-connect-exec", RVD_JTYPE_STR, vpn_config->pre_exec_cmd, 0, false, NULL}
+		{"pre-connect-exec", RVD_JTYPE_STR, vpn_config->pre_exec_cmd, 0, false, NULL},
+		{"pre-connect-exec-interval", RVD_JTYPE_INT, &vpn_config->pre_exec_interval, 0, false, NULL}
 	};
 
 #ifdef _RVD_SOURCE

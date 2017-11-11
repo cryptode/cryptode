@@ -88,7 +88,7 @@ static void print_help(void)
 		"    version\t\t\t\t\tprint version\n"
 		"    reload\t\t\t\t\treload configuration (sudo required)\n"
 		"    import <new-from-tblk|new-from-ovpn> <path>\timport VPN connection (sudo required)\n"
-		"    edit <connection name> <auto-connect|pre-exec-cmd|profile|certificate|keychain-item> <value>\n"
+		"    edit <connection name> <auto-connect|pre-exec-cmd|profile> <value>\n"
 		"    remove <connection name> [--force]\t\tremove VPN connection (sudo required)\n"
 		"    dns-override <enable|disable|status> [DNS server IP list]\n"
 		"           override DNS settings. DNS server IP addresses should be separated by comma (sudo required)\n"

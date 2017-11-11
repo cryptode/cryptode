@@ -91,8 +91,10 @@ struct rvc_vpnconn_opts {
 	{RVC_VPNCONN_OPT_AUTO_CONNECT, "auto-connect"},
 	{RVC_VPNCONN_OPT_PREEXEC_CMD, "pre-exec-cmd"},
 	{RVC_VPNCONN_OPT_PROFIEL, "profile"},
+#if 0
 	{RVC_VPNCONN_OPT_CERT, "certificate"},
 	{RVC_VPNCONN_OPT_KEYCHAIN, "keychain-item"},
+#endif
 	{RVC_VPNCONN_OPT_UNKNOWN, NULL}
 };
 
@@ -871,9 +873,6 @@ int rvc_edit(const char *conn_name, const char *opt, const char *opt_val)
 
 	case RVC_VPNCONN_OPT_PROFIEL:
 		strlcpy(vpn_config.ovpn_profile_path, opt_val, sizeof(vpn_config.ovpn_profile_path));
-		break;
-
-	case RVC_VPNCONN_OPT_CERT:
 		break;
 
 	default:
