@@ -4,6 +4,9 @@
 #define OVPN_CONFIG_EXTENSION			".ovpn"
 #define RVC_CONFIG_EXTENSION			".json"
 
+#define MIN_PRE_EXEC_INTERVAL			1
+#define MAX_PRE_EXEC_INTERVAL			60
+
 /*
  * RVC configuration structure
  */
@@ -11,11 +14,15 @@
 struct rvc_vpn_config {
 	char name[RVD_MAX_CONN_NAME_LEN + 1];
 	char ovpn_profile_path[RVD_MAX_PATH];
+	char ovpn_log_path[RVD_MAX_PATH];
 
 	bool auto_connect;
 
 	uid_t pre_exec_uid;
 	char pre_exec_cmd[512];
+
+	int pre_exec_interval;					/* pre exec command interval in seconds */
+	time_t pre_exec_ts;						/* timestamp of pre-exec-cmd */
 
 	int pre_exec_status;
 };

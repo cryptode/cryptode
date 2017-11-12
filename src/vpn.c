@@ -429,7 +429,7 @@ static void log_pre_exec_output(int fd, const char *log_path, const char *cmd, i
  * run pre-connect command
  */
 
-static int run_preconn_cmd(struct rvc_vpn_conn *vpn_conn, const char *log_path)
+static int run_preconn_cmd(struct rvc_vpn_conn *vpn_conn)
 {
 	pid_t pre_cmd_pid;
 	int pipeout[2], pipeerr[2];
@@ -448,8 +448,9 @@ static int run_preconn_cmd(struct rvc_vpn_conn *vpn_conn, const char *log_path)
 	RVD_DEBUG_MSG("VPN: Running pre-connect command '%s' with uid '%d'",
 			vpn_conn->config.pre_exec_cmd, vpn_conn->config.pre_exec_uid);
 
-	/* init exit status */
+	/* init exit status and timestamp */
 	vpn_conn->config.pre_exec_status = EXIT_FAILURE;
+	vpn_conn->config.pre_exec_ts = 0;
 
 	/* open pipe to get output of pre-exec-cmd */
 	if (pipe(pipeout) != 0) {
@@ -508,17 +509,10 @@ static int run_preconn_cmd(struct rvc_vpn_conn *vpn_conn, const char *log_path)
 		dup2(pipeerr[1], STDERR_FILENO);
 
 		/* set UID */
-		if (setuid(vpn_conn->config.pre_exec_uid) < 0)
-			exit(1);
-
-		/* set gid */
-		if (get_gid_by_uid(vpn_conn->config.pre_exec_uid, &gid) != 0 ||
-			setgid(gid) < 0)
-			exit(1);
+		setuid(vpn_conn->config.pre_exec_uid);
 
 		/* run command */
-		execvp(args[0], args);
-		exit(EXIT_FAILURE);
+		execv(args[0], args);
 	} else if (pre_cmd_pid > 0) {
 		int w, status;
 		int timeout = 0;
@@ -555,7 +549,7 @@ static int run_preconn_cmd(struct rvc_vpn_conn *vpn_conn, const char *log_path)
 	RVD_DEBUG_MSG("VPN: The status of pre-exec-cmd is '%d'", cmd_status);
 
 	/* append log line into openvpn log file */
-	log_pre_exec_output(cmd_status == 0 ? pipeout[0] : pipeerr[0], log_path,
+	log_pre_exec_output(cmd_status == 0 ? pipeout[0] : pipeerr[0], vpn_conn->config.ovpn_log_path,
 				vpn_conn->config.pre_exec_cmd, cmd_status);
 
 	/* free memory */
@@ -571,6 +565,10 @@ static int run_preconn_cmd(struct rvc_vpn_conn *vpn_conn, const char *log_path)
 
 	/* set status */
 	vpn_conn->config.pre_exec_status = cmd_status;
+
+	/* set timestamp if status is OK */
+	if (cmd_status == 0)
+		vpn_conn->config.pre_exec_ts = time(NULL);
 
 	return cmd_status;
 }
@@ -607,12 +605,8 @@ static void rotate_orig_ovpn_log(const char *ovpn_log_path)
 static int run_openvpn_proc(struct rvc_vpn_conn *vpn_conn)
 {
 	pid_t ovpn_pid;
-
 	char mgm_port_str[32];
-
 	char ovpn_log_fname[RVD_MAX_FILE_NAME];
-	char ovpn_log_fpath[RVD_MAX_PATH];
-
 	uid_t uid;
 
 	rvd_ctx_t *c = vpn_conn->vpnconn_mgr->c;
@@ -627,12 +621,13 @@ static int run_openvpn_proc(struct rvc_vpn_conn *vpn_conn)
 
 	/* rotate openvpn log file */
 	snprintf(ovpn_log_fname, sizeof(ovpn_log_fname), "%s.ovpn.log", vpn_conn->config.name);
-	get_full_path(c->opt.log_dir_path, ovpn_log_fname, ovpn_log_fpath, sizeof(ovpn_log_fpath));
+	get_full_path(c->opt.log_dir_path, ovpn_log_fname,
+				vpn_conn->config.ovpn_log_path, sizeof(vpn_conn->config.ovpn_log_path));
 
-	rotate_orig_ovpn_log(ovpn_log_fpath);
+	rotate_orig_ovpn_log(vpn_conn->config.ovpn_log_path);
 
 	/* run pre connect exec command */
-	if (run_preconn_cmd(vpn_conn, ovpn_log_fpath) != 0) {
+	if (run_preconn_cmd(vpn_conn) != 0) {
 		RVD_DEBUG_ERR("VPN: Failed exit code from running pre-connect command");
 		return -1;
 	}
@@ -656,7 +651,7 @@ static int run_openvpn_proc(struct rvc_vpn_conn *vpn_conn)
 		char *const ovpn_params[] = {c->opt.ovpn_bin_path,
 			    "--config", vpn_conn->config.ovpn_profile_path,
 			    "--management", "127.0.0.1", mgm_port_str,
-			    "--log-append", ovpn_log_fpath,
+			    "--log-append", vpn_conn->config.ovpn_log_path,
 			    "--resolv-retry", "infinite",
 			    "--connect-retry", OVPN_CONN_RETRY_TIMEOUT_MIN, OVPN_CONN_RETRY_TIMEOUT_MAX,
 			    NULL};
@@ -683,8 +678,9 @@ static int run_openvpn_proc(struct rvc_vpn_conn *vpn_conn)
 		gid_t gid;
 
 		if (get_gid_by_uid(uid, &gid) != 0 ||
-			chown(ovpn_log_fpath, uid, gid) != 0) {
-			RVD_DEBUG_WARN("VPN: Couldn't set the permission for OpenVPN log file '%s'", ovpn_log_fpath);
+			chown(vpn_conn->config.ovpn_log_path, uid, gid) != 0) {
+			RVD_DEBUG_WARN("VPN: Couldn't set the permission for OpenVPN log file '%s'",
+						vpn_conn->config.ovpn_log_path);
 		}
 	}
 
@@ -1095,14 +1091,22 @@ static void get_single_conn_status(struct rvc_vpn_conn *vpn_conn, bool json_form
 	} else {
 		char status_buffer[RVD_MAX_CONN_STATUS_LEN];
 		char pre_exec_status[64];
+		char pre_exec_interval[64];
 
 		/* set pre-exec status */
-		if (strlen(vpn_conn->config.pre_exec_cmd) == 0)
-			pre_exec_status[0] = '\0';
-		else
-			snprintf(pre_exec_status, sizeof(pre_exec_status), "%s [%d]",
-				vpn_conn->config.pre_exec_status == 0 ? "SUCCESSFUL" : "FAILED",
-				vpn_conn->config.pre_exec_status);
+		pre_exec_status[0] = pre_exec_interval[0] = '\0';
+		if (strlen(vpn_conn->config.pre_exec_cmd) > 0) {
+			if (vpn_conn->config.pre_exec_ts > 0)
+				snprintf(pre_exec_status, sizeof(pre_exec_status), "%s [%d]",
+					vpn_conn->config.pre_exec_status == 0 ? "SUCCESSFUL" : "FAILED",
+					vpn_conn->config.pre_exec_status);
+
+			if (vpn_conn->config.pre_exec_interval > 0)
+				snprintf(pre_exec_interval, sizeof(pre_exec_interval), "%d (seconds)",
+					vpn_conn->config.pre_exec_interval);
+			else
+				snprintf(pre_exec_interval, sizeof(pre_exec_interval), "none");
+		}
 
 		/* set status buffer by plain format */
 		if (vpn_conn->conn_state == RVD_CONN_STATE_CONNECTED)
@@ -1118,7 +1122,8 @@ static void get_single_conn_status(struct rvc_vpn_conn *vpn_conn, bool json_form
 				"\ttimestamp: %lu\n"
 				"\tauto-connect: %s\n"
 				"\tpre-exec-cmd: %s\n"
-				"\tpre-exec-status: %s\n",
+				"\tpre-exec-status: %s\n"
+				"\tpre-exec-interval: %s\n",
 				vpn_conn->config.name,
 				vpn_conn->config.ovpn_profile_path,
 				g_rvd_state[vpn_conn->conn_state].state_str,
@@ -1129,7 +1134,8 @@ static void get_single_conn_status(struct rvc_vpn_conn *vpn_conn, bool json_form
 				ts,
 				vpn_conn->config.auto_connect ? "Enabled" : "Disabled",
 				vpn_conn->config.pre_exec_cmd,
-				pre_exec_status);
+				pre_exec_status,
+				pre_exec_interval);
 		else
 			snprintf(status_buffer, sizeof(status_buffer), "name: %s\n"
 				"\tprofile: %s\n"
@@ -1140,7 +1146,8 @@ static void get_single_conn_status(struct rvc_vpn_conn *vpn_conn, bool json_form
 				"\ttimestamp: %lu\n"
 				"\tauto-connect: %s\n"
 				"\tpre-exec-cmd: %s\n"
-				"\tpre-exec-status: %s\n",
+				"\tpre-exec-status: %s\n"
+				"\tpre-exec-interval: %s\n",
 				vpn_conn->config.name,
 				vpn_conn->config.ovpn_profile_path,
 				g_rvd_state[vpn_conn->conn_state].state_str,
@@ -1149,7 +1156,8 @@ static void get_single_conn_status(struct rvc_vpn_conn *vpn_conn, bool json_form
 				ts,
 				vpn_conn->config.auto_connect ? "Enabled" : "Disabled",
 				vpn_conn->config.pre_exec_cmd,
-				pre_exec_status);
+				pre_exec_status,
+				pre_exec_interval);
 
 		/* allocate buffer for ret_str */
 		ret_str = strdup(status_buffer);
@@ -1370,6 +1378,18 @@ static void *monitor_vpn_conn(void *p)
 		if (vpn_conn->ovpn_mgm_sock <= 0) {
 			sleep(1);
 			continue;
+		}
+
+		/* check if connected and run pre-exec-command by interval */
+		if (vpn_conn->conn_state == RVD_CONN_STATE_CONNECTED &&
+			vpn_conn->config.pre_exec_interval > 0) {
+			time_t curr_ts = time(NULL);
+
+			if (curr_ts - vpn_conn->config.pre_exec_ts > vpn_conn->config.pre_exec_interval) {
+				if (run_preconn_cmd(vpn_conn) != 0) {
+					RVD_DEBUG_ERR("VPN: Failed exit code from running pre-connect command");
+				}
+			}
 		}
 
 		/* copy fd set */
