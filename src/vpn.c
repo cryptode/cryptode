@@ -1252,6 +1252,17 @@ static void get_all_conn_status(rvd_vpnconn_mgr_t *vpnconn_mgr, bool json_format
 		/* free json object */
 		json_object_put(j_obj);
 	} else {
+		if (vpnconn_mgr->vpn_conns_count == 0) {
+			char err_str[128];
+
+			/* set error string */
+			snprintf(err_str, sizeof(err_str), "no VPNs found in '%s'",
+							vpnconn_mgr->c->opt.vpn_config_dir);
+			*status_str = strdup(err_str);
+
+			return;
+		}
+
 		while (vpn_conn) {
 			char *conn_status_str = NULL;
 			size_t size;
