@@ -96,6 +96,9 @@ static void add_vpn_conn(rvd_vpnconn_mgr_t *vpnconn_mgr, struct rvc_vpn_config *
 	if (!vpn_conn)
 		return;
 
+	/* lock mutex */
+	pthread_mutex_lock(&vpnconn_mgr->conn_mt);
+
 	/* set head if it's NULL */
 	if (vpnconn_mgr->vpn_conns_count == 0)
 		vpnconn_mgr->vpn_conns = vpn_conn;
@@ -122,6 +125,9 @@ static void add_vpn_conn(rvd_vpnconn_mgr_t *vpnconn_mgr, struct rvc_vpn_config *
 
 	/* increase configuration items count */
 	vpnconn_mgr->vpn_conns_count++;
+
+	/* unlock mutex */
+	pthread_mutex_unlock(&vpnconn_mgr->conn_mt);
 }
 
 /*
@@ -1334,12 +1340,14 @@ static void finalize_vpn_conns(rvd_vpnconn_mgr_t *vpnconn_mgr)
  * read configuration from directory
  */
 
-static void read_config(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *dir_path)
+static void read_config(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *dir_path, bool load_status)
 {
 	DIR *dir;
 	struct dirent *dp;
 
-	RVD_DEBUG_MSG("VPN: Reading configuration files in '%s'", dir_path);
+	if (load_status) {
+		RVD_DEBUG_MSG("VPN: Loading VPN configurations from %s", dir_path);
+	}
 
 	/* open config directory */
 	dir = opendir(dir_path);
@@ -1369,8 +1377,15 @@ static void read_config(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *dir_path)
 		strncpy(conf_name, dp->d_name, conf_name_len);
 		conf_name[conf_name_len] = '\0';
 
+		/* check whether configuration is exist with given name */
+		if (!load_status && rvd_vpnconn_get_byname(vpnconn_mgr, conf_name))
+			continue;
+
 		/* parse configuration file */
 		if (rvc_read_vpn_config(dir_path, conf_name, &vpn_config) == 0) {
+			if (!load_status)
+				vpn_config.load_status = OVPN_STATUS_NOT_LOADED;
+
 			/* set allowed UID info */
 			vpn_config.pre_exec_uid = vpnconn_mgr->c->opt.allowed_uid;
 
@@ -1511,10 +1526,12 @@ void rvd_vpnconn_enable_script_sec(rvd_vpnconn_mgr_t *vpnconn_mgr, bool enable_s
 static void *read_vpn_configs(void *p)
 {
 	rvd_vpnconn_mgr_t *vpnconn_mgr = (rvd_vpnconn_mgr_t *) p;
+	rvd_ctx_t *c = vpnconn_mgr->c;
 
 	RVD_DEBUG_MSG("VPN: Starting VPN configurations reading thread");
 
 	while (!vpnconn_mgr->end_flag) {
+		read_config(vpnconn_mgr, c->opt.vpn_config_dir, false);
 		sleep(1);
 	}
 
@@ -1539,7 +1556,7 @@ int rvd_vpnconn_mgr_init(struct rvd_ctx *c)
 	pthread_mutex_init(&vpnconn_mgr->conn_mt, NULL);
 
 	/* set configuration path */
-	read_config(vpnconn_mgr, c->opt.vpn_config_dir);
+	read_config(vpnconn_mgr, c->opt.vpn_config_dir, true);
 
 	/* set init status */
 	vpnconn_mgr->init_flag = true;
