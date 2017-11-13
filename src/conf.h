@@ -4,6 +4,11 @@
 #define OVPN_CONFIG_EXTENSION			".ovpn"
 #define RVC_CONFIG_EXTENSION			".json"
 
+#define OVPN_STATUS_NOT_LOADED 0x0000
+#define OVPN_STATUS_INVALID_PERMISSION 0x0001
+#define OVPN_STATUS_LOADED 0x0002
+#define OVPN_STATUS_HAVE_JSON 0x0004
+
 #define MIN_PRE_EXEC_INTERVAL			1
 #define MAX_PRE_EXEC_INTERVAL			60
 
@@ -16,6 +21,7 @@ struct rvc_vpn_config {
 	char ovpn_profile_path[RVD_MAX_PATH];
 	char ovpn_log_path[RVD_MAX_PATH];
 
+	int load_status;
 	bool auto_connect;
 
 	uid_t pre_exec_uid;

@@ -80,18 +80,20 @@ static int check_vpn_config(struct rvc_vpn_config *config)
 		fprintf(stderr, "Invalid owner or permission for VPN configuration file '%s'\n",
 				config->ovpn_profile_path);
 #endif
-		return -1;
-	}
+		config->load_status |= OVPN_STATUS_INVALID_PERMISSION;
+	} else
+		config->load_status |= OVPN_STATUS_LOADED;
 
 	/* check if interval is in valid range */
 	if (config->pre_exec_interval != 0 &&
 		(config->pre_exec_interval < MIN_PRE_EXEC_INTERVAL ||
 		config->pre_exec_interval > MAX_PRE_EXEC_INTERVAL)) {
 #ifdef _RVD_SOURCE
-		RVD_DEBUG_ERR("CONF: Invalid interval of pre-exec-cmd '%d'", config->pre_exec_interval);
+		RVD_DEBUG_WARN("CONF: Invalid interval of pre-exec-cmd '%d'", config->pre_exec_interval);
 #else
 		fprintf(stderr, "Invalid interval of pre-exec-cmd '%d'\n", config->pre_exec_interval);
 #endif
+		config->pre_exec_interval = 0;
 	}
 
 	return 0;
@@ -223,6 +225,9 @@ int rvc_read_vpn_config(const char *config_dir, const char *config_name, struct 
 
 		/* free configuration buffer */
 		free(config_buf);
+
+		/* set JSON configuration status */
+		config.load_status |= OVPN_STATUS_HAVE_JSON;
 	}
 
 	/* check for the permissions of VPN config */
