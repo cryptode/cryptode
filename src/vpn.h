@@ -75,6 +75,7 @@ typedef struct rvd_vpnconn_mgr {
 	int vpn_conns_count;
 	struct rvc_vpn_conn *vpn_conns;
 
+	pthread_t pt_read_conf;
 	pthread_mutex_t conn_mt;
 
 	struct rvd_ctx *c;
