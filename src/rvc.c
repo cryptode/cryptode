@@ -79,19 +79,19 @@ static void print_help(void)
 {
 	printf("usage: rvc <options>\n"
 		"  options:\n"
-		"    connect <all|connection name> [--json]\tconnect to a VPN with given name\n"
-		"    disconnect <all|connection name> [--json]\tdisconnect VPN with given name\n"
-		"    reconnect <all|connection name> [--json]\treconnect VPN with given name\n"
-		"    status [all|connection name] [--json]\tget status of VPN connection with given name\n"
+		"    <all|connection name> connect [--json]\tconnect to a VPN with given name\n"
+		"    <all|connection name> disconnect [--json]\tdisconnect VPN with given name\n"
+		"    <all|connection name> reconnect [--json]\treconnect VPN with given name\n"
+		"    [all|connection name] status [--json]\tget status of VPN connection with given name\n"
+		"    <connection name> edit <auto-connect|pre-exec-cmd|profile> <value>\n"
+		"    <connection name> remove [--force]\t\tremove VPN connection (sudo required)\n"
+		"    import <new-from-tblk|new-from-ovpn> <path>\timport VPN connection (sudo required)\n"
+		"    reload\t\t\t\t\treload configuration (sudo required)\n"
+		"    dns-override <enable|disable|status> [DNS server IP list]\n"
+		"           override DNS settings. DNS server IP addresses should be separated by comma (sudo required)\n"
 		"    script-security <enable|disable>\t\tenable/disable script security\n"
 		"    help\t\t\t\t\tshow help message\n"
 		"    version\t\t\t\t\tprint version\n"
-		"    reload\t\t\t\t\treload configuration (sudo required)\n"
-		"    import <new-from-tblk|new-from-ovpn> <path>\timport VPN connection (sudo required)\n"
-		"    edit <connection name> <auto-connect|pre-exec-cmd|profile> <value>\n"
-		"    remove <connection name> [--force]\t\tremove VPN connection (sudo required)\n"
-		"    dns-override <enable|disable|status> [DNS server IP list]\n"
-		"           override DNS settings. DNS server IP addresses should be separated by comma (sudo required)\n"
 		);
 }
 
@@ -107,6 +107,7 @@ int main(int argc, char *argv[])
 
 	int i, ret = -1;
 
+	const char *cmd_str = NULL;
 	const char *cmd_param = NULL;
 	char *resp_data = NULL;
 
@@ -128,9 +129,27 @@ int main(int argc, char *argv[])
 		exit(0);
 	}
 
+	/* get command string */
+	if (argc == 2) {
+		if (strcmp(argv[1], "reload") == 0 || strcmp(argv[1], "status") == 0)
+			cmd_str = argv[1];
+	} else {
+		if (strcmp(argv[1], "import") == 0 ||
+			strcmp(argv[1], "dns-override") == 0 ||
+			strcmp(argv[1], "script-security") == 0)
+			cmd_str = argv[1];
+		else
+			cmd_str = argv[2];
+	}
+
+	if (!cmd_str) {
+		print_help();
+		exit(1);
+	}
+
 	/* get command code */
 	for (i = 0; g_cmd_names[i].name != NULL; i++) {
-		if (strcmp(argv[1], g_cmd_names[i].name) == 0) {
+		if (strcmp(cmd_str, g_cmd_names[i].name) == 0) {
 			cmd_code = g_cmd_names[i].code;
 			break;
 		}
@@ -149,9 +168,9 @@ int main(int argc, char *argv[])
 	case RVD_CMD_DISCONNECT:
 	case RVD_CMD_RECONNECT:
 		if (argc == 3)
-			cmd_param = argv[2];
+			cmd_param = argv[1];
 		else if (argc == 4 && strcmp(argv[3], "--json") == 0) {
-			cmd_param = argv[2];
+			cmd_param = argv[1];
 			use_json = 1;
 		} else {
 			opt_invalid = 1;
@@ -175,10 +194,10 @@ int main(int argc, char *argv[])
 				use_json = 1;
 				cmd_param = "all";
 			} else
-				cmd_param = argv[2];
+				cmd_param = argv[1];
 		} else if (argc == 4 && strcmp(argv[3], "--json") == 0) {
 			use_json = 1;
-			cmd_param = argv[2];
+			cmd_param = argv[1];
 		} else {
 			opt_invalid = 1;
 			break;
@@ -236,7 +255,7 @@ int main(int argc, char *argv[])
 			int ret;
 
 			/* edit connection info */
-			ret = rvc_edit(argv[2], argv[3], argv[4]);
+			ret = rvc_edit(argv[1], argv[3], argv[4]);
 			exit(ret);
 		}
 
@@ -244,7 +263,7 @@ int main(int argc, char *argv[])
 
 	case RVD_CMD_REMOVE:
 		if (argc == 3 || (argc == 4 && strcmp(argv[3], "--force") == 0)) {
-			ret = rvc_remove(argv[2], argc == 3 ? 0 : 1);
+			ret = rvc_remove(argv[1], argc == 3 ? 0 : 1);
 			exit(ret);
 		} else
 			opt_invalid = 1;
