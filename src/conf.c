@@ -214,9 +214,9 @@ int rvc_read_vpn_config(const char *config_dir, const char *config_name, struct 
 		if (read_len <= 0 ||
 			rvd_json_parse(config_buf, vpn_config, sizeof(vpn_config) / sizeof(rvd_json_object_t)) != 0) {
 #ifdef _RVD_SOURCE
-			RVD_DEBUG_ERR("CONF: Invalid the configuration file '%s'", json_config_path);
+			RVD_DEBUG_ERR("CONF: Invalid configuration file '%s'", json_config_path);
 #else
-			fprintf(stderr, "Invalid the configuration file '%s'\n", json_config_path);
+			fprintf(stderr, "Invalid configuration file '%s'\n", json_config_path);
 #endif
 			free(config_buf);
 
