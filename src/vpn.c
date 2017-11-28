@@ -46,6 +46,8 @@
 
 #include "rvd.h"
 
+#define CLOSE_PIPE(p)            { close(p[0]); close(p[1]); }
+
 /*
  * rvd connection state strings
  */
@@ -467,9 +469,7 @@ static int run_preconn_cmd(struct rvc_vpn_conn *vpn_conn)
 	if (pipe(pipeerr) != 0) {
 		RVD_DEBUG_ERR("VPN: Couldn't create pipe to get stderr of pre-exec-cmd");
 
-		close(pipeout[0]);
-		close(pipeout[1]);
-
+		CLOSE_PIPE(pipeout);
 		return -1;
 	}
 
@@ -478,35 +478,25 @@ static int run_preconn_cmd(struct rvc_vpn_conn *vpn_conn)
 	if (!cmd) {
 		RVD_DEBUG_ERR("VPN: Out of memory(strdup)");
 
-		close(pipeout[0]);
-		close(pipeout[1]);
-
-		close(pipeerr[0]);
-		close(pipeerr[1]);
-
+		CLOSE_PIPE(pipeout);
+		CLOSE_PIPE(pipeerr);
 		return -1;
 	}
 
 	tok = strtok(cmd, " ");
 	while (tok) {
-		/* allocate args */
 		args = realloc(args, (++tok_count + 1) * sizeof(char *));
 		if (!args)
 			break;
-
-		/* set args */
 		args[tok_count - 1] = tok;
 
 		tok = strtok(NULL, " ");
 	}
-
 	args[tok_count] = NULL;
 
 	/* create pre fork exec process */
 	pre_cmd_pid = fork();
 	if (pre_cmd_pid == 0) {
-		gid_t gid;
-
 		/* redirect output to pipe */
 		close(pipeout[0]);
 		close(pipeerr[0]);
@@ -518,7 +508,8 @@ static int run_preconn_cmd(struct rvc_vpn_conn *vpn_conn)
 		setuid(vpn_conn->config.pre_exec_uid);
 
 		/* run command */
-		execv(args[0], args);
+		execvp(args[0], args);
+		exit(EXIT_FAILURE);
 	} else if (pre_cmd_pid > 0) {
 		int w, status;
 		int timeout = 0;
@@ -529,24 +520,23 @@ static int run_preconn_cmd(struct rvc_vpn_conn *vpn_conn)
 
 		/* wait until pre-connect command has finished */
 		do {
-			/* wait until process has terminated */
-			w = waitpid(pre_cmd_pid, &status, 0);
+			w = waitpid(pre_cmd_pid, &status, WNOHANG);
 			if (w < 0)
 				break;
+			else if (w == 0) {
+				if (timeout == RVD_PRE_EXEC_TIMEOUT) {
+					kill(pre_cmd_pid, SIGKILL);
+					break;
+				}
+				timeout++;
+				sleep(1);
+				continue;
+			}
 
-			/* set exit status */
 			if (WIFEXITED(status)) {
 				cmd_status = WEXITSTATUS(status);
 				break;
 			}
-
-			/* check timeout */
-			if (timeout == RVD_PRE_EXEC_TIMEOUT) {
-				kill(pre_cmd_pid, SIGKILL);
-				break;
-			}
-
-			timeout++;
 		} while(1);
 	} else {
 		RVD_DEBUG_ERR("VPN: Forking new process for pre-connect-exec has failed(err:%d)", errno);
