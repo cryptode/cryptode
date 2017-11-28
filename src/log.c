@@ -152,12 +152,20 @@ void rvd_debug_log(enum LOG_TYPE log_type, const char *file_name, int file_line,
 	struct tm *tm;
 	char time_str[64];
 
-	char msg[RVD_MAX_LOGMSG_LEN + 1];
-	int written_log_bytes;
+	char *msg;
+	size_t msg_size;
 
 	/* build log string */
 	va_start(va_args, format);
-	vsnprintf(msg, sizeof(msg), format, va_args);
+	msg_size = vsnprintf(NULL, 0, format, va_args);
+	va_end(va_args);
+
+	msg = (char *) malloc(msg_size + 1);
+	if (!msg)
+		return;
+
+	va_start(va_args, format);
+	vsnprintf(msg, msg_size + 1, format, va_args);
 	va_end(va_args);
 
 	time(&tt);
@@ -176,10 +184,12 @@ void rvd_debug_log(enum LOG_TYPE log_type, const char *file_name, int file_line,
 
 	/* write log */
 	if (g_log_fp) {
-		written_log_bytes = fprintf(g_log_fp, "%s\t%s : %s(at %s:%d)\n", time_str, log_type_str[log_type], msg, file_name, file_line);
+		int written_log_bytes;
+
+		written_log_bytes = fprintf(g_log_fp, "%s\t%s : %s(at %s:%d)\n", time_str, log_type_str[log_type], msg,
+						file_name, file_line);
 		if (written_log_bytes > 0)
 			g_log_fsize += written_log_bytes;
-
 		fflush(g_log_fp);
 
 		/* write syslog */
@@ -190,4 +200,6 @@ void rvd_debug_log(enum LOG_TYPE log_type, const char *file_name, int file_line,
 
 	/* unlock mutex */
 	pthread_mutex_unlock(&g_log_mt);
+
+	free(msg);
 }
