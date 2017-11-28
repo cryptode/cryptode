@@ -563,8 +563,7 @@ static int run_preconn_cmd(struct rvc_vpn_conn *vpn_conn)
 	vpn_conn->config.pre_exec_status = cmd_status;
 
 	/* set timestamp if status is OK */
-	if (cmd_status == 0)
-		vpn_conn->config.pre_exec_ts = time(NULL);
+	vpn_conn->config.pre_exec_ts = time(NULL);
 
 	return cmd_status;
 }
