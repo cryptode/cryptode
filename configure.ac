@@ -126,6 +126,22 @@ if test "x$enable_profiling" = "xyes" ; then
     CFLAGS="$CFLAGS -pg"
 fi
 
+TESTS_CFLAGS=""
+AC_MSG_CHECKING(whether to run tests)
+AC_ARG_ENABLE([tests],
+   [AS_HELP_STRING([--enable-tests], [enable running tests on make check (default is NO)])],
+   [enable_tests=${enableval}],
+   [enable_tests=no])
+AC_MSG_RESULT($enable_test)
+AM_CONDITIONAL([ENABLE_TESTS], [test "x$enable_tests" = "xyes"])
+if test "x$enable_tests" = "xyes" ; then
+AC_MSG_NOTICE([yes])
+TESTS_CFLAGS="$TESTS_CFLAGS -fno-builtin"
+else
+AC_MSG_NOTICE([no])
+fi
+AC_SUBST([TESTS_CFLAGS])
+
 AC_CONFIG_FILES([Makefile
                 etc/Makefile
                 platforms/Makefile
@@ -134,6 +150,7 @@ AC_CONFIG_FILES([Makefile
                 src/Makefile
                 etc/rvd.json
                 platforms/epel/rvc.spec
+                tests/Makefile
                 ])
 
 AC_OUTPUT

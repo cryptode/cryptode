@@ -1,0 +1,33 @@
+dist: trusty
+sudo: enabled
+language: c
+
+env:
+  global:
+    - CMOCKA_INSTALL="$HOME/builds/cmocka-install"
+    - CHECKPATCH_INSTALL="$HOME/builds/checkpatch-install"
+
+before_install:
+  - if [ $TRAVIS_OS_NAME = linux ]; then sudo apt-get update; else brew update; fi
+  - if [ $TRAVIS_OS_NAME = linux ]; then sudo apt-get install openvpn -y; else brew install openvpn; fi
+  - ./ci/install_deps.sh
+
+addons:
+  coverity_scan:
+    project:
+      name: "riboseinc/rvc"
+    build_command_prepend: "./autogen.sh; ./configure; make clean"
+    build_command: "make -j4"
+    branch_pattern: coverity_scan
+
+after_failure: cat tests/test-suite.log
+
+install:
+  - ./ci/install.sh
+
+script:
+  - ./ci/main.sh
+
+os:
+  - linux
+  - osx
