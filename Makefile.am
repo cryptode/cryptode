@@ -1,2 +1,2 @@
 AUTOMAKE_OPTIONS = foreign
-SUBDIRS = etc platforms src
+SUBDIRS = etc platforms src tests
