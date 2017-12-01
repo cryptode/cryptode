@@ -218,17 +218,13 @@ daemonize(void)
  */
 
 static void
-write_pid_file()
+write_pid_file(void)
 {
 	FILE *pid_fp;
-	pid_t pid;
-
 	int fd;
 
-	/* get process ID of current process */
-	pid = getpid();
-
 	/* remove old pid file */
+	mkdir(RVD_PID_DPATH, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
 	remove(RVD_PID_FPATH);
 
 	/* open pid file and write */
@@ -243,7 +239,7 @@ write_pid_file()
 		return;
 	}
 
-	fprintf(pid_fp, "%d\n", pid);
+	fprintf(pid_fp, "%d\n", getpid());
 
 	/* close pid file */
 	fclose(pid_fp);

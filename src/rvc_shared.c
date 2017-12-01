@@ -472,6 +472,42 @@ static int send_cmd(enum RVD_CMD_CODE cmd_code, const char *cmd_param, int use_j
 }
 
 /*
+ * parse response
+ */
+
+static int parse_resp(const char *resp, char **resp_data)
+{
+	json_object *j_obj, *j_sub_obj;
+
+	int resp_code;
+
+	/* parse response */
+	j_obj = json_tokener_parse(resp);
+	if (!j_obj) {
+		fprintf(stderr, "Invalid JSON response '%s'\n", resp);
+		return RVD_RESP_JSON_INVALID;
+	}
+
+	if (!json_object_object_get_ex(j_obj, "code", &j_sub_obj)) {
+		fprintf(stderr, "Invalid JSON response '%s'\n", resp);
+		json_object_put(j_obj);
+		return RVD_RESP_JSON_INVALID;
+	}
+
+	resp_code = json_object_get_int(j_sub_obj);
+
+	if (!json_object_object_get_ex(j_obj, "data", &j_sub_obj)) {
+		fprintf(stderr, "Invalid JSON response '%s'\n", resp);
+		json_object_put(j_obj);
+		return RVD_RESP_JSON_INVALID;
+	}
+
+	*resp_data = strdup(json_object_get_string(j_sub_obj));
+
+	return resp_code;
+}
+
+/*
  * connect to rvd
  */
 
@@ -500,6 +536,7 @@ static int connect_to_rvd(void)
 int send_cmd_to_rvd(int cmd_code, const char *param, int json_format, char **resp_data)
 {
 	int ret;
+	char *resp;
 
 	/* connect to rvd daemon */
 	ret = connect_to_rvd();
@@ -509,7 +546,9 @@ int send_cmd_to_rvd(int cmd_code, const char *param, int json_format, char **res
 	}
 
 	/* send command to core */
-	ret = send_cmd(cmd_code, param, json_format, resp_data);
+	ret = send_cmd(cmd_code, param, json_format, &resp);
+	if (ret == RVD_RESP_OK)
+		ret = parse_resp(resp, resp_data);
 
 	/* close socket */
 	close(g_sock);

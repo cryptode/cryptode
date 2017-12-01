@@ -1,7 +1,6 @@
 #!/bin/sh
 set -ex
 
-# https://gist.github.com/marcusandre/4b88c2428220ea255b83
 get_os() {
 	if [ -z $OSTYPE ]; then
 		echo "$(uname | tr '[:upper:]' '[:lower:]')"

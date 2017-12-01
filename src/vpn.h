@@ -85,7 +85,7 @@ typedef struct rvd_vpnconn_mgr {
 int rvd_vpnconn_mgr_init(struct rvd_ctx *c);
 void rvd_vpnconn_mgr_finalize(rvd_vpnconn_mgr_t *vpnconn_mgr);
 
-void rvd_vpnconn_connect(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name);
+int rvd_vpnconn_connect(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name);
 void rvd_vpnconn_disconnect(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name);
 
 void rvd_vpnconn_reconnect(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name);

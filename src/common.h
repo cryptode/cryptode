@@ -3,32 +3,33 @@
 
 /* macro constants */
 
-#define RVD_MAX_PATH				256
-#define RVD_MAX_FILE_NAME			256
-#define RVD_MAX_LINE				512
-#define RVD_MAX_LOGMSG_LEN			1024
-#define RVD_MAX_CMD_LEN				2048
-#define RVD_MAX_RESP_LEN			4096
-#define RVD_MAX_CONN_NAME_LEN			128
-#define RVD_MAX_CONN_INFO_LEN			2048
-#define RVD_MAX_CONN_STATUS_LEN			2048
+#define RVD_MAX_PATH               256
+#define RVD_MAX_FILE_NAME          256
+#define RVD_MAX_LINE               512
+#define RVD_MAX_LOGMSG_LEN         1024
+#define RVD_MAX_CMD_LEN            2048
+#define RVD_MAX_RESP_LEN           4096
+#define RVD_MAX_CONN_NAME_LEN      128
+#define RVD_MAX_CONN_INFO_LEN      2048
+#define RVD_MAX_CONN_STATUS_LEN    2048
 
-#define RVC_MAX_IMPORT_SIZE			10240
+#define RVC_MAX_IMPORT_SIZE        10240
 
 /* copyright message */
-#define RVC_COPYRIGHT_MSG			"Copyright 2017 Ribose Inc <https://www.ribose.com>"
+#define RVC_COPYRIGHT_MSG          "Copyright 2017 Ribose Inc <https://www.ribose.com>"
 
 /* rvd default command listen socket path */
-#define RVD_LISTEN_SOCK_PATH			"/var/run/rvd"
+#define RVD_LISTEN_SOCK_PATH       "/var/run/rvd.sock"
 
 /* rvd default log file path */
-#define RVD_DEFAULT_LOGDIR_PATH			"/var/log/rvd"
+#define RVD_DEFAULT_LOGDIR_PATH    "/var/log/rvd"
 
 /* rvd default UID for writting to rvd socket */
-#define RVD_DEFAULT_UID				501
+#define RVD_DEFAULT_UID            501
 
 /* rvd pid file path */
-#define RVD_PID_FPATH				"/var/run/rvd.pid"
+#define RVD_PID_DPATH              "/var/run/rvd"
+#define RVD_PID_FPATH              "/var/run/rvd/rvd.pid"
 
 /* rvd command codes */
 enum RVD_CMD_CODE {
@@ -73,6 +74,7 @@ enum RVD_RESP_CODE
 	RVD_RESP_ERR_NOT_FOUND_VPNCONF,
 	RVD_RESP_ERR_VPNCONF_OPT_TYPE,
 	RVD_RESP_ERR_VPNCONF_OPT_VAL,
+	RVD_RESP_ERR_INVALID_OVPN_BIN,
 	RVD_RESP_UNKNOWN_ERR,
 };
 

@@ -44,13 +44,52 @@ function checkpatch() {
 		git format-patch -1 $1 --stdout -- $CHECKPATCH_EXCLUDE . | _checkpatch
 }
 
-sh autogen.sh && \
-	./configure \
-		--disable-silent-rules \
-		--enable-tests \
-		--with-cmocka=${CMOCKA_INSTALL} && \
-	make clean && \
-	make
+get_os() {
+	if [ -z $OSTYPE ]; then
+		echo "$(uname | tr '[:upper:]' '[:lower:]')"
+	else
+		echo "$(echo $OSTYPE | tr '[:upper:]' '[:lower:]')"
+	fi
+}
+
+macos_build() {
+	readonly OPENSSL_DIR="$(brew --prefix openssl)"
+	if [ ! -d "${OPENSSL_DIR}" ]; then
+		echo "Couldn't find OpenSSL installation directory. (Hint: 'brew install openssl')"
+		exit 1
+	fi
+
+	sh autogen.sh && \
+		./configure \
+			--disable-silent-rules \
+			--enable-tests \
+			--with-openssl=${OPENSSL_DIR} \
+			--with-cmocka=${CMOCKA_INSTALL} && \
+		make clean && \
+		make
+}
+
+linux_build() {
+	sh autogen.sh && \
+		./configure \
+			--disable-silent-rules \
+			--enable-tests \
+			--with-cmocka=${CMOCKA_INSTALL} && \
+		make clean && \
+		make
+}
+
+main() {
+	case $(get_os) in
+		darwin*)
+			macos_build ;;
+		linux*)
+			linux_build ;;
+		*) echo "unknown"; exit 1 ;;
+	esac
+}
+
+main
 
 # checkpatch
 if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then

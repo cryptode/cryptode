@@ -1,0 +1,6 @@
+{
+	"name": "test",
+	"auto-connect": false,
+	"pre-connect-exec": "echo 0",
+	"pre-connect-exec-interval": 0
+}
