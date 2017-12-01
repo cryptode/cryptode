@@ -340,8 +340,6 @@ parse_config(rvd_ctx_opt_t *opt, const char *config_path)
 static int
 rvd_ctx_init(rvd_ctx_t *c, const char *config_path)
 {
-	RVD_DEBUG_MSG("Main: Initializing rvd context");
-
 	/* initialize context object */
 	memset(c, 0, sizeof(rvd_ctx_t));
 
@@ -354,6 +352,8 @@ rvd_ctx_init(rvd_ctx_t *c, const char *config_path)
 		fprintf(stderr, "Couldn't create log file in directory '%s'\n", c->opt.log_dir_path);
 		return -1;
 	}
+
+	RVD_DEBUG_MSG("Main: Initializing rvd context");
 
 	/* initialize command manager */
 	if (rvd_cmd_proc_init(c) != 0) {
@@ -407,7 +407,6 @@ rvd_ctx_reload(rvd_ctx_t *c, const char *config_path)
 	/* init rvd context */
 	if (rvd_ctx_init(c, config_path) != 0) {
 		RVD_DEBUG_ERR("Main: Couldn't reload rvd context");
-
 		rvd_ctx_finalize(c);
 	}
 }

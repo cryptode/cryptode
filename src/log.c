@@ -45,17 +45,19 @@
 
 static FILE *g_log_fp = NULL;
 static char g_log_path[RVD_MAX_PATH];
-static int g_log_fsize;
+static size_t g_log_fsize;
 static pthread_mutex_t g_log_mt = PTHREAD_MUTEX_INITIALIZER;
 
 /*
  * create log file
  */
 
-static int create_log_file()
+static int open_log_file(int backup)
 {
 	int fd;
 	char backup_log_path[RVD_MAX_PATH];
+
+	struct stat st;
 
 	/* check whether log path is set */
 	if (strlen(g_log_path) == 0)
@@ -68,13 +70,15 @@ static int create_log_file()
 	}
 
 	/* backup old log file */
-	snprintf(backup_log_path, sizeof(backup_log_path), "%s.0", g_log_path);
-	rename(g_log_path, backup_log_path);
+	if (backup) {
+		snprintf(backup_log_path, sizeof(backup_log_path), "%s.0", g_log_path);
+		rename(g_log_path, backup_log_path);
+	}
 
 	/* open log file */
-	fd = open(g_log_path, O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR);
+	fd = open(g_log_path, O_CREAT | O_RDWR | O_APPEND, S_IRUSR | S_IWUSR);
 	if (fd > 0)
-		g_log_fp = fdopen(fd, "w");
+		g_log_fp = fdopen(fd, "a");
 
 	if (fd < 0 || !g_log_fp) {
 		fprintf(stderr, "Couldn't open log file '%s' for writing.\n", g_log_path);
@@ -84,6 +88,14 @@ static int create_log_file()
 
 		return -1;
 	}
+
+	/* set the size of log file */
+	if (stat(g_log_path, &st) != 0) {
+		fprintf(stderr, "Couldn't get stat of log file '%s'.\n", g_log_path);
+		fclose(g_log_fp);
+		return -1;
+	}
+	g_log_fsize = st.st_size;
 
 	/* set permission */
 	chmod(g_log_path, S_IRUSR | S_IWUSR);
@@ -105,7 +117,7 @@ int rvd_log_init(const char *log_dir_path)
 	get_full_path(log_dir_path, RVD_LOG_FILE_NAME, g_log_path, sizeof(g_log_path));
 
 	/* open log file */
-	if (create_log_file() != 0)
+	if (open_log_file(0) != 0)
 		return -1;
 
 	/* open syslog */
@@ -152,12 +164,20 @@ void rvd_debug_log(enum LOG_TYPE log_type, const char *file_name, int file_line,
 	struct tm *tm;
 	char time_str[64];
 
-	char msg[RVD_MAX_LOGMSG_LEN + 1];
-	int written_log_bytes;
+	char *msg;
+	size_t msg_size;
 
 	/* build log string */
 	va_start(va_args, format);
-	vsnprintf(msg, sizeof(msg), format, va_args);
+	msg_size = vsnprintf(NULL, 0, format, va_args);
+	va_end(va_args);
+
+	msg = (char *) malloc(msg_size + 1);
+	if (!msg)
+		return;
+
+	va_start(va_args, format);
+	vsnprintf(msg, msg_size + 1, format, va_args);
 	va_end(va_args);
 
 	time(&tt);
@@ -170,16 +190,18 @@ void rvd_debug_log(enum LOG_TYPE log_type, const char *file_name, int file_line,
 
 	/* check log file size */
 	if (!g_log_fp || g_log_fsize > RVD_MAX_LOG_FSIZE) {
-		create_log_file();
+		open_log_file(1);
 		g_log_fsize = 0;
 	}
 
 	/* write log */
 	if (g_log_fp) {
-		written_log_bytes = fprintf(g_log_fp, "%s\t%s : %s(at %s:%d)\n", time_str, log_type_str[log_type], msg, file_name, file_line);
+		int written_log_bytes;
+
+		written_log_bytes = fprintf(g_log_fp, "%s\t%s : %s(at %s:%d)\n", time_str, log_type_str[log_type], msg,
+						file_name, file_line);
 		if (written_log_bytes > 0)
 			g_log_fsize += written_log_bytes;
-
 		fflush(g_log_fp);
 
 		/* write syslog */
@@ -190,4 +212,6 @@ void rvd_debug_log(enum LOG_TYPE log_type, const char *file_name, int file_line,
 
 	/* unlock mutex */
 	pthread_mutex_unlock(&g_log_mt);
+
+	free(msg);
 }
