@@ -1,3 +1,3 @@
 #!/bin/sh
 
-sudo ./permission_check
+sudo ./rvd_tests

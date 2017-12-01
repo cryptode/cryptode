@@ -116,31 +116,33 @@ struct rvd_resp_errs {
 	{RVD_RESP_CONN_ALREADY_CONNECTED, "Already connected"},
 	{RVD_RESP_CONN_ALREADY_DISCONNECTED, "Already disconnected"},
 	{RVD_RESP_CONN_IN_PROGRESS, "Connection/Disconnection is in progress"},
+	{RVD_RESP_WRONG_PERMISSION, "Wrong permission"},
 	{RVD_RESP_UNKNOWN_ERR, NULL},
 };
 
 static void send_cmd_response(int clnt_sock, int resp_code, const char *buffer, bool use_json)
 {
 	char *resp_buffer = NULL;
+	const char *err_buf = "Unknown Error";
+	int i;
 
 	RVD_DEBUG_MSG("CMD: Sending response");
 
-	if (!use_json) {
-		int i;
-		const char *err_buf = "Unknown Error";
-
-		/* get error message by errcode */
-		for (i = 0; g_rvd_resp_errs[i].err_msg != NULL; i++) {
-			if ((int)g_rvd_resp_errs[i].resp_code == resp_code) {
-				err_buf = g_rvd_resp_errs[i].err_msg;
-				break;
-			}
+	/* get error message by errcode */
+	for (i = 0; g_rvd_resp_errs[i].err_msg != NULL; i++) {
+		if ((int)g_rvd_resp_errs[i].resp_code == resp_code) {
+			err_buf = g_rvd_resp_errs[i].err_msg;
+			break;
 		}
+	}
 
-		if (resp_code == RVD_RESP_OK)
-			resp_buffer = strdup(buffer ? buffer : err_buf);
-		else
-			resp_buffer = strdup(err_buf);
+	if (!use_json) {
+		rvd_json_object_t resp_jobjs[] = {
+			{"code", RVD_JTYPE_INT, &resp_code, 0, false, NULL},
+			{"data", RVD_JTYPE_STR, (void *)(buffer ? buffer : err_buf), 0, false, NULL}
+		};
+
+		rvd_json_build(resp_jobjs, sizeof(resp_jobjs) / sizeof(rvd_json_object_t), &resp_buffer);
 	} else {
 		rvd_json_object_t resp_jobjs[] = {
 			{"code", RVD_JTYPE_INT, &resp_code, 0, false, NULL},
@@ -170,6 +172,8 @@ static void send_cmd_response(int clnt_sock, int resp_code, const char *buffer, 
 
 static int process_cmd_connect(rvd_cmd_proc_t *cmd_proc, const char *conn_name, bool json_format, char **status_jstr)
 {
+	int ret;
+
 	RVD_DEBUG_MSG("CMD: Processing 'connect' command");
 
 	/* check connection name */
@@ -193,12 +197,12 @@ static int process_cmd_connect(rvd_cmd_proc_t *cmd_proc, const char *conn_name, 
 	}
 
 	/* connect to rvd servers */
-	rvd_vpnconn_connect(&cmd_proc->c->vpnconn_mgr, conn_name);
+	ret = rvd_vpnconn_connect(&cmd_proc->c->vpnconn_mgr, conn_name);
 
 	/* get connection status */
 	rvd_vpnconn_getstatus(&cmd_proc->c->vpnconn_mgr, conn_name, json_format, status_jstr);
 
-	return RVD_RESP_OK;
+	return ret;
 }
 
 /*
