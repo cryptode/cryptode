@@ -1,5 +1,4 @@
 {
-	"name": "test",
 	"auto-connect": false,
 	"pre-connect-exec": "cat /bin/bin",
 	"pre-connect-exec-interval": 0
