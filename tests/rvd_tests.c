@@ -93,6 +93,19 @@ set_file_permission(const char *path, int permission)
 }
 
 /*
+ * print openvpn log file
+ */
+
+static void
+print_ovpn_log(const char *ovpn_profile_name)
+{
+	char cmd[128];
+
+	snprintf(cmd, sizeof(cmd), "cat /var/log/rvd/%s.ovpn.log", ovpn_profile_name);
+	system(cmd);
+}
+
+/*
  * start RVD process
  */
 
@@ -777,6 +790,7 @@ check_auto_connect(void)
 
 	if (!conn_status || strcmp(conn_status, "CONNECTED") != 0) {
 		fprintf(stderr, "Test failed. Connection status is %s\n", conn_status);
+		print_ovpn_log("test");
 		if (conn_status)
 			free(conn_status);
 		exit(1);
