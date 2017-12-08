@@ -99,10 +99,38 @@ set_file_permission(const char *path, int permission)
 static void
 print_ovpn_log(const char *ovpn_profile_name)
 {
-	char cmd[128];
+	FILE *fp;
+	struct stat st;
 
-	snprintf(cmd, sizeof(cmd), "cat /var/log/rvd/%s.ovpn.log", ovpn_profile_name);
-	system(cmd);
+	char ovpn_log_path[128];
+	char *buf;
+
+	/* allocate logging buffer */
+	snprintf(ovpn_log_path, sizeof(ovpn_log_path), "/var/log/rvd/%s.ovpn.log", ovpn_profile_name);
+	if (stat(ovpn_log_path, &st) != 0 || st.st_size == 0) {
+		fprintf(stderr, "Couldn't get stat of log file '%s'\n", ovpn_log_path);
+		return;
+	}
+
+	buf = (char *)malloc(st.st_size + 1);
+	if (!buf) {
+		fprintf(stderr, "Log file '%s' is too big. Out of memory.\n", ovpn_log_path);
+		return;
+	}
+
+	/* read buffer from file */
+	fp = fopen(ovpn_log_path, "r");
+	if (!fp) {
+		fprintf(stderr, "fopen() failed for log file '%s'.\n", ovpn_log_path);
+		free(buf);
+		return;
+	}
+
+	fread(buf, 1, st.st_size, fp);
+	fclose(fp);
+
+	fprintf(stderr, "\n\nOpenVPN log:\n\n%s\n\n", buf);
+	free(buf);
 }
 
 /*
@@ -146,39 +174,6 @@ stop_rvd(pid_t pid)
 		return -1;
 
 	return WEXITSTATUS(status);
-}
-
-/*
- * check for rvd_json permission
- */
-
-static void
-permission_check_rvd_json(void)
-{
-	pid_t rvd_pid;
-	int exit_code;
-
-	printf("\n\n################## Checking for permission of rvd JSON configuration ######################\n\n");
-
-	/* check for wrong persmission */
-	set_file_permission(RVD_CONFIG_PATH, RVD_CONF_WRONG_PERMISSION);
-	rvd_pid = start_rvd();
-	sleep(3);
-	exit_code = stop_rvd(rvd_pid);
-	if (exit_code == 0) {
-		fprintf(stderr, "RVD is starting with the configuration with wrong permission.\n");
-		exit(1);
-	}
-
-	/* check for valid permission */
-	set_file_permission(RVD_CONFIG_PATH, RVD_CONF_VALID_PERMISSION);
-	rvd_pid = start_rvd();
-	sleep(3);
-	exit_code = stop_rvd(rvd_pid);
-	if (exit_code != 0) {
-		fprintf(stderr, "RVD isn't started with the configuration with valid persmission.\n");
-		exit(1);
-	}
 }
 
 /*
@@ -360,6 +355,42 @@ run_rvc(char **args, char **json_resp)
 }
 
 /*
+ * check for rvd_json permission
+ */
+
+static void
+permission_check_rvd_json(void)
+{
+	pid_t rvd_pid;
+	int exit_code;
+
+	printf("\n\n################## Checking for permission of rvd JSON configuration ######################\n\n");
+
+	/* check for wrong persmission */
+	set_file_permission(RVD_CONFIG_PATH, RVD_CONF_WRONG_PERMISSION);
+	rvd_pid = start_rvd();
+	sleep(3);
+	exit_code = stop_rvd(rvd_pid);
+	if (exit_code == 0) {
+		fprintf(stderr, "RVD is starting with the configuration with wrong permission.\n");
+		exit(1);
+	}
+
+	/* check for valid permission */
+	set_file_permission(RVD_CONFIG_PATH, RVD_CONF_VALID_PERMISSION);
+	rvd_pid = start_rvd();
+	sleep(3);
+	exit_code = stop_rvd(rvd_pid);
+	if (exit_code != 0) {
+		fprintf(stderr, "Failed test the case 'CHECK-RVD-JSON'"
+				"RVD isn't started with the configuration with valid persmission.\n");
+		exit(1);
+	}
+
+	printf("Success to test the case 'CHECK-RVD-JSON'\n");
+}
+
+/*
  * check for ovpn binary permission
  */
 
@@ -383,9 +414,12 @@ permission_check_ovpn_bin(void)
 	set_file_permission(OPENVPN_BINARY_PATH, OVPN_BIN_VALID_PERMISSION);
 	uninstall_ovpn_profile("test");
 	if (exit_code == 0) {
-		fprintf(stderr, "Failed to test connect with OpenVPN binary with wrong permission.\n");
+		fprintf(stderr, "Failed to test the case 'CHECK-OVPN-BIN'"
+				"-- Connected with OpenVPN binary with wrong permission.\n");
 		exit(1);
 	}
+
+	printf("Success to test the case 'CHECK-OVPN-BIN'\n");
 }
 
 /*
@@ -410,7 +444,8 @@ permission_check_ovpn_profile(void)
 	stop_rvd(rvd_pid);
 	uninstall_ovpn_profile("test");
 	if (exit_code == 0) {
-		fprintf(stderr, "Failed to test connect by OpenVPN profile with wrong permission.\n");
+		fprintf(stderr, "Failed to test the case 'CHECK-OVPN-PROFILE'."
+				"Connected by OpenVPN profile with wrong permission.\n");
 		exit(1);
 	}
 
@@ -422,9 +457,12 @@ permission_check_ovpn_profile(void)
 	stop_rvd(rvd_pid);
 	uninstall_ovpn_profile("test");
 	if (exit_code != 0) {
-		fprintf(stderr, "Failed to test connect by OpenVPN profile with valid permission.\n");
+		fprintf(stderr, "Failed to test the case 'CHECK-OVPN-PROFILE'."
+				"Connected by OpenVPN profile with valid permission.\n");
 		exit(exit_code);
 	}
+
+	printf("Success to test the case 'CHECK-OVPN-PROFILE'\n");
 }
 
 /*
@@ -452,20 +490,22 @@ check_missing_json(void)
 	stop_rvd(rvd_pid);
 	uninstall_ovpn_profile("test");
 	if (exit_code != 0) {
-		fprintf(stderr, "Failed to test connect by OpenVPN profile with valid permission.(exit_code:%d)\n",
-					exit_code);
+		fprintf(stderr, "Failed to test the case 'CHECK-JSON-CONFIG'."
+				"Faied to connect.(exit_code:%d)\n", exit_code);
 		exit(exit_code);
 	}
 
 	if (!resp_buf) {
-		fprintf(stderr, "empty response buffer\n");
+		fprintf(stderr, "Failed to test the case 'CHECK-JSON-CONFIG'."
+				"Empty response buffer.\n");
 		exit(1);
 	}
 
 	j_obj = json_tokener_parse(resp_buf);
 	if (!j_obj) {
 		free(resp_buf);
-		fprintf(stderr, "json_tokener_parse() failed.(resp_buf:%s)\n", resp_buf);
+		fprintf(stderr, "Failed to test the case 'CHECK-JSON-CONFIG'."
+				"Invalid JSON response buffer '%s'\n", resp_buf);
 		exit(1);
 	}
 
@@ -479,9 +519,12 @@ check_missing_json(void)
 	json_object_put(j_obj);
 
 	if (config_status != OVPN_STATUS_LOADED) {
-		fprintf(stderr, "Test failed. config-status is '%d'\n", config_status);
+		fprintf(stderr, "Failed to test the case 'CHECK-JSON-CONFIG'"
+				"Wrong 'config-status' value:%d\n", config_status);
 		exit(1);
 	}
+
+	printf("Success to test the case 'CHECK-JSON-CONFIG'\n");
 }
 
 /*
@@ -504,9 +547,12 @@ check_missing_ovpn(void)
 	exit_code = run_rvc(args, NULL);
 	stop_rvd(rvd_pid);
 	if (exit_code == 0) {
-		fprintf(stderr, "Failed to test connect by missing OpenVPN profile\n");
+		fprintf(stderr, "Failed to test the case 'CHECK-MISSING-OVPN'"
+				"Connected by missing OpenVPN profile\n");
 		exit(1);
 	}
+
+	printf("Success to test the case 'CHECK-MISSING-OVPN'\n");
 }
 
 /*
@@ -541,7 +587,8 @@ check_default_connect(void)
 	j_obj = json_tokener_parse(resp_buf);
 	if (!j_obj) {
 		free(resp_buf);
-		fprintf(stderr, "json_tokener_parse() failed.(resp_buf:%s)\n", resp_buf);
+		fprintf(stderr, "Failed to test the case 'CHECK-DEFAULT-CONNECT'"
+				"Failed to parse JSON buffer '%s'\n", resp_buf);
 		exit(1);
 	}
 
@@ -555,13 +602,17 @@ check_default_connect(void)
 	json_object_put(j_obj);
 
 	if (!conn_status || strcmp(conn_status, "CONNECTED") != 0) {
-		fprintf(stderr, "Test failed. Connection status is %s\n", conn_status);
+		fprintf(stderr, "Failed to test the case 'CHECK-DEFAULT-CONNECT'"
+				"Connection status is %s\n", conn_status);
+		print_ovpn_log("test");
 		if (conn_status)
 			free(conn_status);
 		exit(1);
 	}
 
 	free(conn_status);
+
+	printf("Success to test the case 'CHECK-DEFAULT-CONNECT'\n");
 }
 
 /*
@@ -603,7 +654,8 @@ check_preconn_cmd(void)
 		j_obj = json_tokener_parse(resp_buf);
 		if (!j_obj) {
 			free(resp_buf);
-			fprintf(stderr, "json_tokener_parse() failed.(resp_buf:%s)\n", resp_buf);
+			fprintf(stderr, "Failed to test the case 'CHECK-PRECONN-CMD'"
+					"Failed to parse JSON buffer '%s'\n", resp_buf);
 			exit(1);
 		}
 
@@ -623,24 +675,30 @@ check_preconn_cmd(void)
 		json_object_put(j_obj);
 
 		if (!conn_status) {
-			fprintf(stderr, "Test failed. Connection status is NULL\n");
+			fprintf(stderr, "Failed to test the case 'CHECK-PRECONN-CMD'"
+					"Connection status is NULL\n");
 			exit(1);
 		}
 
 		if (i == 0) {
 			if (strcmp(conn_status, "DISCONNECTED") != 0 || pre_exec_status != 1) {
-				fprintf(stderr, "Test failed:(conn_status:%s, pre_exec_status:%d)\n", conn_status, pre_exec_status);
+				fprintf(stderr, "Failed to test the case 'CHECK-PRECONN-CMD'"
+						"Connection state:'%s', Pre-exec status:'%d'\n", conn_status, pre_exec_status);
 				exit(1);
 			}
 		} else {
 			if (strcmp(conn_status, "CONNECTED") != 0 || pre_exec_status != 0) {
-				fprintf(stderr, "Test failed:(conn_status:%s, pre_exec_status:%d)\n", conn_status, pre_exec_status);
+				fprintf(stderr, "Failed to test the case 'CHECK-PRECONN-CMD'"
+						"Connection state:'%s', Pre-exec status:'%d'\n", conn_status, pre_exec_status);
+				print_ovpn_log("test");
 				exit(1);
 			}
 		}
 
 		free(conn_status);
 	}
+
+	printf("Success to test the case 'CHECK-PRECONN-CMD'\n");
 }
 
 /*
@@ -667,6 +725,7 @@ check_reload(void)
 	exit_code = run_rvc(args2, NULL);
 	if (exit_code != 0) {
 		stop_rvd(rvd_pid);
+		fprintf(stderr, "Failed to test the case 'CHECK-RELOAD'\n");
 		exit(1);
 	}
 	uninstall_ovpn_profile("test1");
@@ -674,8 +733,12 @@ check_reload(void)
 	sleep(5);
 	exit_code = run_rvc(args2, NULL);
 	stop_rvd(rvd_pid);
-	if (exit_code == 0)
+	if (exit_code == 0) {
+		fprintf(stderr, "Failed to test the case 'CHECK-RELOAD'\n");
 		exit(1);
+	}
+
+	printf("Success to test the case 'CHECK-RELOAD'\n");
 }
 
 /*
@@ -713,7 +776,8 @@ check_kill_ovpn(void)
 	uninstall_ovpn_profile("test");
 
 	if (ret != 0) {
-		fprintf(stderr, "Failed to kill OpenVPN process in force\n");
+		fprintf(stderr, "Failed to test the case 'CHECK-OVPN-KILL'"
+				"Failed to kill OpenVPN process in force\n");
 		exit(1);
 	}
 
@@ -721,7 +785,8 @@ check_kill_ovpn(void)
 	j_obj = json_tokener_parse(resp_buf);
 	if (!j_obj) {
 		free(resp_buf);
-		fprintf(stderr, "json_tokener_parse() failed.(resp_buf:%s)\n", resp_buf);
+		fprintf(stderr, "Failed to test the case 'CHECK-OVPN-KILL'"
+				"Failed to parse JSON buffer:'%s'\n", resp_buf);
 		exit(1);
 	}
 
@@ -735,13 +800,16 @@ check_kill_ovpn(void)
 	json_object_put(j_obj);
 
 	if (!conn_status || strcmp(conn_status, "DISCONNECTED") != 0) {
-		fprintf(stderr, "Test failed. Connection status is %s\n", conn_status);
+		fprintf(stderr, "Failed to test the case 'CHECK-OVPN-KILL'"
+				"Connection status is %s\n", conn_status);
 		if (conn_status)
 			free(conn_status);
 		exit(1);
 	}
 
 	free(conn_status);
+
+	printf("Success to test the case 'CHECK-OVPN-KILL'\n");
 }
 
 /*
@@ -775,7 +843,8 @@ check_auto_connect(void)
 	j_obj = json_tokener_parse(resp_buf);
 	if (!j_obj) {
 		free(resp_buf);
-		fprintf(stderr, "json_tokener_parse() failed.(resp_buf:%s)\n", resp_buf);
+		fprintf(stderr, "Failed to test the case 'CHECK-AUTO-CONNECT'"
+				"Failed to parse JSON buffer:'%s'\n", resp_buf);
 		exit(1);
 	}
 
@@ -789,7 +858,8 @@ check_auto_connect(void)
 	json_object_put(j_obj);
 
 	if (!conn_status || strcmp(conn_status, "CONNECTED") != 0) {
-		fprintf(stderr, "Test failed. Connection status is %s\n", conn_status);
+		fprintf(stderr, "Faield to test the case 'CHECK-AUTO-CONNECT'"
+				"Connection status is %s\n", conn_status);
 		print_ovpn_log("test");
 		if (conn_status)
 			free(conn_status);
@@ -797,6 +867,8 @@ check_auto_connect(void)
 	}
 
 	free(conn_status);
+
+	printf("Success to test the case 'CHECK-AUTO-CONNECT'\n");
 }
 
 /*
@@ -824,9 +896,11 @@ check_dup_config(void)
 	uninstall_json_config("test");
 
 	if (exit_code == 0) {
-		fprintf(stderr, "Failed to test checking for duplicate configuration.\n");
+		fprintf(stderr, "Failed to test the case 'CHECK-DUP-CONFIG'\n");
 		exit(1);
 	}
+
+	printf("Success to test the case 'CHECK-DUP-CONFIG'\n");
 }
 
 /*
