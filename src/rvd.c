@@ -322,7 +322,7 @@ parse_config(rvd_ctx_opt_t *opt, const char *config_path)
 
 	/* parse configuration json */
 	if (rvd_json_parse(buf, config_jobjs, sizeof(config_jobjs) / sizeof(struct rvd_json_object)) != 0) {
-		fprintf(stderr, "Couldn't parse json configuration from config file\n");
+		fprintf(stderr, "Couldn't parse json configuration '%s' from config file\n", buf);
 		return -1;
 	}
 
