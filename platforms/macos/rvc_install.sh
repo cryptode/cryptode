@@ -57,4 +57,7 @@ fi
 install -m 600 -g wheel -o root "${RVD_PLIST_FILE}" "${LAUNCHD}"
 launchctl load -w "${LAUNCHD}/${RVD_PLIST_NAME}"
 
+# This is to ensure you will always use the correct rvc that is living in /opt/rvc/bin
+rm -f /usr/local/bin/rvc /usr/local/bin/rvd
+
 exit 0
