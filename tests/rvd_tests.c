@@ -74,6 +74,7 @@ usage(void)
 					"  --check-reload         Tests for reloading\n"
 					"  --check-kill-ovpn      Tests for detecting status after killing openvpn process\n"
 					"  --check-auto-connect   Tests for checking auto starting of VPN connection\n"
+					"  --check-dup-config     Tests for checking duplicate configurations\n"
 					);
 	exit(1);
 }
@@ -785,6 +786,36 @@ check_auto_connect(void)
 }
 
 /*
+ * check duplicate configurations
+ */
+
+static void
+check_dup_config(void)
+{
+	pid_t rvd_pid;
+	int exit_code;
+
+	char *args[] = {RVC_BIN_PATH, "import", "new-from-ovpn", "profile/test.ovpn", NULL};
+
+	printf("\n\n################## Checking for duplicate configurations ######################\n\n");
+
+	/* try to connect and get status */
+	install_ovpn_profile("test", "test", 0);
+	install_json_config("test", "test");
+	rvd_pid = start_rvd();
+	sleep(3);
+	exit_code = run_rvc(args, NULL);
+	stop_rvd(rvd_pid);
+	uninstall_ovpn_profile("test");
+	uninstall_json_config("test");
+
+	if (exit_code == 0) {
+		fprintf(stderr, "Failed to test checking for duplicate configuration.\n");
+		exit(1);
+	}
+}
+
+/*
  * main function
  */
 
@@ -807,6 +838,7 @@ main(int argc, char *argv[])
 		check_reload();
 		check_kill_ovpn();
 		check_auto_connect();
+		check_dup_config();
 	} else {
 		if (strcmp(argv[1], "--check-rvd-json") == 0)
 			permission_check_rvd_json();
@@ -828,6 +860,8 @@ main(int argc, char *argv[])
 			check_kill_ovpn();
 		else if (strcmp(argv[1], "--check-auto-connect") == 0)
 			check_auto_connect();
+		else if (strcmp(argv[1], "--check-dup-config") == 0)
+			check_dup_config();
 		else
 			usage();
 	}
