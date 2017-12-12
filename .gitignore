@@ -32,7 +32,9 @@ rvc.pkg
 src/rvd
 etc/rvd.json
 rvc.spec
-tests/
+tests/rvd_tests
+tests/.deps
+tmp
 
 # Intellij IdeaC
 .idea/

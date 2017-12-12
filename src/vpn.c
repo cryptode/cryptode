@@ -1471,10 +1471,8 @@ static void *monitor_vpn_conn(void *p)
 			break;
 		}
 
-		if (!FD_ISSET(vpn_conn->ovpn_mgm_sock, &fds)) {
-			sleep(1);
+		if (!FD_ISSET(vpn_conn->ovpn_mgm_sock, &fds))
 			continue;
-		}
 
 		/* get respnose */
 		memset(ovpn_mgm_resp, 0, sizeof(ovpn_mgm_resp));
@@ -1493,27 +1491,23 @@ static void *monitor_vpn_conn(void *p)
 				RVD_DEBUG_MSG("VPN: OpenVPN connection was recovered after abnormal termination.");
 				vpn_conn->conn_state = RVD_CONN_STATE_CONNECTED;
 			}
-		} else if (ret == 0) {
+		} else if (ret == 0)
 			failed = true;
-		} else {
+		else {
 			if (errno != EWOULDBLOCK)
 				failed = true;
 		}
 
+		/* stop VPN connection */
 		if (failed) {
-			/* stop vpn connection */
 			if (vpn_conn->conn_state != RVD_CONN_STATE_DISCONNECTED ||
 				vpn_conn->conn_state != RVD_CONN_STATE_DISCONNECTING) {
 				vpn_conn->conn_state = RVD_CONN_STATE_DISCONNECTING;
 				RVD_DEBUG_WARN("VPN: Detected that OpenVPN process was abnormally terminated.");
 				stop_vpn_conn(vpn_conn);
 			}
-
 			close_ovpn_mgm_sock(vpn_conn);
-			continue;
 		}
-
-		sleep(1);
 	}
 
 	RVD_DEBUG_MSG("VPN: VPN connection monitoring thread with name '%s' stopped", vpn_conn->config.name);

@@ -158,7 +158,6 @@ int rvc_read_vpn_config(const char *config_dir, const char *config_name, struct 
 		size_t read_len;
 
 		rvd_json_object_t vpn_config[] = {
-			{"name", RVD_JTYPE_STR, config.name, sizeof(config.name), true, NULL},
 			{"auto-connect", RVD_JTYPE_BOOL, &config.auto_connect, 0, false, NULL},
 			{"pre-connect-exec", RVD_JTYPE_STR, config.pre_exec_cmd, sizeof(config.pre_exec_cmd), false, NULL},
 			{"pre-connect-exec-interval", RVD_JTYPE_INT, &config.pre_exec_interval, 0, false, NULL}
