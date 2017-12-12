@@ -1,12 +1,6 @@
 #!/bin/bash
 set -eu
 
-LD_LIBRARY_PATH="${CMOCKA_INSTALL}/lib"
-LDFLAGS="-L${CMOCKA_INSTALL}/lib"
-CFLAGS="-I${CMOCKA_INSTALL}/include"
-
-export LD_LIBRARY_PATH CFLAGS LDFLAGS
-
 CHECKPATCH=$CHECKPATCH_INSTALL/checkpatch.pl
 
 CHECKPATCH_FLAGS+=" --no-tree"
@@ -63,8 +57,7 @@ macos_build() {
 		./configure \
 			--disable-silent-rules \
 			--enable-tests \
-			--with-openssl=${OPENSSL_DIR} \
-			--with-cmocka=${CMOCKA_INSTALL} && \
+			--with-openssl=${OPENSSL_DIR} && \
 		make clean && \
 		make
 }
@@ -73,8 +66,7 @@ linux_build() {
 	sh autogen.sh && \
 		./configure \
 			--disable-silent-rules \
-			--enable-tests \
-			--with-cmocka=${CMOCKA_INSTALL} && \
+			--enable-tests && \
 		make clean && \
 		make
 }

@@ -1,5 +1,5 @@
 AC_PREREQ(2.60)
-AC_INIT([rvc], [0.9.0], [https://github.com/riboseinc/rvc/issues])
+AC_INIT([rvc], [1.0.0], [https://github.com/riboseinc/rvc/issues])
 AM_INIT_AUTOMAKE([foreign subdir-objects -Wall])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 AC_CONFIG_MACRO_DIR([m4])
