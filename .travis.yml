@@ -30,4 +30,4 @@ script:
 
 os:
   - linux
-  - osx
+#  - osx

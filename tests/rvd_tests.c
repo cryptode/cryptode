@@ -445,7 +445,7 @@ permission_check_ovpn_profile(void)
 	uninstall_ovpn_profile("test");
 	if (exit_code == 0) {
 		fprintf(stderr, "Failed to test the case 'CHECK-OVPN-PROFILE'."
-				"Connected by OpenVPN profile with wrong permission.\n");
+				"Connected using OpenVPN profile with wrong permission.\n");
 		exit(1);
 	}
 
@@ -458,7 +458,7 @@ permission_check_ovpn_profile(void)
 	uninstall_ovpn_profile("test");
 	if (exit_code != 0) {
 		fprintf(stderr, "Failed to test the case 'CHECK-OVPN-PROFILE'."
-				"Connected by OpenVPN profile with valid permission.\n");
+				"Not connected using OpenVPN profile with valid permission.(exit_code:%d)\n", exit_code);
 		exit(exit_code);
 	}
 
@@ -857,7 +857,7 @@ check_auto_connect(void)
 	free(resp_buf);
 	json_object_put(j_obj);
 
-	if (!conn_status || strcmp(conn_status, "CONNECTED") != 0) {
+	if (!conn_status || strcmp(conn_status, "DISCONNECTED") == 0) {
 		fprintf(stderr, "Faield to test the case 'CHECK-AUTO-CONNECT'"
 				"Connection status is %s\n", conn_status);
 		print_ovpn_log("test");

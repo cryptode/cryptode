@@ -269,7 +269,6 @@ static int send_sigterm_to_ovpn(struct rvc_vpn_conn *vpn_conn)
 {
 	int ret = 0;
 
-	/* check if management socket is valid */
 	if (vpn_conn->ovpn_mgm_sock <= 0)
 		return -1;
 
@@ -1471,8 +1470,10 @@ static void *monitor_vpn_conn(void *p)
 			break;
 		}
 
-		if (!FD_ISSET(vpn_conn->ovpn_mgm_sock, &fds))
+		if (!FD_ISSET(vpn_conn->ovpn_mgm_sock, &fds)) {
+			usleep(50 * 1000);
 			continue;
+		}
 
 		/* get respnose */
 		memset(ovpn_mgm_resp, 0, sizeof(ovpn_mgm_resp));

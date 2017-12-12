@@ -23,7 +23,6 @@ macos_install() {
 	for p in ${packages}; do
 		brew install ${p} || brew upgrade ${p}
 	done
-	mkdir -p ${CMOCKA_INSTALL}
 }
 
 linux_install() {
@@ -40,7 +39,6 @@ linux_install() {
 	for p in ${packages}; do
 		sudo apt-get install -y ${p}
 	done
-	mkdir -p ${CMOCKA_INSTALL}
 }
 
 crossplat_install() {
