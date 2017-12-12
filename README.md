@@ -1,4 +1,5 @@
-= RVC: the **R**elaxed **V**PN **C**lient
+# RVC: the **R**elaxed **V**PN **C**lient
+
 [![Build Status](https://travis-ci.org/riboseinc/rvc.svg?branch=master)](https://travis-ci.org/riboseinc/rvc)
 
 RVC is a command-line driven OpenVPN client for macOS (Sierra and High
@@ -18,35 +19,32 @@ found a bug or identified a security vulnerability.
 NOTE2: We are open to pull requests!
 
 
-== Quick Install
+## Quick Install
 
 On macOS:
 
-[source,sh]
-----
+```sh
 brew tap riboseinc/rvc
 brew install --HEAD rvc
 sudo /usr/local/bin/rvc_install.sh
-----
+```
 
 WARNING: **Remember to follow instructions given in the "caveats" section during `brew install`!**
 
-NOTE: Take a look at the https://github.com/riboseinc/homebrew-rvc[RVC
-  homebrew formula] if you want to know more.
+NOTE: Take a look at the [RVC homebrew formula](https://github.com/riboseinc/homebrew-rvc) if you want to know more.
 
 
 On RHEL/CentOS:
 
-[source,sh]
-----
+```sh
 sudo yum install https://github.com/<TODO>
-----
+```
 
 
-== Usage
+## Usage
 
-[source,console]
-----
+
+```sh
 $ rvc
 usage: rvc <options>
   options:
@@ -63,27 +61,25 @@ usage: rvc <options>
     script-security <enable|disable>		enable/disable script security
     help					show help message
     version					print version
-----
+```
 
 
-=== Add VPN Connection
+### Add VPN Connection
 
 Follow these steps to setup a new VPN connection. The name of the VPN
 is derived from the filename.
 
 Add the OpenVPN configuration (a `.ovpn` file):
 
-[source,sh]
-----
+```sh
 sudo vi /opt/rvc/etc/vpn.d/vpn1.ovpn
-----
+```
 
 Example OpenVPN file (with empty `<cert>`, `<ca>` and `<key>`, these
 obviously needs to be in there when actually adding the VPN):
 
 .<RVC path>/etc/vpn.d/vpn1.ovpn
-[source]
-----
+```
 client
 dev tun
 proto tcp
@@ -114,49 +110,44 @@ tls-version-min 1.2
 ...
 -----END RSA PRIVATE KEY-----
 </key>
-----
-
+```
 
 (**OPTIONAL**) Add the JSON configuration:
 
-[source,sh]
-----
+
+```sh
 sudo vi /opt/rvc/etc/vpn.d/vpn1.json
-----
+```
 
 .<RVC path>/etc/vpn.d/vpn1.json
-[source,json]
-----
+```json
 {
   "auto-connect": false,
   "pre-connect-exec": "",
   "pre-connect-exec-interval": ""
 }
-----
+```
 
 Set the correct permissions on both files:
 
-[source,sh]
-----
+```sh
 sudo chmod 500 /opt/rvc/etc/vpn.d/vpn1.ovpn
 sudo chmod 500 /opt/rvc/etc/vpn.d/vpn1.json
-----
+```
 
 After adding the new VPN called `vpn1` by adding the `.ovpn` + `.json` files
 to `<RVC path>/etc/vpn.d` you need to reload `rvd`.
 
 Reload `rvd`:
 
-[source,console]
-----
+```sh
 $ sudo rvc reload
 Sending reload signal to rvd process '3667' has succeeded.
-----
+```
 
 Check status:
 
-[source,console]
-----
+```sh
 $ rvc vpn1 status
 name: vpn1
 	config-status: JSON configuration exists
@@ -170,14 +161,12 @@ name: vpn1
 	pre-exec-cmd:
 	pre-exec-status:
 	pre-exec-interval:
+```
 
-----
 
+### Connect A VPN Connection
 
-=== Connect A VPN Connection
-
-[source,console]
-----
+```sh
 $ rvc vpn1 connect
 name: vpn1
 	config-status: JSON configuration exists
@@ -209,13 +198,12 @@ name: vpn1
 	pre-exec-status:
 	pre-exec-interval:
 
-----
+```
 
 
-=== Check Status Of A VPN Connection
+### Check Status Of A VPN Connection
 
-[source,console]
-----
+```sh
 $ rvc vpn1 status
 name: vpn1
 	config-status: JSON configuration exists
@@ -233,13 +221,12 @@ name: vpn1
 	pre-exec-status:
 	pre-exec-interval:
 
-----
+```
 
 
-=== Disconnect A VPN Connection
+### Disconnect A VPN Connection
 
-[source,console]
-----
+```sh
 $ rvc vpn1 disconnect
 name: vpn1
 	config-status: JSON configuration exists
@@ -268,10 +255,10 @@ name: vpn1
 	pre-exec-status:
 	pre-exec-interval:
 
-----
+```
 
 
-== Structure
+## Structure
 
 RVC has the following structure:
 
@@ -302,7 +289,7 @@ VPN log files:
 * `/var/log/rvd/<vpn>.ovpn.log`: VPN log file
 
 
-=== Platform Specific Paths and Dependencies: macOS
+### Platform Specific Paths and Dependencies: macOS
 
 RVC path::
   `/opt/rvc`
@@ -316,7 +303,7 @@ Dependencies:
   owned by `root`
 
 
-=== Platform Specific Paths and Dependencies: RHEL/CentOS
+### Platform Specific Paths and Dependencies: RHEL/CentOS
 
 RVC path::
   `/usr/local`
@@ -329,15 +316,14 @@ Dependencies:
 * `/usr/sbin/openvpn`: the location of the OpenVPN executable as installed via `yum`
 
 
-== Configuration
+## Configuration
 
-=== Global Configuration
+### Global Configuration
 
 The `<RVC path>/etc/rvd.json` configuration file looks like this on macOS:
 
 .<RVC path>/etc/rvd.json
-[source,json]
-----
+```json
 {
   "openvpn_bin": "/opt/openvpn/sbin/openvpn",
   "openvpn_root_check": true,
@@ -347,7 +333,7 @@ The `<RVC path>/etc/rvd.json` configuration file looks like this on macOS:
   "log_directory": "/var/log/rvd.log",
   "vpn_config_paths": "/opt/rvc/etc/vpn.d"
 }
-----
+```
 
 
 `openvpn_bin`::
@@ -397,19 +383,18 @@ NOTE: On macOS OpenVPN will be most likely installed by `brew` in
 This file is **mandatory**.
 
 
-=== Per-VPN Configuration
+### Per-VPN Configuration
 
 Example `rvd` configuration for a VPN: `<RVC path>/etc/vpn.d/vpn1.json`.
 
 .<RVC path>/etc/vpn.d/vpn1.json
-[source,json]
-----
+```json
 {
   "auto-connect": false,
   "pre-connect-exec": "",
   "pre-connect-exec-interval": ""
 }
-----
+```
 
 This file is **optional**.
 
@@ -432,7 +417,7 @@ create one if you need `auto-connect` and/or a `pre-connect-exec` script
 to run.
 
 
-== Security Architecture And Considerations
+## Security Architecture And Considerations
 
 The architecture of RVC is designed to be seamlessly used and managed
 from the command line, but kept as secure as possible.
@@ -446,9 +431,9 @@ impossible to automate VPN management and operation. RVC is created
 to fix this for macOS OpenVPN connection management.
 
 
-=== Architecture
+### Architecture
 
-----
+```
 +-----------------+
 | launchd/systemd |
 +-+---------------+
@@ -485,10 +470,10 @@ to fix this for macOS OpenVPN connection management.
 +----------+---------+
 | <RVC path>/bin/rvc +
 +--------------------+
-----
+```
 
 
-=== RVD Binary Ownership
+### RVD Binary Ownership
 
 `rvd` is owned by `root:wheel` and has the following permissions:
 `-r-x------`. `rvd` is meant to be only executed by `launchd` or
@@ -498,16 +483,15 @@ userid that is set in `<RVC path>/etc/rvd.conf`.
 
 It looks like this:
 
-[source,console]
-----
+```sh
 $ ls -la /var/run/rvd
 srw-------  1 test  wheel  0 Sep 19 15:52 /var/run/rvd
 $ id test
 uid=501(test) gid=20(staff) groups=20(staff),401(com.apple.sharepoint.group.1),12(everyone),61(localaccounts),79(_appserverusr),80(admin),81(_appserveradm),98(_lpadmin),501(access_bpf),701(com.apple.sharepoint.group.3),33(_appstore),100(_lpoperator),204(_developer),395(com.apple.access_ftp),398(com.apple.access_screensharing),399(com.apple.access_ssh),402(com.apple.sharepoint.group.2)
-----
+```
 
 
-=== RVC Binary Ownerships
+### RVC Binary Ownerships
 
 `rvc` is owned by `root:wheel` and has the following permissions:
 `-r-xr-xr-x`. `rvc` can be executed by any user but the socket `rvc`
@@ -526,7 +510,7 @@ from running `sudo` on a backdoored `rvc` that was placed in
 `/usr/local/bin` by a local attacker.
 
 
-=== OpenVPN Files
+### OpenVPN Files
 
 OpenVPN configuration files are stored in `<RVC path>/etc/vpn.d` which
 is owned by `root:wheel` and has `drwxr-xr-x` permissions.
@@ -550,25 +534,24 @@ to an attacker controlled IP.
 `rvd` *only* accepts OpenVPN files that are owned by `root` and are not
 readable by `others`:
 
-[source,console]
-----
+```sh
 $ ls -la /opt/rvc/etc/vpn.d
 total 144
 drwxr-xr-x  14 root  wheel   476 Sep 15 13:28 .
 drwxr-xr-x   4 root  wheel   136 Sep 15 16:48 ..
 -rw-------   1 root  wheel   146 Sep 11 13:50 vpn1.json
 -rw-------   1 root  wheel  7240 Sep 11 13:50 vpn1.ovpn
-----
+```
 
 
-=== Per-VPN Configuration
+### Per-VPN Configuration
 
 VPNs do not not require a .json `rvd` configuration file. By default
 VPN connections will not `auto-connect` and no `pre-connect-exec` will
 be executed.
 
 
-=== Pre-Connect Scripts
+### Pre-Connect Scripts
 
 VPNs can be configured that a script is executed before OpenVPN will
 connect. This is defined in `pre-connect-exec` in
@@ -578,7 +561,7 @@ As `rvd` runs as `root` it will drop its root privileges to the UID
 defined with `user_id` in `<RVC path>/etc/rvd.json`.
 
 
-=== Log Files
+### Log Files
 
 OpenVPN will be executed as root but log files will be owned by
 `user_id`. This is to ensure that your desktop user can access and
@@ -587,7 +570,7 @@ delete the log files of his/her VPNs.
 The following code in `src/vpn.c` is responsible for this:
 
 
-=== OpenVPN Executable
+### OpenVPN Executable
 
 On macOS Brew installs OpenVPN in `/usr/local/sbin`. This allows a local
 attacker to replace the `openvpn` executable with something malicious.
@@ -598,24 +581,22 @@ Upon start, `rvd` will perform the `root` check on the `openvpn`
 executable before it actually runs it.
 
 
-== Development
+## Development
 
-=== Installation via source on macOS
+### Installation via source on macOS
 
 Install dependencies:
 
-[source,sh]
-----
+```sh
 brew install openvpn
-----
+```
 
 Manual compilation and installation:
 
-[source,sh]
-----
+```sh
 git clone https://github.com/riboseinc/rvc
 cd rvc
 ./build_macos.sh
 make install
 sudo /usr/local/bin/rvc_install.sh
-----
+```
