@@ -55,6 +55,8 @@
 #define OVPN_BIN_VALID_PERMISSION     (S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)
 #define OVPN_BIN_WRONG_PERMISSION     (S_IRUSR | S_IXUSR | S_IROTH | S_IWOTH)
 
+#define RVD_MAX_STOP_TIMEOUT          10
+
 /*
  * print usage
  */
@@ -166,14 +168,32 @@ static int
 stop_rvd(pid_t pid)
 {
 	int w, status;
+	int timeout = 0;
+	int ret = -1;
 
 	kill(pid, SIGTERM);
+	do {
+		w = waitpid(pid, &status, 0);
+		if (w < 0)
+			return -1;
+		else if (w == 0) {
+			if (timeout == RVD_MAX_STOP_TIMEOUT) {
+				fprintf(stderr, "RVD process isn't responding for SIGTERM signal\n");
+				kill(pid, SIGKILL);
+				exit(1);
+			}
+			timeout++;
+			sleep(1);
+			continue;
+		}
 
-	w = waitpid(pid, &status, 0);
-	if (w < 0)
-		return -1;
+		if (WIFEXITED(status)) {
+			ret = WEXITSTATUS(status);
+			break;
+		}
+	} while (1);
 
-	return WEXITSTATUS(status);
+	return ret;
 }
 
 /*

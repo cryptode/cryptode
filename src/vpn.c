@@ -685,17 +685,20 @@ static int run_openvpn_proc(struct rvc_vpn_conn *vpn_conn)
  * parse response from openvpn management socket
  */
 
-static void parse_ovpn_mgm_resp(struct rvc_vpn_conn *vpn_conn, char *mgm_resp)
+static void parse_ovpn_mgm_resp(struct rvc_vpn_conn *vpn_conn, const char *mgm_resp)
 {
+	char *buffer;
 	char *tok, *p;
 
 	char sep[] = "\n";
 
-	if (strncmp(mgm_resp, OVPN_MGM_RESP_STATE, strlen(OVPN_MGM_RESP_STATE)) == 0) {
-		RVD_DEBUG_MSG("VPN: Try parsing OpenVPN management response '%s' for state", mgm_resp);
+	buffer = strdup(mgm_resp);
+	if (!buffer) {
+		RVD_DEBUG_ERR("VPN: Out of memory!");
+		return;
 	}
 
-	tok = strtok(mgm_resp, sep);
+	tok = strtok(buffer, sep);
 	while (tok != NULL) {
 		if (strncmp(tok, OVPN_MGM_RESP_BYTECOUNT, strlen(OVPN_MGM_RESP_BYTECOUNT)) == 0) {
 			char bytes[64];
@@ -715,12 +718,12 @@ static void parse_ovpn_mgm_resp(struct rvc_vpn_conn *vpn_conn, char *mgm_resp)
 
 			int i;
 
+			RVD_DEBUG_MSG("VPN: Try parsing OpenVPN management response '%s' for state", tok);
+
+			/* parse state response */
 			p = tok + strlen(OVPN_MGM_RESP_STATE);
 
-			/* get timestamp */
 			get_token_by_comma(&p, ts_str, sizeof(ts_str));
-
-			/* get connection state */
 			get_token_by_comma(&p, conn_state, sizeof(conn_state));
 			for (i = 0; g_ovpn_state[i].ovpn_state_str != NULL; i++) {
 				if (strcmp(conn_state, g_ovpn_state[i].ovpn_state_str) == 0) {
@@ -729,13 +732,13 @@ static void parse_ovpn_mgm_resp(struct rvc_vpn_conn *vpn_conn, char *mgm_resp)
 				}
 			}
 
-			/* if connected, then set timestamp */
 			if (vpn_conn->ovpn_state == OVPN_STATE_CONNECTED)
 				vpn_conn->connected_tm = strtol(ts_str, NULL, 10);
 		}
-
 		tok = strtok(NULL, sep);
 	}
+
+	free(buffer);
 }
 
 /*
