@@ -1,5 +1,6 @@
 = RVC: the **R**elaxed **V**PN **C**lient
-[![Build Status](https://travis-ci.org/riboseinc/rvc.svg?branch=master)](https://travis-ci.org/riboseinc/rvc)
+
+image:https://travis-ci.org/riboseinc/rvc.svg?branch=master["Build Status", link="https://travis-ci.org/riboseinc/rvc"]
 
 RVC is a command-line driven OpenVPN client for macOS (Sierra and High
 Sierra) and (WIP: RHEL/CentOS 7 + Ubuntu) with two focus areas:
