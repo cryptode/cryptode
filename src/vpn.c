@@ -179,18 +179,17 @@ static int send_cmd_to_ovpn_mgm(struct rvc_vpn_conn *vpn_conn, const char *cmd)
 {
 	char resp[512];
 
-	/* send command via management socket */
 	if (send(vpn_conn->ovpn_mgm_sock, cmd, strlen(cmd), 0) <= 0) {
 		RVD_DEBUG_ERR("VPN: Couldn't send '%s' command to OpenVPN management socket(err:%d)", cmd, errno);
 		return -1;
 	}
 
-	/* receive current openvpn connection state */
 	memset(resp, 0, sizeof(resp));
 	if (recv(vpn_conn->ovpn_mgm_sock, resp, sizeof(resp), 0) <= 0) {
 		RVD_DEBUG_ERR("VPN: Couldn't receive response for '%s' command from OpenVPN management socket(err:%d)", cmd, errno);
 		return -1;
 	}
+	RVD_DEBUG_MSG("VPN: The response is '%s' for cmd '%s'", resp, cmd);
 
 	return 0;
 }
@@ -250,9 +249,8 @@ static int connect_to_ovpn_mgm(struct rvc_vpn_conn *vpn_conn)
 	/* set management socket */
 	vpn_conn->ovpn_mgm_sock = sock;
 
-	/* send command to openvpn management */
-	if (send_cmd_to_ovpn_mgm(vpn_conn, OVPN_MGM_CMD_BYTECOUNT) != 0 ||
-		send_cmd_to_ovpn_mgm(vpn_conn, OVPN_MGM_CMD_STATE) != 0) {
+	/* send 'state' command to openvpn management */
+	if (send_cmd_to_ovpn_mgm(vpn_conn, OVPN_MGM_CMD_STATE) != 0) {
 		close_ovpn_mgm_sock(vpn_conn);
 		return -1;
 	}
@@ -801,6 +799,9 @@ static void *start_vpn_conn(void *p)
 			!vpn_conn->conn_cancel) {
 		RVD_DEBUG_MSG("VPN: VPN connection with name '%s' has been succeeded", vpn_conn->config.name);
 		vpn_conn->conn_state = RVD_CONN_STATE_CONNECTED;
+
+		/* send command for bytes notification */
+		send_cmd_to_ovpn_mgm(vpn_conn, OVPN_MGM_CMD_BYTECOUNT);
 	} else {
 		/* check end flag */
 		if (vpn_conn->end_flag || vpn_conn->conn_cancel)
