@@ -1,15 +1,21 @@
 dist: trusty
 sudo: enabled
+group: deprecated-2017Q4
 language: c
+
+branches:
+  only:
+    - master
+    - coverity_scan
 
 env:
   global:
-    - CMOCKA_INSTALL="$HOME/builds/cmocka-install"
     - CHECKPATCH_INSTALL="$HOME/builds/checkpatch-install"
+    - secure: "JqCcpHwPaJAeYYvABPdFhzElow6CAq5RRnXR5k8Lv8E5W1uqDmJq9sCII0zYdiKTPNKpVg3vCHLu49db6/NDNO6wC5lsFmdkQxgQQSdtxbqME8UuqW99oB/zJjwRv/upKWdX8zi9aub9KuHRRoMWaW5IZ+A5HrHDMHjDvmIBrQ6Be0EsP5g3PeKBQMFkrz6CwN4DBFMMh81hBRxYgZLcYnWkw4KmAfDKw9Lx2OogJxddJE8oqMPpD0c6YYQ1PDpBvvvTD6iIS3Yb5PxmX+5UadrWT6QAMUCPp0uIspRQCbjamHZF03EXA1GxAPW5S9ZBSmRiGibz2LI7xcxUl6H9KxhTCozwY9ndLsAtQc8n7ByVuAbVRCZEtrSw8M3Mx137S6QLS7hj8jzE6/qyFh394YljoR/+WSYp5vzhB8K70cxhYB5ucnm0I56lZBD3c3daMVP0v07B8rxM1iONDaVYaplA1ChsNseRT/8Hn7dJ1XTK6169W4mO9s0DofXcRhpjtex0VhmKhtL5ugSNWUtnTqkwsuk4CSceK7oL4DI8TbhS2GvrBpUQ4AeavR0/Tl4SNu54Ia+oiYo9GKA6/XcEgg90b8DuT6Cuw0uM1M01UGaEWFcQduw9NXFSO/8TI4+/DWsiOrE9/64qsPqUEc3pjNLwJBk8MmePlD6ufuNB5fI="
 
 before_install:
   - if [ $TRAVIS_OS_NAME = linux ]; then sudo apt-get update; else brew update; fi
-  - if [ $TRAVIS_OS_NAME = linux ]; then sudo apt-get install openvpn -y; else brew install openvpn; fi
+  - if [ $TRAVIS_OS_NAME = linux ]; then sudo apt-get install openvpn -y; else brew install openvpn openssl; fi
   - ./ci/install_deps.sh
 
 addons:
