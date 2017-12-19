@@ -128,7 +128,7 @@ print_ovpn_log(const char *ovpn_profile_name)
 		return;
 	}
 
-	fread(buf, 1, st.st_size, fp);
+	fread(buf, 1, st.st_size - 1, fp);
 	fclose(fp);
 
 	fprintf(stderr, "\n\nOpenVPN log:\n\n%s\n\n", buf);

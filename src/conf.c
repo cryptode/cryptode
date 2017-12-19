@@ -246,7 +246,7 @@ int rvc_read_vpn_config(const char *config_dir, const char *config_name, struct 
 int rvc_write_vpn_config(const char *config_dir, const char *config_name, struct rvc_vpn_config *vpn_config)
 {
 	int fd;
-	FILE *fp;
+	FILE *fp = NULL;
 
 	char json_config_path[RVD_MAX_PATH];
 	char *config_buffer;

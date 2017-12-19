@@ -117,7 +117,7 @@ get_pid_of_rvd()
 		return 0;
 
 	/* get pid */
-	while (fgets(buf, sizeof(buf), pid_fp) != NULL) {
+	while (fgets(buf, sizeof(buf) - 1, pid_fp) != NULL) {
 		if (buf[strlen(buf) - 1] == '\n')
 			buf[strlen(buf) - 1] = '\0';
 
@@ -451,18 +451,16 @@ static int send_cmd(enum RVD_CMD_CODE cmd_code, const char *cmd_param, int use_j
 
 	/* send command */
 	ret = send(g_sock, cmd, strlen(cmd), 0);
-
-	/* free command buffer */
-	free(cmd);
-
 	if (ret <= 0) {
 		fprintf(stderr, "Couldn't send command %s\n", cmd);
+		free(cmd);
 		return RVD_RESP_SOCK_CONN;
 	}
+	free(cmd);
 
 	/* receive response */
 	memset(resp, 0, sizeof(resp));
-	if (recv(g_sock, resp, sizeof(resp), 0) <= 0) {
+	if (recv(g_sock, resp, sizeof(resp) - 1, 0) <= 0) {
 		fprintf(stderr, "Couldn't receive response\n");
 		return RVD_RESP_SOCK_CONN;
 	}
@@ -739,6 +737,7 @@ int rvc_import(int import_type, const char *import_path)
 		ret = import_ovpn_from_tblk(conf_dir, import_path);
 		if (ret <= 0) {
 			fprintf(stderr, "Couldn't import OpenVPN profile from TunnelBlick profile '%s'", import_path);
+			free(conf_dir);
 			return RVD_RESP_INVALID_PROFILE_TYPE;
 		}
 	} else {
@@ -748,12 +747,14 @@ int rvc_import(int import_type, const char *import_path)
 		fsize = get_file_size(import_path);
 		if (fsize <= 0 || fsize >= RVC_MAX_IMPORT_SIZE) {
 			fprintf(stderr, "Invalid size or too large file '%s'\n", import_path);
+			free(conf_dir);
 			return RVD_RESP_IMPORT_TOO_LARGE;
 		}
 
 		/* checks whether same profile is exist */
 		if (is_exist_file_in_dir(conf_dir, import_path)) {
 			fprintf(stderr, "The same configuration is already exist in '%s'\n", conf_dir);
+			free(conf_dir);
 			return RVD_RESP_IMPORT_EXIST_PROFILE;
 		}
 
@@ -765,6 +766,8 @@ int rvc_import(int import_type, const char *import_path)
 	}
 
 	fprintf(stderr, "Success to import VPN configuration from '%s'\n", import_path);
+
+	free(conf_dir);
 
 	return rvc_reload();
 }
