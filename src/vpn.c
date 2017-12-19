@@ -383,7 +383,7 @@ static int check_ovpn_binary(const char *ovpn_bin_path, bool root_check)
 static void log_pre_exec_output(int fd, const char *log_path, const char *cmd, int status)
 {
 	int log_fd;
-	FILE *log_fp;
+	FILE *log_fp = NULL;
 
 	char buffer[512];
 	ssize_t read_bytes;
@@ -393,7 +393,7 @@ static void log_pre_exec_output(int fd, const char *log_path, const char *cmd, i
 	char *cmd_out = NULL;
 
 	/* read bytes from pipe */
-	while ((read_bytes = read(fd, buffer, sizeof(buffer) - 1)) != 0) {
+	while ((read_bytes = read(fd, buffer, sizeof(buffer) - 1)) > 0) {
 		ssize_t total_size = read_bytes + buffer_size + 1;
 
 		cmd_out = realloc(cmd_out, total_size);
@@ -402,19 +402,14 @@ static void log_pre_exec_output(int fd, const char *log_path, const char *cmd, i
 			return;
 		}
 
+		buffer[read_bytes] = '\0';
 		strlcpy(&cmd_out[buffer_size], buffer, total_size);
 	}
 
-	/* open log file for append mode */
+	/* open log file for append mode and write pre-exec command output */
 	log_fd = open(log_path, O_CREAT | O_WRONLY | O_APPEND, S_IRUSR | S_IWUSR);
-	if (log_fd > 0)
-		log_fp = fdopen(log_fd, "a");
-
-	if (log_fd < 0 || !log_fp) {
+	if (log_fd < 0) {
 		RVD_DEBUG_ERR("VPN: Couldn't open openvpn log file '%s'", log_path);
-
-		if (log_fd > 0)
-			close(log_fd);
 
 		if (cmd_out)
 			free(cmd_out);
@@ -422,16 +417,25 @@ static void log_pre_exec_output(int fd, const char *log_path, const char *cmd, i
 		return;
 	}
 
-	/* write log line */
+	log_fp = fdopen(log_fd, "a");
+	if (!log_fp) {
+		RVD_DEBUG_ERR("VPN: Couldn't open openvpn log file '%s'", log_path);
+
+		close(log_fd);
+
+		if (cmd_out)
+			free(cmd_out);
+
+		return;
+	}
+
 	if (status != 0)
 		fprintf(log_fp, "Warning, pre-exec-cmd '%s' has failed with exit code '%d'\n", cmd, status);
 
-	/* write command output */
-	if (cmd_out)
-		fprintf(log_fp, "The result of pre-exec-cmd '%s' is\n%s\n", cmd, cmd_out);
+	fprintf(log_fp, "The result of pre-exec-cmd '%s' is\n%s\n", cmd, cmd_out);
 
-	/* close log file */
 	fclose(log_fp);
+	free(cmd_out);
 }
 
 /*
@@ -487,8 +491,16 @@ static int run_preconn_cmd(struct rvc_vpn_conn *vpn_conn)
 	tok = strtok(cmd, " ");
 	while (tok) {
 		args = realloc(args, (++tok_count + 1) * sizeof(char *));
-		if (!args)
-			break;
+		if (!args) {
+			RVD_DEBUG_ERR("VPN: Out of memory(strdup)");
+
+			CLOSE_PIPE(pipeout);
+			CLOSE_PIPE(pipeerr);
+
+			free(cmd);
+
+			return -1;
+		}
 		args[tok_count - 1] = tok;
 
 		tok = strtok(NULL, " ");
@@ -580,7 +592,7 @@ static void rotate_orig_ovpn_log(const char *ovpn_log_path)
 
 	/* get state of openvpn log file */
 	if (stat(ovpn_log_path, &st) != 0 || !S_ISREG(st.st_mode)) {
-		remove(ovpn_log_path);
+		unlink(ovpn_log_path);
 		return;
 	}
 
@@ -590,8 +602,10 @@ static void rotate_orig_ovpn_log(const char *ovpn_log_path)
 
 	/* backup original log file */
 	snprintf(backup_log_path, sizeof(backup_log_path), "%s.0", ovpn_log_path);
+	unlink(backup_log_path);
 
-	rename(ovpn_log_path, backup_log_path);
+	if (rename(ovpn_log_path, backup_log_path) != 0)
+		RVD_DEBUG_WARN("VPN: Failed to backup OpenVPN log file.(err:%d)\n", errno);
 }
 
 /*
@@ -636,7 +650,7 @@ static int run_openvpn_proc(struct rvc_vpn_conn *vpn_conn)
 
 	snprintf(mgm_port_str, sizeof(mgm_port_str), "%d", vpn_conn->ovpn_mgm_port);
 	snprintf(ovpn_pid_fpath, sizeof(ovpn_pid_fpath), "%s/%s.ovpn.pid", RVD_PID_DPATH, vpn_conn->config.name);
-	remove(ovpn_pid_fpath);
+	unlink(ovpn_pid_fpath);
 
 	ovpn_pid = fork();
 	if (ovpn_pid == 0) {
@@ -1505,7 +1519,7 @@ static void *monitor_vpn_conn(void *p)
 
 		/* stop VPN connection */
 		if (failed) {
-			if (vpn_conn->conn_state != RVD_CONN_STATE_DISCONNECTED ||
+			if (vpn_conn->conn_state != RVD_CONN_STATE_DISCONNECTED &&
 				vpn_conn->conn_state != RVD_CONN_STATE_DISCONNECTING) {
 				vpn_conn->conn_state = RVD_CONN_STATE_DISCONNECTING;
 				RVD_DEBUG_WARN("VPN: Detected that OpenVPN process was abnormally terminated.");

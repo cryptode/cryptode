@@ -35,6 +35,7 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <syslog.h>
+#include <errno.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -72,20 +73,21 @@ static int open_log_file(int backup)
 	/* backup old log file */
 	if (backup) {
 		snprintf(backup_log_path, sizeof(backup_log_path), "%s.0", g_log_path);
-		rename(g_log_path, backup_log_path);
+		if (rename(g_log_path, backup_log_path) != 0)
+			fprintf(stderr, "Couldn't backup log file(err:%d)\n", errno);
 	}
 
 	/* open log file */
 	fd = open(g_log_path, O_CREAT | O_RDWR | O_APPEND, S_IRUSR | S_IWUSR);
-	if (fd > 0)
-		g_log_fp = fdopen(fd, "a");
-
-	if (fd < 0 || !g_log_fp) {
+	if (fd < 0) {
 		fprintf(stderr, "Couldn't open log file '%s' for writing.\n", g_log_path);
+		return -1;
+	}
 
-		if (fd > 0)
-			close(fd);
-
+	g_log_fp = fdopen(fd, "a");
+	if (!g_log_fp) {
+		fprintf(stderr, "Couldn't open log file '%s' for writing.\n", g_log_path);
+		close(fd);
 		return -1;
 	}
 
@@ -97,8 +99,12 @@ static int open_log_file(int backup)
 	}
 	g_log_fsize = st.st_size;
 
-	/* set permission */
-	chmod(g_log_path, S_IRUSR | S_IWUSR);
+	/* set file permission */
+	if (chmod(g_log_path, S_IRUSR | S_IWUSR) != 0) {
+		fprintf(stderr, "Couldn't set permission for log file '%s'.\n", g_log_path);
+		fclose(g_log_fp);
+		return -1;
+	}
 
 	return 0;
 }

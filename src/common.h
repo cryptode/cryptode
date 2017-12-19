@@ -12,6 +12,7 @@
 #define RVD_MAX_CONN_NAME_LEN      128
 #define RVD_MAX_CONN_INFO_LEN      2048
 #define RVD_MAX_CONN_STATUS_LEN    2048
+#define RVD_BUF_SIZE               512
 
 #define RVC_MAX_IMPORT_SIZE        10240
 

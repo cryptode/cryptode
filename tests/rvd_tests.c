@@ -119,6 +119,7 @@ print_ovpn_log(const char *ovpn_profile_name)
 		fprintf(stderr, "Log file '%s' is too big. Out of memory.\n", ovpn_log_path);
 		return;
 	}
+	memset(buf, 0, st.st_size + 1);
 
 	/* read buffer from file */
 	fp = fopen(ovpn_log_path, "r");
@@ -128,7 +129,7 @@ print_ovpn_log(const char *ovpn_profile_name)
 		return;
 	}
 
-	fread(buf, 1, st.st_size, fp);
+	fread(buf, 1, st.st_size - 1, fp);
 	fclose(fp);
 
 	fprintf(stderr, "\n\nOpenVPN log:\n\n%s\n\n", buf);
@@ -226,7 +227,7 @@ uninstall_ovpn_profile(const char *ovpn_profile_name)
 	char path[256];
 
 	snprintf(path, sizeof(path), "%s/%s.ovpn", RVC_CONFDIR_PATH, ovpn_profile_name);
-	remove(path);
+	unlink(path);
 }
 
 /*
@@ -258,7 +259,7 @@ uninstall_json_config(const char *json_config_name)
 	char path[256];
 
 	snprintf(path, sizeof(path), "%s/%s.json", RVC_CONFDIR_PATH, json_config_name);
-	remove(path);
+	unlink(path);
 }
 
 /*
@@ -310,7 +311,7 @@ kill_ovpn(const char *ovpn_profile_name)
 		return -1;
 	}
 
-	if (fgets(buf, sizeof(buf), pid_fp) == NULL) {
+	if (fgets(buf, 64, pid_fp) == NULL) {
 		fprintf(stderr, "Couldn't read PID from '%s'\n", pid_fpath);
 		fclose(pid_fp);
 		return -1;
