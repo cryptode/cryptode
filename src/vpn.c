@@ -383,7 +383,7 @@ static int check_ovpn_binary(const char *ovpn_bin_path, bool root_check)
 static void log_pre_exec_output(int fd, const char *log_path, const char *cmd, int status)
 {
 	int log_fd;
-	FILE *log_fp;
+	FILE *log_fp = NULL;
 
 	char buffer[512];
 	ssize_t read_bytes;

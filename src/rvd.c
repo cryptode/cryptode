@@ -139,7 +139,7 @@ check_process_running()
 		return 0;
 
 	/* get pid */
-	while (fgets(buf, sizeof(buf), pid_fp) != NULL) {
+	while (fgets(buf, sizeof(buf) - 1, pid_fp) != NULL) {
 		/* remove endline */
 		buf[strlen(buf) - 1] = '\0';
 
@@ -220,7 +220,7 @@ daemonize(void)
 static void
 write_pid_file(void)
 {
-	FILE *pid_fp;
+	FILE *pid_fp = NULL;
 	int fd;
 
 	/* remove old pid file */
