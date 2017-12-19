@@ -5,34 +5,34 @@ language: c
 
 branches:
   only:
-    - master
-    - coverity_scan
+  - master
+  - coverity_scan
 
 env:
   global:
     - CHECKPATCH_INSTALL="$HOME/builds/checkpatch-install"
-    - secure: "JqCcpHwPaJAeYYvABPdFhzElow6CAq5RRnXR5k8Lv8E5W1uqDmJq9sCII0zYdiKTPNKpVg3vCHLu49db6/NDNO6wC5lsFmdkQxgQQSdtxbqME8UuqW99oB/zJjwRv/upKWdX8zi9aub9KuHRRoMWaW5IZ+A5HrHDMHjDvmIBrQ6Be0EsP5g3PeKBQMFkrz6CwN4DBFMMh81hBRxYgZLcYnWkw4KmAfDKw9Lx2OogJxddJE8oqMPpD0c6YYQ1PDpBvvvTD6iIS3Yb5PxmX+5UadrWT6QAMUCPp0uIspRQCbjamHZF03EXA1GxAPW5S9ZBSmRiGibz2LI7xcxUl6H9KxhTCozwY9ndLsAtQc8n7ByVuAbVRCZEtrSw8M3Mx137S6QLS7hj8jzE6/qyFh394YljoR/+WSYp5vzhB8K70cxhYB5ucnm0I56lZBD3c3daMVP0v07B8rxM1iONDaVYaplA1ChsNseRT/8Hn7dJ1XTK6169W4mO9s0DofXcRhpjtex0VhmKhtL5ugSNWUtnTqkwsuk4CSceK7oL4DI8TbhS2GvrBpUQ4AeavR0/Tl4SNu54Ia+oiYo9GKA6/XcEgg90b8DuT6Cuw0uM1M01UGaEWFcQduw9NXFSO/8TI4+/DWsiOrE9/64qsPqUEc3pjNLwJBk8MmePlD6ufuNB5fI="
+    - secure: icWgMUsP+/63P2ago4iGLM8lMcYoMebPeW6mKb/qVfzLB1hRzbn3YB2X6ieprfAybIAd3zXpbrbSW1KCDyycRuSY57aBKqUDJbjGeRNQNPEsmDK+8ZGtSNY3TbRkidcNd/GnNCygLi4Xewmk7TghSAkcKCM3WF+xjqtqCJYV4bMqXhdK6w5x/NljF+aD2l7vBNEUNTyipkGKcdvXDx5k5LVJ++Zwr4wuKuxg5iSonaz06ROowCsA1T0PxeFqmYRatp0Q9lonCJ0GiLVXfPBQLfaXHJMn5Qk7S5WIfwfQoCQu7mbpqR9MQAPcWqPv39yNMgOVl2c98B/z/Ffz5vJQ3Xz/WTID23Ia9RMfkE4s4LnwZ+Tl15oHQaI4t81o+Q6YWk3VhpIMoLfvnNyfRsAUgdw0Ydme8RoKFlzHPjS7p34+M0q2X/egAiyWz0akydWb/HjBkNoPFSnxwzLBwKMLSy0YfRvssb0kVBCi7ywLl6tLARlTqUbdA0GyCg7jWPjbMr5QRe/3hT9zQBugLtT0EbYOwe2BxCcUlcRqu6Kx3f4wv3uKPCsQgFo+NkulBrBHKU+OKrOh6/gujdgNzfxCVMa+MlvNQ12RWdsm5qS8hQV5VrwPa/q3GIDpEBltc9WPQ9vYmKfctHLpCsDcJWgLIWgppHkR5dLGFP2TSMMRbHk=
 
 before_install:
   - if [ $TRAVIS_OS_NAME = linux ]; then sudo apt-get update; else brew update; fi
   - if [ $TRAVIS_OS_NAME = linux ]; then sudo apt-get install openvpn -y; else brew install openvpn openssl; fi
-  - ./ci/install_deps.sh
+  - "./ci/install_deps.sh"
 
 addons:
   coverity_scan:
     project:
-      name: "riboseinc/rvc"
+      name: riboseinc/rvc
     build_command_prepend: "./autogen.sh; ./configure; make clean"
-    build_command: "make -j4"
+    build_command: make -j4
     branch_pattern: coverity_scan
 
 after_failure: cat tests/test-suite.log
 
 install:
-  - ./ci/install.sh
+  - "./ci/install.sh"
 
 script:
-  - ./ci/main.sh
+  - "./ci/main.sh"
 
 os:
   - linux
