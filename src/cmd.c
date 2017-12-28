@@ -56,6 +56,8 @@ static int create_listen_socket(rvd_ctx_opt_t *op)
 	int listen_sock;
 	struct sockaddr_un listen_addr;
 
+	int ret = 0;
+
 	/* create unix domain socket */
 	listen_sock = socket(AF_UNIX, SOCK_STREAM, 0);
 	if (listen_sock < 0) {
@@ -69,7 +71,7 @@ static int create_listen_socket(rvd_ctx_opt_t *op)
 	strlcpy(listen_addr.sun_path, RVD_LISTEN_SOCK_PATH, sizeof(listen_addr.sun_path));
 
 	/* remove socket at first */
-	remove(RVD_LISTEN_SOCK_PATH);
+	unlink(RVD_LISTEN_SOCK_PATH);
 
 	/* bind and listen socket */
 	if (bind(listen_sock, (struct sockaddr *) &listen_addr, sizeof(struct sockaddr_un)) != 0) {
@@ -87,15 +89,21 @@ static int create_listen_socket(rvd_ctx_opt_t *op)
 	}
 
 	/* set permission of socket */
-	if (op->restrict_cmd_sock &&
-		(chown(RVD_LISTEN_SOCK_PATH, op->allowed_uid, 0) != 0 ||
-		 chmod(RVD_LISTEN_SOCK_PATH, S_IRUSR | S_IWUSR) != 0)) {
+	if (op->restrict_cmd_sock) {
+		if ((chown(RVD_LISTEN_SOCK_PATH, op->allowed_uid, 0) != 0 ||
+			 chmod(RVD_LISTEN_SOCK_PATH, S_IRUSR | S_IWUSR) != 0))
+			ret = -1;
+	} else {
+		if (chmod(RVD_LISTEN_SOCK_PATH, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH) != 0)
+			ret = -1;
+	}
+
+	if (ret == -1) {
 		RVD_DEBUG_ERR("CMD: Couldn't set the permissions for unix domain socket '%s'(err:%d)",
 				RVD_LISTEN_SOCK_PATH, errno);
 		close(listen_sock);
 		return -1;
-	} else
-		chmod(RVD_LISTEN_SOCK_PATH, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+	}
 
 	return listen_sock;
 }
@@ -154,6 +162,7 @@ static void send_cmd_response(int clnt_sock, int resp_code, const char *buffer, 
 
 	if (!resp_buffer) {
 		RVD_DEBUG_ERR("CMD: Coudln't send response. Out of memory");
+		return;
 	}
 
 	RVD_DEBUG_MSG("CMD: Response string is \n'%s'\n(code: %d)", resp_buffer, resp_code);
@@ -588,5 +597,5 @@ void rvd_cmd_proc_finalize(rvd_cmd_proc_t *cmd_proc)
 	close(cmd_proc->listen_sock);
 
 	/* remove socket */
-	remove(RVD_LISTEN_SOCK_PATH);
+	unlink(RVD_LISTEN_SOCK_PATH);
 }

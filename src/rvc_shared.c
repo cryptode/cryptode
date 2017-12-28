@@ -107,32 +107,26 @@ static pid_t
 get_pid_of_rvd()
 {
 	FILE *pid_fp;
-	char buf[128];
-
 	pid_t pid = 0;
+
+	char *buf = NULL;
+	size_t buf_size = 0;
+	ssize_t buf_len;
 
 	/* open pid file */
 	pid_fp = fopen(RVD_PID_FPATH, "r");
 	if (!pid_fp)
 		return 0;
 
-	/* get pid */
-	while (fgets(buf, sizeof(buf), pid_fp) != NULL) {
-		if (buf[strlen(buf) - 1] == '\n')
-			buf[strlen(buf) - 1] = '\0';
-
-		if (strlen(buf) == 0)
-			continue;
-
+	buf_len = getline(&buf, &buf_size, pid_fp);
+	if (buf_len > 0) {
+		if (buf[buf_len - 1] == '\n')
+			buf[buf_len - 1] = '\0';
 		pid = atoi(buf);
-		if (pid > 0)
-			break;
+		free(buf);
 	}
-
-	/* close pid file */
 	fclose(pid_fp);
 
-	/* check if pid is valid */
 	if (pid < 1)
 		return 0;
 
@@ -213,18 +207,14 @@ static int read_key_data(FILE *fp, char **key_data)
 		read_bytes = fread(buf, 1, sizeof(buf), fp);
 		if (read_bytes > 0) {
 			p = realloc(p, len + read_bytes + 1);
-			if (!p) {
-				ret = -1;
-				break;
-			}
+			if (!p)
+				return -1;
 
 			memcpy(&p[len], buf, read_bytes);
 			len += read_bytes;
 		}
 
 	}
-
-	/* set '\0' */
 	p[len] = '\0';
 
 	*key_data = p;
@@ -294,10 +284,8 @@ static int convert_tblk_to_ovpn(const char *conf_dir, const char *container_path
 	char ovpn_path[RVD_MAX_PATH];
 	char new_ovpn_path[RVD_MAX_PATH];
 
-	FILE *fp, *new_fp;
-	int fd, new_fd;
-
-	char buf[512];
+	FILE *fp, *new_fp = NULL;
+	int new_fd;
 
 	size_t fsize;
 
@@ -308,7 +296,7 @@ static int convert_tblk_to_ovpn(const char *conf_dir, const char *container_path
 	snprintf(new_ovpn_path, sizeof(new_ovpn_path), "/tmp/%s", ovpn_name);
 
 	/* remove old one */
-	remove(new_ovpn_path);
+	unlink(new_ovpn_path);
 
 	/* check the file size */
 	fsize = get_file_size(ovpn_path);
@@ -316,37 +304,40 @@ static int convert_tblk_to_ovpn(const char *conf_dir, const char *container_path
 		return -1;
 
 	/* open the profile */
-	fd = open(ovpn_path, O_RDONLY);
-	if (fd > 0)
-		fp = fdopen(fd, "r");
-
-	if (fd < 0 || !fp) {
-		if (fd > 0)
-			close(fd);
-
+	fp = fopen(ovpn_path, "r");
+	if (!fp)
 		return -1;
-	}
 
 	/* open new profile */
 	new_fd = open(new_ovpn_path, O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR);
-	if (new_fd > 0)
-		new_fp = fdopen(new_fd, "w");
+	if (new_fd < 0) {
+		fclose(fp);
+		return -1;
+	}
 
-	if (new_fd < 0 || !new_fp) {
-		if (new_fd > 0)
-			close(new_fd);
+	new_fp = fdopen(new_fd, "w");
+	if (!new_fp) {
+		close(new_fd);
+		fclose(fp);
 
 		return -1;
 	}
 
 	/* copy each line in profile */
-	while (fgets(buf, sizeof(buf), fp) != 0) {
+	while (1) {
+		char *buf = NULL;
+		size_t buf_size = 0;
+		ssize_t buf_len;
+
 		int cred_type = -1;
 		const char *cred_name;
 
-		/* remove endline */
-		if (buf[strlen(buf) - 1] == '\n')
-			buf[strlen(buf) - 1] = '\0';
+		buf_len = getline(&buf, &buf_size, fp);
+		if (buf_len <= 0)
+			break;
+
+		if (buf[buf_len - 1] == '\n')
+			buf[buf_len - 1] = '\0';
 
 		if (strncmp(buf, "ca ", 3) == 0) {
 			cred_name = buf + 3;
@@ -363,11 +354,11 @@ static int convert_tblk_to_ovpn(const char *conf_dir, const char *container_path
 		if (cred_type >= 0 &&
 		    write_tblk_cred(container_path, cred_type, cred_name, new_fp) != 0) {
 			ret = -1;
+			free(buf);
 			break;
 		}
+		free(buf);
 	}
-
-	/* close file pointers */
 	fclose(new_fp);
 	fclose(fp);
 
@@ -376,7 +367,7 @@ static int convert_tblk_to_ovpn(const char *conf_dir, const char *container_path
 		ret = copy_file_into_dir(conf_dir, new_ovpn_path, S_IRUSR | S_IWUSR);
 
 	/* remove new profile */
-	remove(new_ovpn_path);
+	unlink(new_ovpn_path);
 
 	return ret;
 }
@@ -451,22 +442,20 @@ static int send_cmd(enum RVD_CMD_CODE cmd_code, const char *cmd_param, int use_j
 
 	/* send command */
 	ret = send(g_sock, cmd, strlen(cmd), 0);
-
-	/* free command buffer */
-	free(cmd);
-
 	if (ret <= 0) {
 		fprintf(stderr, "Couldn't send command %s\n", cmd);
+		free(cmd);
 		return RVD_RESP_SOCK_CONN;
 	}
+	free(cmd);
 
 	/* receive response */
-	memset(resp, 0, sizeof(resp));
-	if (recv(g_sock, resp, sizeof(resp), 0) <= 0) {
+	ret = recv(g_sock, resp, sizeof(resp) - 1, 0);
+	if (ret <= 0) {
 		fprintf(stderr, "Couldn't receive response\n");
 		return RVD_RESP_SOCK_CONN;
 	}
-
+	resp[ret] = '\0';
 	*resp_data = strdup(resp);
 
 	return RVD_RESP_OK;
@@ -720,18 +709,22 @@ int rvc_import(int import_type, const char *import_path)
 	/* get configuration directory path */
 	if (rvc_get_confdir(&conf_dir) != 0) {
 		fprintf(stderr, "Couldn't get the configuration directory of rvd\n");
+		if (conf_dir)
+			free(conf_dir);
 		return RVD_RESP_INVALID_CONF_DIR;
 	}
 
 	/* check import type */
 	if (import_type != RVC_VPN_PROFILE_OVPN && import_type != RVC_VPN_PROFILE_TBLK) {
 		fprintf(stderr, "Invalid VPN profile type\n");
+		free(conf_dir);
 		return RVD_RESP_INVALID_PROFILE_TYPE;
 	}
 
 	/* checks whether import_path has valid extension */
 	if (!is_valid_extension(import_path, import_type == RVC_VPN_PROFILE_TBLK ? ".tblk" : ".ovpn")) {
 		fprintf(stderr, "Invalid extension of file '%s'\n", import_path);
+		free(conf_dir);
 		return RVD_RESP_INVALID_PROFILE_TYPE;
 	}
 
@@ -739,6 +732,7 @@ int rvc_import(int import_type, const char *import_path)
 		ret = import_ovpn_from_tblk(conf_dir, import_path);
 		if (ret <= 0) {
 			fprintf(stderr, "Couldn't import OpenVPN profile from TunnelBlick profile '%s'", import_path);
+			free(conf_dir);
 			return RVD_RESP_INVALID_PROFILE_TYPE;
 		}
 	} else {
@@ -748,23 +742,28 @@ int rvc_import(int import_type, const char *import_path)
 		fsize = get_file_size(import_path);
 		if (fsize <= 0 || fsize >= RVC_MAX_IMPORT_SIZE) {
 			fprintf(stderr, "Invalid size or too large file '%s'\n", import_path);
+			free(conf_dir);
 			return RVD_RESP_IMPORT_TOO_LARGE;
 		}
 
 		/* checks whether same profile is exist */
 		if (is_exist_file_in_dir(conf_dir, import_path)) {
 			fprintf(stderr, "The same configuration is already exist in '%s'\n", conf_dir);
+			free(conf_dir);
 			return RVD_RESP_IMPORT_EXIST_PROFILE;
 		}
 
 		/* copy files into rvd config directory */
 		if (copy_file_into_dir(conf_dir, import_path, S_IRUSR | S_IWUSR) != 0) {
 			fprintf(stderr, "Couldn't copy file '%s' into '%s'\n", import_path, conf_dir);
+			free(conf_dir);
 			return RVD_RESP_UNKNOWN_ERR;
 		}
 	}
 
 	fprintf(stderr, "Success to import VPN configuration from '%s'\n", import_path);
+
+	free(conf_dir);
 
 	return rvc_reload();
 }
@@ -779,7 +778,7 @@ static int check_connection_exist(const char *conn_name, struct rvc_vpnconn_stat
 	char state_str[64];
 	char auto_connect[64];
 
-	char *resp_data;
+	char *resp_data = NULL;
 
 	int i;
 
@@ -799,6 +798,10 @@ static int check_connection_exist(const char *conn_name, struct rvc_vpnconn_stat
 	/* check connection status */
 	if (rvc_get_status(conn_name, 1, &resp_data) != 0) {
 		fprintf(stderr, "Couldn't get status for VPN connection '%s'\n", conn_name);
+
+		if (resp_data)
+			free(resp_data);
+
 		return RVD_RESP_RVD_NOT_RUNNING;
 	}
 
@@ -882,6 +885,10 @@ int rvc_edit(const char *conn_name, const char *opt, const char *opt_val)
 	/* get configuration directory path */
 	if (rvc_get_confdir(&conf_dir) != 0) {
 		fprintf(stderr, "Couldn't get the configuration directory of rvd\n");
+
+		if (conf_dir)
+			free(conf_dir);
+
 		return RVD_RESP_INVALID_CONF_DIR;
 	}
 
@@ -958,7 +965,7 @@ int rvc_remove(const char *conn_name, int force)
 	}
 
 	/* remove profile connection */
-	remove(vpnconn_status.ovpn_profile_path);
+	unlink(vpnconn_status.ovpn_profile_path);
 
 	/* reload rvd */
 	return rvc_reload();
@@ -992,7 +999,7 @@ static int check_dns_util_path()
 
 int rvc_dns_override(int enabled, const char *dns_ip_list)
 {
-	char cmd[RVD_MAX_PATH];
+	char cmd[512];
 	int ret;
 
 	/* pre-checking for running enviroment of rvc */

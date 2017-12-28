@@ -129,29 +129,24 @@ static pid_t
 check_process_running()
 {
 	FILE *pid_fp;
-	char buf[512];
-
 	pid_t pid = 0;
+
+	char *buf = NULL;
+	size_t buf_size = 0;
+	ssize_t buf_len;
 
 	/* open pid file */
 	pid_fp = fopen(RVD_PID_FPATH, "r");
 	if (!pid_fp)
 		return 0;
 
-	/* get pid */
-	while (fgets(buf, sizeof(buf), pid_fp) != NULL) {
-		/* remove endline */
-		buf[strlen(buf) - 1] = '\0';
-
-		if (strlen(buf) == 0)
-			continue;
-
+	buf_len = getline(&buf, &buf_size, pid_fp);
+	if (buf_len > 0) {
+		if (buf[buf_len - 1] == '\n')
+			buf[buf_len - 1] = '\0';
 		pid = atoi(buf);
-		if (pid > 0)
-			break;
+		free(buf);
 	}
-
-	/* close pid file */
 	fclose(pid_fp);
 
 	/* check if pid is valid */
@@ -220,28 +215,25 @@ daemonize(void)
 static void
 write_pid_file(void)
 {
-	FILE *pid_fp;
+	FILE *pid_fp = NULL;
 	int fd;
 
 	/* remove old pid file */
 	mkdir(RVD_PID_DPATH, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
-	remove(RVD_PID_FPATH);
+	unlink(RVD_PID_FPATH);
 
 	/* open pid file and write */
 	fd = open(RVD_PID_FPATH, O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR);
-	if (fd > 0)
-		pid_fp = fdopen(fd, "w");
+	if (fd < 0)
+		return;
 
-	if (fd < 0 || !pid_fp) {
-		if (fd > 0)
-			close(fd);
-
+	pid_fp = fdopen(fd, "w");
+	if (!pid_fp) {
+		close(fd);
 		return;
 	}
 
 	fprintf(pid_fp, "%d\n", getpid());
-
-	/* close pid file */
 	fclose(pid_fp);
 }
 
@@ -252,7 +244,7 @@ write_pid_file(void)
 static void
 remove_pid_file(void)
 {
-	remove(RVD_PID_FPATH);
+	unlink(RVD_PID_FPATH);
 }
 
 /*

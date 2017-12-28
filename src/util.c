@@ -142,12 +142,16 @@ int rvd_json_parse(const char *jbuf, rvd_json_object_t *objs, int objs_count)
 				memset(arr_val, 0, sizeof(struct rvd_json_array));
 
 				arr_len = json_object_array_length(j_sub_obj);
-				if (arr_len <= 0)
+				if (arr_len <= 0) {
+					free(arr_val);
 					break;
+				}
 
 				arr_val->val = (char **) malloc(arr_len * sizeof(char **));
-				if (!arr_val->val)
+				if (!arr_val->val) {
+					free(arr_val);
 					break;
+				}
 
 				for (arr_idx = 0; arr_idx < arr_len; arr_idx++) {
 					json_object *j_arr_obj;
@@ -729,19 +733,12 @@ int create_dir(const char *dir_path, mode_t mode)
 
 	/* check directory is exist */
 	if (stat(dir_path, &st) == 0) {
-		if (S_ISDIR(st.st_mode) && is_owned_by_user(dir_path, "root") &&
-			chmod(dir_path, mode) == 0)
-			return 0;
-
-		/* remove old */
-		remove(dir_path);
+		if (S_ISDIR(st.st_mode))
+			return chmod(dir_path, mode);
+		unlink(dir_path);
 	}
 
-	/* create directory */
-	if (mkdir(dir_path, mode) != 0)
-		return -1;
-
-	return 0;
+	return mkdir(dir_path, mode);
 }
 
 #ifndef HAVE_STRLCPY

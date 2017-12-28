@@ -149,8 +149,7 @@ int rvc_read_vpn_config(const char *config_dir, const char *config_name, struct 
 
 	/* parse config file */
 	if (json_config_exist) {
-		int fd;
-		FILE *fp;
+		FILE *fp = NULL;
 
 		struct stat st;
 
@@ -179,11 +178,8 @@ int rvc_read_vpn_config(const char *config_dir, const char *config_name, struct 
 		}
 
 		/* open configuration file */
-		fd = open(json_config_path, O_RDONLY);
-		if (fd > 0)
-			fp = fdopen(fd, "r");
-
-		if (fd < 0 || !fp) {
+		fp = fopen(json_config_path, "r");
+		if (!fp) {
 #ifdef _RVD_SOURCE
 			RVD_DEBUG_ERR("CONF: Couldn't open configuration file '%s' for reading(err:%d)",
 					json_config_path, errno);
@@ -191,9 +187,6 @@ int rvc_read_vpn_config(const char *config_dir, const char *config_name, struct 
 			fprintf(stderr, "Couldn't open configuration file '%s' for reading(err:%d)\n",
 					json_config_path, errno);
 #endif
-			if (fd > 0)
-				close(fd);
-
 			return -1;
 		}
 
@@ -204,29 +197,26 @@ int rvc_read_vpn_config(const char *config_dir, const char *config_name, struct 
 			return -1;
 		}
 
-		memset(config_buf, 0, st.st_size + 1);
 		read_len = fread(config_buf, 1, st.st_size, fp);
-
-		/* close file */
 		fclose(fp);
 
-		if (read_len <= 0 ||
-			rvd_json_parse(config_buf, vpn_config, sizeof(vpn_config) / sizeof(rvd_json_object_t)) != 0) {
+		if (read_len > 0) {
+			config_buf[read_len] = '\0';
+
+			if (rvd_json_parse(config_buf, vpn_config, sizeof(vpn_config) / sizeof(rvd_json_object_t)) != 0) {
 #ifdef _RVD_SOURCE
-			RVD_DEBUG_ERR("CONF: Invalid configuration file '%s'", json_config_path);
+				RVD_DEBUG_ERR("CONF: Invalid configuration file '%s'", json_config_path);
 #else
-			fprintf(stderr, "Invalid configuration file '%s'\n", json_config_path);
+				fprintf(stderr, "Invalid configuration file '%s'\n", json_config_path);
 #endif
-			free(config_buf);
+				free(config_buf);
+				return -1;
+			}
 
-			return -1;
+			/* set JSON configuration status */
+			config.load_status |= OVPN_STATUS_HAVE_JSON;
 		}
-
-		/* free configuration buffer */
 		free(config_buf);
-
-		/* set JSON configuration status */
-		config.load_status |= OVPN_STATUS_HAVE_JSON;
 	}
 
 	/* check for the permissions of VPN config */
@@ -246,7 +236,7 @@ int rvc_read_vpn_config(const char *config_dir, const char *config_name, struct 
 int rvc_write_vpn_config(const char *config_dir, const char *config_name, struct rvc_vpn_config *vpn_config)
 {
 	int fd;
-	FILE *fp;
+	FILE *fp = NULL;
 
 	char json_config_path[RVD_MAX_PATH];
 	char *config_buffer;
@@ -270,31 +260,44 @@ int rvc_write_vpn_config(const char *config_dir, const char *config_name, struct
 
 	/* write configuration buffer to config file */
 	fd = open(json_config_path, O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR);
-	if (fd > 0)
-		fp = fdopen(fd, "w");
-
-	if (fd < 0 || !fp) {
+	if (fd < 0) {
 #ifdef _RVD_SOURCE
-		RVD_DEBUG_ERR("CONF: Couldn't open RVC configuration file '%s' for writting(err:%d)",
+		RVD_DEBUG_ERR("CONF: Couldn't open RVC configuration file '%s' for writing(err:%d)",
 				json_config_path, errno);
 #else
-		fprintf(stderr, "Couldn't open RVC configuration file '%s' for writting(err:%d)\n",
+		fprintf(stderr, "Couldn't open RVC configuration file '%s' for writing(err:%d)\n",
 				json_config_path, errno);
 #endif
+		return -1;
+	}
 
-		if (fd > 0)
-			close(fd);
-
+	fp = fdopen(fd, "w");
+	if (!fp) {
+#ifdef _RVD_SOURCE
+		RVD_DEBUG_ERR("CONF: Couldn't open RVC configuration file '%s' for writing(err:%d)",
+				json_config_path, errno);
+#else
+		fprintf(stderr, "Couldn't open RVC configuration file '%s' for writing(err:%d)\n",
+				json_config_path, errno);
+#endif
+		close(fd);
 		return -1;
 	}
 
 	/* build json buffer */
-	rvd_json_build(vpn_config_jobjs, sizeof(vpn_config_jobjs) / sizeof(rvd_json_object_t), &config_buffer);
+	if (rvd_json_build(vpn_config_jobjs, sizeof(vpn_config_jobjs) / sizeof(rvd_json_object_t), &config_buffer) != 0) {
+#ifdef _RVD_SOURCE
+		RVD_DEBUG_ERR("CONF: Couldn't build JSON config. Out of memory!");
+#else
+		fprintf(stderr, "Couldn't build JSON config. Out of memory!\n");
+#endif
+		fclose(fp);
+		return -1;
+	}
 
 	fwrite(config_buffer, 1, strlen(config_buffer), fp);
 	fclose(fp);
 
-	/* free config buffer */
 	free(config_buffer);
 
 	return 0;
