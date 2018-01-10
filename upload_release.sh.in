@@ -1,0 +1,21 @@
+#!/bin/sh
+
+OWNER=riboseinc
+REPOSITORY=@PACKAGE_NAME@
+ACCESS_TOKEN=`echo ${GITHUB_ACCESS_TOKEN}`
+VERSION=@PACKAGE_VERSION@
+
+# check github access token
+if [ "x$ACCESS_TOKEN" = "x" ]; then
+	echo "Please set GITHUB_ACCESS_TOKEN environment value"
+	exit 1
+fi
+
+# upload release on github
+curl --data "{\"tag_name\": \"v${VERSION}\",
+              \"target_commitish\": \"master\",
+              \"name\": \"Version ${VERSION}\",
+              \"body\": \"Release of version ${VERSION}\",
+              \"draft\": false,
+              \"prerelease\": false}" \
+    https://api.github.com/repos/$OWNER/$REPOSITORY/releases?access_token=$ACCESS_TOKEN

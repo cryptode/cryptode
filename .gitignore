@@ -40,3 +40,4 @@ tmp
 .idea/
 CMakeLists.txt
 cmake-build-debug/
+upload_release.sh

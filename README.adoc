@@ -28,7 +28,7 @@ On macOS:
 [source,sh]
 ----
 brew tap riboseinc/rvc
-brew install --HEAD rvc
+brew install rvc
 sudo /usr/local/bin/rvc_install.sh
 ----
 
