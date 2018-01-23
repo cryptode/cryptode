@@ -1,25 +1,31 @@
 #ifndef __RVD_VPN_H__
 #define __RVD_VPN_H__
 
-#define OVPN_MGM_PORT_START				6001
+#define OVPN_MGM_PORT_START                  6001
 
-#define OVPN_MGM_CMD_STATE				"state on\n"
-#define OVPN_MGM_CMD_SIGTERM			"signal SIGTERM\n"
-#define OVPN_MGM_CMD_BYTECOUNT			"bytecount 10\n"
+#define OVPN_MGM_CMD_NOTIFY                 "state on\nbytecount 10\n"
+#define OVPN_MGM_CMD_SIGTERM                "signal SIGTERM\n"
 
-#define OVPN_MGM_RESP_BYTECOUNT			">BYTECOUNT:"
-#define OVPN_MGM_RESP_STATE				">STATE:"
+#define OVPN_MGM_RESP_BYTECOUNT             ">BYTECOUNT:"
+#define OVPN_MGM_RESP_STATE                 ">STATE:"
+#define OVPN_MGM_RESP_REMOTE                ">REMOTE:"
 
-#define OVPN_MAX_LOG_FSIZE				32 * 1024 * 1024
+#define OVPN_MAX_LOG_FSIZE                  32 * 1024 * 1024
 
-#define OVPN_CONN_RETRY_TIMEOUT_MIN		"5"
-#define OVPN_CONN_RETRY_TIMEOUT_MAX		"30"
+#define OVPN_CONN_RETRY_TIMEOUT_MIN         "5"
+#define OVPN_CONN_RETRY_TIMEOUT_MAX         "30"
 
-#define RVD_OVPN_CONN_TIMEOUT			10
-#define RVD_OVPN_STOP_TIMEOUT			10
-#define RVD_PRE_EXEC_TIMEOUT			60
+#define RVD_OVPN_CONN_TIMEOUT               10
+#define RVD_OVPN_STOP_TIMEOUT               10
+#define RVD_PRE_EXEC_TIMEOUT                60
 
 struct rvd_vpnconn_mgr;
+
+/* OpenVPN proto version */
+enum OVPN_PROTO_VERSION {
+	OVPN_PROTO_VERSION_4 = 4,
+	OVPN_PROTO_VERSION_6 = 6
+};
 
 /* OpenVPN connection state */
 enum OVPN_CONN_STATE {
@@ -47,6 +53,8 @@ struct rvc_vpn_conn {
 	enum OVPN_CONN_STATE ovpn_state;
 
 	time_t connected_tm;
+
+	char tun_ip[RVD_MAX_IPADDR_LEN + 1];
 
 	pid_t ovpn_pid;
 	bool enable_script_sec;

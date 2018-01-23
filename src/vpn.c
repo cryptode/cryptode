@@ -54,7 +54,7 @@
 
 struct rvd_vpn_state {
 	enum RVD_VPNCONN_STATE state;
-	const char *state_str;
+	char *state_str;
 } g_rvd_state[] = {
 	{RVD_CONN_STATE_DISCONNECTED, "DISCONNECTED"},
 	{RVD_CONN_STATE_CONNECTED, "CONNECTED"},
@@ -70,7 +70,7 @@ struct rvd_vpn_state {
 
 struct rvd_ovpn_state {
 	enum OVPN_CONN_STATE ovpn_state;
-	const char *ovpn_state_str;
+	char *ovpn_state_str;
 } g_ovpn_state[] = {
 	{OVPN_STATE_DISCONNECTED, "DISCONNECTED"},
 	{OVPN_STATE_CONNECTING, "TCP_CONNECT"},
@@ -250,7 +250,7 @@ static int connect_to_ovpn_mgm(struct rvc_vpn_conn *vpn_conn)
 	vpn_conn->ovpn_mgm_sock = sock;
 
 	/* send 'state' command to openvpn management */
-	if (send_cmd_to_ovpn_mgm(vpn_conn, OVPN_MGM_CMD_STATE) != 0) {
+	if (send_cmd_to_ovpn_mgm(vpn_conn, OVPN_MGM_CMD_NOTIFY) != 0) {
 		close_ovpn_mgm_sock(vpn_conn);
 		return -1;
 	}
@@ -343,6 +343,8 @@ static void *stop_vpn_conn(void *p)
 	/* set connection state */
 	vpn_conn->conn_state = RVD_CONN_STATE_DISCONNECTED;
 	vpn_conn->ovpn_state = OVPN_STATE_DISCONNECTED;
+
+	vpn_conn->tun_ip[0] = '\0';
 
 	return 0;
 }
@@ -718,11 +720,11 @@ static void parse_ovpn_mgm_resp(struct rvc_vpn_conn *vpn_conn, const char *mgm_r
 			p = tok + strlen(OVPN_MGM_RESP_BYTECOUNT);
 
 			/* get in bytes */
-			get_token_by_comma(&p, bytes, sizeof(bytes));
+			get_token_by_char(&p, ',', bytes, sizeof(bytes));
 			vpn_conn->curr_bytes_in = strtol(bytes, NULL, 10);
 
 			/* get out bytes */
-			get_token_by_comma(&p, bytes, sizeof(bytes));
+			get_token_by_char(&p, ',', bytes, sizeof(bytes));
 			vpn_conn->curr_bytes_out = strtol(bytes, NULL, 10);
 		} else if (strncmp(tok, OVPN_MGM_RESP_STATE, strlen(OVPN_MGM_RESP_STATE)) == 0) {
 			char ts_str[32];
@@ -735,8 +737,8 @@ static void parse_ovpn_mgm_resp(struct rvc_vpn_conn *vpn_conn, const char *mgm_r
 			/* parse state response */
 			p = tok + strlen(OVPN_MGM_RESP_STATE);
 
-			get_token_by_comma(&p, ts_str, sizeof(ts_str));
-			get_token_by_comma(&p, conn_state, sizeof(conn_state));
+			get_token_by_char(&p, ',', ts_str, sizeof(ts_str));
+			get_token_by_char(&p, ',', conn_state, sizeof(conn_state));
 			for (i = 0; g_ovpn_state[i].ovpn_state_str != NULL; i++) {
 				if (strcmp(conn_state, g_ovpn_state[i].ovpn_state_str) == 0) {
 					vpn_conn->ovpn_state = g_ovpn_state[i].ovpn_state;
@@ -744,8 +746,14 @@ static void parse_ovpn_mgm_resp(struct rvc_vpn_conn *vpn_conn, const char *mgm_r
 				}
 			}
 
-			if (vpn_conn->ovpn_state == OVPN_STATE_CONNECTED)
+			if (vpn_conn->ovpn_state == OVPN_STATE_CONNECTED) {
+				char desc[128];
+
+				get_token_by_char(&p, ',', desc, sizeof(desc));
+				get_token_by_char(&p, ',', vpn_conn->tun_ip, sizeof(vpn_conn->tun_ip));
+
 				vpn_conn->connected_tm = strtol(ts_str, NULL, 10);
+			}
 		}
 		tok = strtok(NULL, sep);
 	}
@@ -813,9 +821,6 @@ static void *start_vpn_conn(void *p)
 			!vpn_conn->conn_cancel) {
 		RVD_DEBUG_MSG("VPN: VPN connection with name '%s' has been succeeded", vpn_conn->config.name);
 		vpn_conn->conn_state = RVD_CONN_STATE_CONNECTED;
-
-		/* send command for bytes notification */
-		send_cmd_to_ovpn_mgm(vpn_conn, OVPN_MGM_CMD_BYTECOUNT);
 	} else {
 		/* check end flag */
 		if (vpn_conn->end_flag || vpn_conn->conn_cancel)
@@ -1064,6 +1069,63 @@ void rvd_vpnconn_reconnect(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name
 }
 
 /*
+ * parse OpenVPN configuration file
+ */
+
+static int
+parse_ovpn_config(struct rvc_vpn_conn *vpn_conn, char *vpn_srv_addr, size_t addr_s, int *vpn_srv_port,
+		char *vpn_proto, size_t proto_s, int *proto_ver)
+{
+	FILE *fp;
+
+	const char *remote_prefix = "remote ";
+	const char *proto_prefix = "proto ";
+
+	/* open openvpn configuration file */
+	fp = fopen(vpn_conn->config.ovpn_profile_path, "r");
+	if (!fp) {
+		RVD_DEBUG_ERR("VPN: Could not open OpenVPN configuration file '%s' for reading", vpn_conn->config.ovpn_profile_path);
+		return -1;
+	}
+
+	while (1) {
+		char *buf = NULL;
+		size_t buf_size = 0;
+		ssize_t buf_len;
+
+		char *p;
+		char sep = ' ';
+
+		buf_len = getline(&buf, &buf_size, fp);
+		if (buf_len < 0)
+			break;
+
+		p = buf;
+		if (strncmp(p, remote_prefix, strlen(remote_prefix)) == 0) {
+			char port_str[32];
+
+			get_token_by_char(&p, sep, NULL, -1);
+			get_token_by_char(&p, sep, vpn_srv_addr, addr_s);
+			get_token_by_char(&p, sep, port_str, sizeof(port_str));
+
+			*vpn_srv_port = (int)strtol(port_str, NULL, 10);
+		} else if (strncmp(p, proto_prefix, strlen(proto_prefix)) == 0) {
+			get_token_by_char(&p, sep, NULL, -1);
+			get_token_by_char(&p, sep, vpn_proto, proto_s);
+
+			if (strcmp(vpn_proto, "udp6") == 0 || strcmp(vpn_proto, "tcp6") == 0)
+				*proto_ver = 6;
+			else
+				*proto_ver = 4;
+		}
+		free(buf);
+	}
+	fclose(fp);
+
+	return 0;
+}
+
+/*
  * get status of single connection
  */
 
@@ -1075,8 +1137,24 @@ static void get_single_conn_status(struct rvc_vpn_conn *vpn_conn, bool json_form
 	char pre_exec_interval[64];
 	char conf_load_status[64];
 
+	char vpn_srv_addr[RVD_MAX_HNAME_LEN];
+	int vpn_srv_port;
+	char vpn_proto[RVD_MAX_PROTOSTR_LEN];
+
+	int proto_ver = OVPN_PROTO_VERSION_4;
+
+	char connected_time[RVD_MAX_DATETIME_LEN];
+	int netmask;
+
 	long total_bytes_in, total_bytes_out;
 	time_t ts = time(NULL);
+
+	/* parse OpenVPN configuration */
+	if (parse_ovpn_config(vpn_conn, vpn_srv_addr, sizeof(vpn_srv_addr), &vpn_srv_port,
+			vpn_proto, sizeof(vpn_proto), &proto_ver) != 0) {
+		RVD_DEBUG_WARN("VPN: Could not parse OpenVPN configuration file '%s'", vpn_conn->config.ovpn_profile_path);
+	}
+	netmask = proto_ver == OVPN_PROTO_VERSION_4 ? 32 : 128;
 
 	/* calculate total in-bytes and out-bytes */
 	if (vpn_conn->conn_state == RVD_CONN_STATE_CONNECTED) {
@@ -1115,43 +1193,48 @@ static void get_single_conn_status(struct rvc_vpn_conn *vpn_conn, bool json_form
 			strlcpy(conf_load_status, "No JSON configuration exists", sizeof(conf_load_status));
 	}
 
+	/* get connected time */
+	memset(connected_time, 0, sizeof(connected_time));
+	if (vpn_conn->conn_state == RVD_CONN_STATE_CONNECTED)
+		convert_tt_to_str(vpn_conn->connected_tm, connected_time, sizeof(connected_time));
+
 	RVD_DEBUG_MSG("VPN: Getting status of VPN connection with name '%s'", vpn_conn->config.name);
 
 	if (json_format) {
 		rvd_json_object_t conn_status_objs[] = {
 			{"name", RVD_JTYPE_STR, vpn_conn->config.name, 0, false, NULL},
 			{"profile", RVD_JTYPE_STR, (void *)vpn_conn->config.ovpn_profile_path, 0, false, NULL},
-			{"config-status", RVD_JTYPE_INT, &vpn_conn->config.load_status, 0, false, NULL},
-			{"status", RVD_JTYPE_STR, (void *)g_rvd_state[vpn_conn->conn_state].state_str, 0, false, NULL},
-			{"ovpn-status", RVD_JTYPE_STR, (void *)g_ovpn_state[vpn_conn->ovpn_state].ovpn_state_str, 0, false, NULL},
-			{"in-total", RVD_JTYPE_INT64, &total_bytes_in, 0, false, NULL},
-			{"out-total", RVD_JTYPE_INT64, &total_bytes_out, 0, false, NULL},
-			{"timestamp", RVD_JTYPE_INT64, &ts, 0, false, NULL},
-			{"auto-connect", RVD_JTYPE_BOOL, &vpn_conn->config.auto_connect, 0, false, NULL},
-			{"pre-exec-cmd", RVD_JTYPE_STR, vpn_conn->config.pre_exec_cmd, 0, false, NULL},
-			{"pre-exec-status", RVD_JTYPE_INT, &vpn_conn->config.pre_exec_status, 0, false, NULL},
-			{"pre-exec-interval", RVD_JTYPE_INT, &vpn_conn->config.pre_exec_interval, 0, false, NULL}
+			{"autoConnect", RVD_JTYPE_BOOL, &vpn_conn->config.auto_connect, 0, false, NULL},
+
+			{"endpointIp", RVD_JTYPE_OBJ, NULL, 0, false, NULL},
+			{"address", RVD_JTYPE_STR, vpn_srv_addr, 0, false, "endpointIp"},
+			{"netmask", RVD_JTYPE_INT, &netmask, 0, false, "endpointIp"},
+
+			{"assignedIp", RVD_JTYPE_OBJ, NULL, 0, false, NULL},
+			{"address", RVD_JTYPE_STR, vpn_conn->tun_ip, 0, false, "assignedIp"},
+			{"netmask", RVD_JTYPE_INT, &netmask, 0, false, "assignedIp"},
+
+			{"port", RVD_JTYPE_INT, &vpn_srv_port, 0, false, NULL},
+			{"protocol", RVD_JTYPE_STR, vpn_proto, 0, false, NULL},
+			{"ipVersion", RVD_JTYPE_INT, &proto_ver, 0, false, NULL},
+
+			{"RvdConnectionStatus", RVD_JTYPE_OBJ, NULL, 0, false, NULL},
+			{"state", RVD_JTYPE_STR, g_rvd_state[vpn_conn->conn_state].state_str, 0, false, "RvdConnectionStatus"},
+			{"ovpnState", RVD_JTYPE_STR, g_ovpn_state[vpn_conn->ovpn_state].ovpn_state_str, 0, false, "RvdConnectionStatus"},
+			{"connectionTime", RVD_JTYPE_STR, connected_time, 0, false, "RvdConnectionStatus"},
+			{"netIn", RVD_JTYPE_INT64, &vpn_conn->curr_bytes_in, 0, false, "RvdConnectionStatus"},
+			{"netOut", RVD_JTYPE_INT64, &vpn_conn->curr_bytes_out, 0, false, "RvdConnectionStatus"},
+
+			{"RvdPreExec", RVD_JTYPE_OBJ, NULL, 0, false, NULL},
+			{"command", RVD_JTYPE_STR, vpn_conn->config.pre_exec_cmd, 0, false, "RvdPreExec"},
+			{"interval", RVD_JTYPE_INT, &vpn_conn->config.pre_exec_interval, 0, false, "RvdPreExec"},
+			{"userId", RVD_JTYPE_INT, &vpn_conn->config.pre_exec_uid, 0, false, "RvdPreExec"},
+			{"output", RVD_JTYPE_INT, &vpn_conn->config.pre_exec_status, 0, false, "RvdPreExec"}
 		};
 
 		/* create json object */
 		if (rvd_json_build(conn_status_objs, sizeof(conn_status_objs) / sizeof(rvd_json_object_t), &ret_str) != 0)
 			return;
-
-		if (vpn_conn->conn_state == RVD_CONN_STATE_CONNECTED) {
-			char *tmp_jstr;
-
-			rvd_json_object_t conn_objs[] = {
-				{"network", RVD_JTYPE_OBJ, NULL, 0, false, NULL},
-				{"connected-time", RVD_JTYPE_INT64, &vpn_conn->connected_tm, 0, false, "network"},
-				{"in-current", RVD_JTYPE_INT64, &vpn_conn->curr_bytes_in, 0, false, "network"},
-				{"out-current", RVD_JTYPE_INT64, &vpn_conn->curr_bytes_out, 0, false, "network"},
-			};
-
-			if (rvd_json_add(ret_str, conn_objs, sizeof(conn_objs) / sizeof(rvd_json_object_t), &tmp_jstr) == 0) {
-				free(ret_str);
-				ret_str = tmp_jstr;
-			}
-		}
 	} else {
 		char status_buffer[RVD_MAX_CONN_STATUS_LEN];
 
@@ -1164,7 +1247,7 @@ static void get_single_conn_status(struct rvc_vpn_conn *vpn_conn, bool json_form
 				"\topenvpn-status: %s\n"
 				"\tin-total: %lu\n"
 				"\tout-total: %lu\n"
-				"\tconnected-time: %lu\n"
+				"\tconnected-time: %s\n"
 				"\tin-current: %lu\n"
 				"\tout-current: %lu\n"
 				"\ttimestamp: %lu\n"
@@ -1178,7 +1261,7 @@ static void get_single_conn_status(struct rvc_vpn_conn *vpn_conn, bool json_form
 				g_rvd_state[vpn_conn->conn_state].state_str,
 				g_ovpn_state[vpn_conn->ovpn_state].ovpn_state_str,
 				total_bytes_in, total_bytes_out,
-				vpn_conn->connected_tm,
+				connected_time,
 				vpn_conn->curr_bytes_in, vpn_conn->curr_bytes_out,
 				ts,
 				vpn_conn->config.auto_connect ? "Enabled" : "Disabled",
@@ -1505,6 +1588,8 @@ static void *monitor_vpn_conn(void *p)
 				&& vpn_conn->ovpn_state != OVPN_STATE_CONNECTED) {
 				RVD_DEBUG_WARN("VPN: Detected that OpenVPN connection was abnormally terminated.");
 				vpn_conn->conn_state = RVD_CONN_STATE_RECONNECTING;
+
+				vpn_conn->tun_ip[0] = '\0';
 			} else if (vpn_conn->conn_state == RVD_CONN_STATE_RECONNECTING
 				&& vpn_conn->ovpn_state == OVPN_STATE_CONNECTED) {
 				RVD_DEBUG_MSG("VPN: OpenVPN connection was recovered after abnormal termination.");
