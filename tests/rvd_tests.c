@@ -586,7 +586,7 @@ check_default_connect(void)
 	pid_t rvd_pid;
 	char *resp_buf = NULL;
 
-	json_object *j_obj, *j_sub_obj;
+	json_object *j_obj, *j_sub_obj, *j_state_obj;
 	char *conn_status = NULL;
 
 	char *args1[] = {RVC_BIN_PATH, "test", "connect", "--json", NULL};
@@ -614,8 +614,9 @@ check_default_connect(void)
 	}
 
 	printf("response JSON buffer is %s\n", resp_buf);
-	if (json_object_object_get_ex(j_obj, "status", &j_sub_obj))
-		conn_status = strdup(json_object_get_string(j_sub_obj));
+	if (json_object_object_get_ex(j_obj, "RvdConnectionStatus", &j_sub_obj) &&
+		json_object_object_get_ex(j_sub_obj, "state", &j_state_obj))
+		conn_status = strdup(json_object_get_string(j_state_obj));
 	else
 		fprintf(stderr, "Couldn't get 'status' field from json buffer '%s'\n", resp_buf);
 
@@ -646,7 +647,7 @@ check_preconn_cmd(void)
 	pid_t rvd_pid;
 	char *resp_buf = NULL;
 
-	json_object *j_obj, *j_sub_obj;
+	json_object *j_obj, *j_sub_obj, *j_state_obj;
 
 	char *conn_status = NULL;
 	int pre_exec_status;
@@ -681,14 +682,16 @@ check_preconn_cmd(void)
 		}
 
 		printf("response JSON buffer is %s\n", resp_buf);
-		if (json_object_object_get_ex(j_obj, "status", &j_sub_obj))
-			conn_status = strdup(json_object_get_string(j_sub_obj));
+		if (json_object_object_get_ex(j_obj, "RvdConnectionStatus", &j_sub_obj) &&
+			json_object_object_get_ex(j_sub_obj, "state", &j_state_obj))
+			conn_status = strdup(json_object_get_string(j_state_obj));
 		else
 			fprintf(stderr, "Couldn't get 'status' field from json buffer '%s'\n", resp_buf);
 
 		pre_exec_status = i == 0 ? 0 : 1;
-		if (json_object_object_get_ex(j_obj, "pre-exec-status", &j_sub_obj))
-			pre_exec_status = json_object_get_int(j_sub_obj);
+		if (json_object_object_get_ex(j_obj, "RvdPreExec", &j_sub_obj) &&
+			json_object_object_get_ex(j_sub_obj, "returnCode", &j_state_obj))
+			pre_exec_status = json_object_get_int(j_state_obj);
 		else
 			fprintf(stderr, "Couldn't get 'pre-exec-status' field from json buffer '%s'\n", resp_buf);
 
@@ -772,7 +775,7 @@ check_kill_ovpn(void)
 	pid_t rvd_pid;
 	char *resp_buf = NULL;
 
-	json_object *j_obj, *j_sub_obj;
+	json_object *j_obj, *j_sub_obj, *j_state_obj;
 	char *conn_status = NULL;
 
 	char *args1[] = {RVC_BIN_PATH, "test", "connect", "--json", NULL};
@@ -812,8 +815,9 @@ check_kill_ovpn(void)
 	}
 
 	printf("response JSON buffer is %s\n", resp_buf);
-	if (json_object_object_get_ex(j_obj, "status", &j_sub_obj))
-		conn_status = strdup(json_object_get_string(j_sub_obj));
+	if (json_object_object_get_ex(j_obj, "RvdConnectionStatus", &j_sub_obj) &&
+		json_object_object_get_ex(j_sub_obj, "state", &j_state_obj))
+		conn_status = strdup(json_object_get_string(j_state_obj));
 	else
 		fprintf(stderr, "Couldn't get 'status' field from json buffer '%s'\n", resp_buf);
 
@@ -843,7 +847,7 @@ check_auto_connect(void)
 	pid_t rvd_pid;
 	char *resp_buf = NULL;
 
-	json_object *j_obj, *j_sub_obj;
+	json_object *j_obj, *j_sub_obj, *j_state_obj;
 	char *conn_status = NULL;
 
 	char *args[] = {RVC_BIN_PATH, "test", "status", "--json", NULL};
@@ -870,8 +874,9 @@ check_auto_connect(void)
 	}
 
 	printf("response JSON buffer is %s\n", resp_buf);
-	if (json_object_object_get_ex(j_obj, "status", &j_sub_obj))
-		conn_status = strdup(json_object_get_string(j_sub_obj));
+	if (json_object_object_get_ex(j_obj, "RvdConnectionStatus", &j_sub_obj) &&
+		json_object_object_get_ex(j_sub_obj, "state", &j_state_obj))
+		conn_status = strdup(json_object_get_string(j_state_obj));
 	else
 		fprintf(stderr, "Couldn't get 'status' field from json buffer '%s'\n", resp_buf);
 
@@ -940,7 +945,9 @@ main(int argc, char *argv[])
 		permission_check_rvd_json();
 		permission_check_ovpn_bin();
 		permission_check_ovpn_profile();
+#if 0
 		check_missing_json();
+#endif
 		check_missing_ovpn();
 		check_default_connect();
 		check_preconn_cmd();
