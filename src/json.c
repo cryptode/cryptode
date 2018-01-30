@@ -90,15 +90,6 @@ int rvd_json_parse(const char *jbuf, rvd_json_object_t *objs, int objs_count)
 
 			break;
 
-		case RVD_JTYPE_UID:
-			if (j_type != json_type_int)
-				break;
-
-			*((uid_t *)obj->val) = json_object_get_int(j_sub_obj);
-			ret = 0;
-
-			break;
-
 		case RVD_JTYPE_INT:
 			if (j_type != json_type_int)
 				break;
@@ -225,7 +216,6 @@ int rvd_json_build(rvd_json_object_t *objs, int objs_count, char **jbuf)
 			j_sub_obj = json_object_new_boolean(*((bool *)(obj->val)));
 			break;
 
-		case RVD_JTYPE_UID:
 		case RVD_JTYPE_INT:
 			j_sub_obj = json_object_new_int(*(int *)(obj->val));
 			break;
@@ -299,7 +289,6 @@ int rvd_json_add(const char *jbuf, rvd_json_object_t *objs, int objs_count, char
 			j_sub_obj = json_object_new_boolean(*((bool *)(obj->val)));
 			break;
 
-		case RVD_JTYPE_UID:
 		case RVD_JTYPE_INT:
 			j_sub_obj = json_object_new_int(*(int *)(obj->val));
 			break;

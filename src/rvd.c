@@ -265,7 +265,7 @@ parse_config(rvd_ctx_opt_t *opt, const char *config_path)
 		{"openvpn_bin", RVD_JTYPE_STR, opt->ovpn_bin_path, sizeof(opt->ovpn_bin_path), false, NULL},
 		{"openvpn_root_check", RVD_JTYPE_BOOL, &opt->ovpn_root_check, 0, false, NULL},
 		{"openvpn_up_down_scripts", RVD_JTYPE_BOOL, &opt->ovpn_use_scripts, 0, false, NULL},
-		{"user_id", RVD_JTYPE_UID, &opt->allowed_uid, 0, false, NULL},
+		{"user_id", RVD_JTYPE_INT, &opt->allowed_uid, 0, false, NULL},
 		{"restrict_socket", RVD_JTYPE_BOOL, &opt->restrict_cmd_sock, 0, false, NULL},
 		{"log_directory", RVD_JTYPE_STR, opt->log_dir_path, sizeof(opt->log_dir_path), false, NULL},
 		{"vpn_config_dir", RVD_JTYPE_STR, &opt->vpn_config_dir, sizeof(opt->vpn_config_dir), false, NULL}

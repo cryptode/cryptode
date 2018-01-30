@@ -89,7 +89,7 @@ static int create_listen_socket(rvd_ctx_opt_t *op)
 	}
 
 	/* set permission of socket */
-	if (op->restrict_cmd_sock) {
+	if (op->restrict_cmd_sock && op->allowed_uid > 0) {
 		if ((chown(RVD_LISTEN_SOCK_PATH, op->allowed_uid, 0) != 0 ||
 			 chmod(RVD_LISTEN_SOCK_PATH, S_IRUSR | S_IWUSR) != 0))
 			ret = -1;
