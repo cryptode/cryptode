@@ -1229,7 +1229,7 @@ static void get_single_conn_status(struct rvc_vpn_conn *vpn_conn, bool json_form
 			{"command", RVD_JTYPE_STR, vpn_conn->config.pre_exec_cmd, 0, false, "RvdPreExec"},
 			{"interval", RVD_JTYPE_INT, &vpn_conn->config.pre_exec_interval, 0, false, "RvdPreExec"},
 			{"userId", RVD_JTYPE_INT, &vpn_conn->config.pre_exec_uid, 0, false, "RvdPreExec"},
-			{"output", RVD_JTYPE_INT, &vpn_conn->config.pre_exec_status, 0, false, "RvdPreExec"}
+			{"returnCode", RVD_JTYPE_INT, &vpn_conn->config.pre_exec_status, 0, false, "RvdPreExec"}
 		};
 
 		/* create json object */
