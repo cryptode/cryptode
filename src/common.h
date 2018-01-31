@@ -1,6 +1,8 @@
 #ifndef __RVD_COMMON_H__
 #define __RVD_COMMON_H__
 
+#include <netinet/in.h>
+
 /* macro constants */
 
 #define RVD_MAX_PATH               256
@@ -13,6 +15,11 @@
 #define RVD_MAX_CONN_INFO_LEN      2048
 #define RVD_MAX_CONN_STATUS_LEN    2048
 #define RVD_BUF_SIZE               512
+#define RVD_MAX_IPADDR_LEN         INET6_ADDRSTRLEN
+#define RVD_MAX_HNAME_LEN          128
+#define RVD_MAX_PORTSTR_LEN        16
+#define RVD_MAX_PROTOSTR_LEN       16
+#define RVD_MAX_DATETIME_LEN       128
 
 #define RVC_MAX_IMPORT_SIZE        10240
 

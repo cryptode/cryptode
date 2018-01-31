@@ -1,48 +1,14 @@
 #ifndef __RVD_UTIL_H__
 #define __RVD_UTIL_H__
 
-#include <stdbool.h>
-
-#define RVD_JSON_STR_MAX_LEN			512
-
-enum RVD_JOBJ_TYPES {
-	RVD_JTYPE_STR = 0,
-	RVD_JTYPE_BOOL,
-	RVD_JTYPE_UID,
-	RVD_JTYPE_INT,
-	RVD_JTYPE_INT64,
-	RVD_JTYPE_STR_ARRAY,
-	RVD_JTYPE_OBJ
-};
-
-struct rvd_json_array {
-	char **val;
-	int arr_size;
-};
-
-/* rvd json object structure */
-typedef struct rvd_json_object {
-	const char *key;
-	enum RVD_JOBJ_TYPES type;
-	void *val;
-	size_t size;
-	bool mondatory;
-	const char *parent_key;
-} rvd_json_object_t;
-
-/* rvd json object API functions */
-int rvd_json_parse(const char *jbuf, rvd_json_object_t *objs, int objs_count);
-int rvd_json_build(rvd_json_object_t *objs, int objs_count, char **jbuf);
-int rvd_json_add(const char *jbuf, rvd_json_object_t *objs, int objs_count, char **ret);
-
 /* get maximum fd from fd_set */
 int get_max_fd(int orig_max_fd, fd_set *fds);
 
 /* get free listen port */
 int get_free_listen_port(int start_port);
 
-/* get token by comma */
-void get_token_by_comma(char **pp, char *token, size_t size);
+/* get token by given character */
+void get_token_by_char(char **pp, char sep, char *token, size_t size);
 
 /* set socket as non-blocking mode */
 int set_non_blocking(int sock);
@@ -79,6 +45,9 @@ void get_full_path(const char *dir_path, const char *file_name, char *full_path,
 
 /* create directory with given permission */
 int create_dir(const char *dir_path, mode_t mode);
+
+/* convert time_t to string */
+void convert_tt_to_str(time_t tt, char *tm_str, size_t size);
 
 #ifndef HAVE_STRLCPY
 /* size bounded string copy function */

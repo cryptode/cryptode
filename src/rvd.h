@@ -12,6 +12,7 @@ struct rvd_ctx;
 #include "log.h"
 #include "util.h"
 
+#include "json.h"
 #include "cmd.h"
 #include "conf.h"
 #include "vpn.h"

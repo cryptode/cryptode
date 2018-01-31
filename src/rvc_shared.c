@@ -54,6 +54,7 @@
 #include "common.h"
 #include "conf.h"
 #include "util.h"
+#include "json.h"
 
 #include "rvc_shared.h"
 
