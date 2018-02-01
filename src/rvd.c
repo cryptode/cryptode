@@ -224,11 +224,14 @@ write_pid_file(void)
 
 	/* open pid file and write */
 	fd = open(RVD_PID_FPATH, O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR);
-	if (fd < 0)
+	if (fd < 0) {
+		fprintf(stderr, "Could not open PID file '%s' for writing\n", RVD_PID_FPATH);
 		return;
+	}
 
 	pid_fp = fdopen(fd, "w");
 	if (!pid_fp) {
+		fprintf(stderr, "Could not open PID file '%s' for writing\n", RVD_PID_FPATH);
 		close(fd);
 		return;
 	}
@@ -265,7 +268,7 @@ parse_config(rvd_ctx_opt_t *opt, const char *config_path)
 		{"openvpn_bin", RVD_JTYPE_STR, opt->ovpn_bin_path, sizeof(opt->ovpn_bin_path), false, NULL},
 		{"openvpn_root_check", RVD_JTYPE_BOOL, &opt->ovpn_root_check, 0, false, NULL},
 		{"openvpn_up_down_scripts", RVD_JTYPE_BOOL, &opt->ovpn_use_scripts, 0, false, NULL},
-		{"user_id", RVD_JTYPE_UID, &opt->allowed_uid, 0, false, NULL},
+		{"user_id", RVD_JTYPE_INT, &opt->allowed_uid, 0, false, NULL},
 		{"restrict_socket", RVD_JTYPE_BOOL, &opt->restrict_cmd_sock, 0, false, NULL},
 		{"log_directory", RVD_JTYPE_STR, opt->log_dir_path, sizeof(opt->log_dir_path), false, NULL},
 		{"vpn_config_dir", RVD_JTYPE_STR, &opt->vpn_config_dir, sizeof(opt->vpn_config_dir), false, NULL}

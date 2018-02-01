@@ -23,7 +23,7 @@ typedef struct rvd_ctx_option {
 	bool ovpn_root_check;
 	bool ovpn_use_scripts;
 
-	uid_t allowed_uid;
+	int allowed_uid;
 	bool restrict_cmd_sock;
 
 	char log_dir_path[RVD_MAX_PATH];

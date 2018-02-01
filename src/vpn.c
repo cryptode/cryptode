@@ -520,7 +520,8 @@ static int run_preconn_cmd(struct rvc_vpn_conn *vpn_conn)
 		dup2(pipeerr[1], STDERR_FILENO);
 
 		/* set UID */
-		setuid(vpn_conn->config.pre_exec_uid);
+		if (vpn_conn->config.pre_exec_uid > 0)
+			setuid(vpn_conn->config.pre_exec_uid);
 
 		/* run command */
 		execvp(args[0], args);
@@ -620,7 +621,7 @@ static int run_openvpn_proc(struct rvc_vpn_conn *vpn_conn)
 	char mgm_port_str[32];
 	char ovpn_log_fname[RVD_MAX_FILE_NAME];
 	char ovpn_pid_fpath[RVD_MAX_PATH];
-	uid_t uid;
+	int uid;
 
 	rvd_ctx_t *c = vpn_conn->vpnconn_mgr->c;
 

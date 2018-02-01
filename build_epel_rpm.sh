@@ -16,7 +16,7 @@ mv rvc*.tar.gz ~/rpmbuild/SOURCES/
 
 # copy extra files
 cp platforms/epel/rvc.spec ~/rpmbuild/SPECS/
-cp platforms/epel/rvd.init ~/rpmbuild/SOURCES/rvd
+cp platforms/epel/rvd.service ~/rpmbuild/SOURCES/
 cp etc/rvd.json ~/rpmbuild/SOURCES/
 
 # build rpm
