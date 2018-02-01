@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.1.1] - 2017-02-01
+### Added
+
+- Added `rvd.systemd`
+
+### Changed
+
+- Changed RPM spec to use `rvd.systemd`
+- Disabled UID in configuration for Linux
+
+### Removed
+
+- Removed `rvd.init` script
+
 ## [1.1.0] - 2017-01-30
 ### Added
 

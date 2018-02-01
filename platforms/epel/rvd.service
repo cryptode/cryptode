@@ -1,0 +1,19 @@
+[Unit]
+Description=Relaxed VPN Client
+After=syslog.target network.target
+
+[Service]
+ExecStart=/usr/sbin/rvd -D
+
+ExecStop=kill -INT `cat /var/run/rvd/rvd.pid`
+ExecReload=kill -TERM `cat /var/run/rvd/rvd.pid`
+
+Restart=always
+
+Type=notify
+NotifyAccess=main
+
+PIDFile=/var/run/rvd/rvd.pid
+
+[Install]
+WantedBy=multi-user.target
