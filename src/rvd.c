@@ -224,11 +224,14 @@ write_pid_file(void)
 
 	/* open pid file and write */
 	fd = open(RVD_PID_FPATH, O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR);
-	if (fd < 0)
+	if (fd < 0) {
+		fprintf(stderr, "Could not open PID file '%s' for writing\n", RVD_PID_FPATH);
 		return;
+	}
 
 	pid_fp = fdopen(fd, "w");
 	if (!pid_fp) {
+		fprintf(stderr, "Could not open PID file '%s' for writing\n", RVD_PID_FPATH);
 		close(fd);
 		return;
 	}

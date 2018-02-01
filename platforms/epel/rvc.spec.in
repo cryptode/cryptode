@@ -1,5 +1,5 @@
+%{?systemd_requires}
 %define rvc_confdir %{_sysconfdir}/rvc
-%define rvc_datadir %{_datadir}/rvc
 
 %define version @PACKAGE_VERSION@
 %define release 1
@@ -14,11 +14,7 @@ Group: System Environment/Daemons
 
 Source0: rvc-%{version}.tar.gz
 Source1: rvd.json
-
-Requires(post): /sbin/chkconfig
-Requires(preun): /sbin/chkconfig
-Requires(preun): /sbin/service
-Requires(postun): /sbin/service
+Source2: rvd.service
 
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
 BuildRequires: json-c-devel openssl-devel
@@ -41,39 +37,30 @@ make install
 rm -rf %{buildroot}/usr/include
 rm -rf %{buildroot}/usr/var
 
+mkdir -p %{buildroot}/%{_unitdir}
+install -p -m 644 %{SOURCE2} %{buildroot}/%{_unitdir}
+
 %files
 %defattr(-,root,root,-)
 %config(noreplace) %{rvc_confdir}/rvd.json
 %attr(0600, root, root) %{rvc_confdir}/rvd.json
-%{_initrddir}/rvd
+%attr(0644, root, root) %{_unitdir}/rvd.service
 %{_sbindir}/rvd
 %{_bindir}/%{name}
 
 %clean
 rm -rf %{buildroot}
 
-%pre
-/sbin/service rvd stop >/dev/null 2>&1
-/sbin/chkconfig --del rvd
-
 %post
 mkdir -p %{rvc_confdir}/vpn.d
 mkdir -p %{_localstatedir}/log/rvd
-
-/sbin/service rvd start
-/sbin/chkconfig --add rvd
+%systemd_post rvd.service
 
 %preun
-if [ "$1" -eq 0 ]; then
-    /sbin/service rvd stop >/dev/null 2>&1
-    /sbin/chkconfig --del rvd
-fi
+%systemd_preun rvd.service
 
 %postun
-if [ "$1" -ge 1 ]; then
-    /sbin/service rvd condrestart >/dev/null 2>&1 || :
-fi
-
+%systemd_postun_with_restart rvd.service
 rm -rf %{_localstatedir}/log/rvd
 
 %changelog
