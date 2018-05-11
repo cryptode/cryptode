@@ -1,4 +1,10 @@
+
 # Changelog
+
+## [1.1.2] - 2017-05-11
+### Changed
+
+- Set `user_id` in `rvd.json`
 
 ## [1.1.1] - 2017-02-01
 ### Added

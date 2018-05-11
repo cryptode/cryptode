@@ -1,5 +1,5 @@
 AC_PREREQ(2.60)
-AC_INIT([rvc], [1.1.1], [https://github.com/riboseinc/rvc/issues])
+AC_INIT([rvc], [1.1.2], [https://github.com/riboseinc/rvc/issues])
 AM_INIT_AUTOMAKE([foreign subdir-objects -Wall])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 AC_CONFIG_MACRO_DIR([m4])
@@ -79,6 +79,8 @@ if test "x$isdarwin" = "xyes"; then
 
     RVD_LDADD="$JSONC_LIBDIR/libjson-c.a"
     RVC_LDADD="$JSONC_LIBDIR/libjson-c.a $OPENSSL_LIBDIR/libcrypto.a"
+
+    RVC_USER_ID=501
 else
     OPENVPN_BINARY_PATH=/usr/sbin/openvpn
     RVD_CONFIG_PATH=/etc/rvc/rvd.json
@@ -88,10 +90,10 @@ else
     RVC_LDADD="$JSONC_LIBS $OPENSSL_LIBS"
 
     RVC_USER_ID=-1
-
-    AC_DEFINE_UNQUOTED([RVC_USER_ID], ["$RVC_USER_ID"], [The User ID for RVC])
-    AC_SUBST(RVC_USER_ID)
 fi
+
+AC_DEFINE_UNQUOTED([RVC_USER_ID], ["$RVC_USER_ID"], [The User ID for RVC])
+AC_SUBST(RVC_USER_ID)
 
 AC_DEFINE_UNQUOTED([OPENVPN_BINARY_PATH], ["$OPENVPN_BINARY_PATH"], [The path to OpenVPN binary])
 AC_SUBST(OPENVPN_BINARY_PATH)
