@@ -1,0 +1,181 @@
+
+config_option "config_file" {
+	type = "config"
+
+	cmdline "switch" {
+		short = "f"
+	}
+
+	cmdline "description" {
+		short = "config file"
+		long = "set configuration file"
+	}
+
+	env = "RVD_CONFIG_FILE"
+	default = "/opt/rvc/etc/rvd.conf"
+}
+
+config_option "go_daemon" {
+	type = "bool"
+
+	cmdline "switch" {
+		short = "D"
+	}
+
+	cmdline "description" {
+		long = "daemonize"
+	}
+}
+
+config_option "check_config" {
+	type = "bool"
+
+	cmdline "switch" {
+		short = "c"
+	}
+
+	cmdline "description" {
+		long = "only check config and exit"
+	}
+}
+
+config_option "print_version" {
+	type = "bool"
+
+	cmdline "switch" {
+		short = "v"
+	}
+
+	cmdline "description" {
+		long = "print version"
+	}
+}
+
+config_option "helper" {
+	type = "helper"
+
+	cmdline "switch" {
+		short = "h"
+	}
+
+	cmdline "description" {
+		long = "print help message"
+	}
+}
+
+config_option "openvpn_bin" {
+	type = "string"
+
+	cmdline "switch" {
+		short = "o"
+	}
+
+	cmdline "description" {
+		short = "OpenVPN binary path"
+		long = "specify OpenVPN binary path"
+	}
+
+	env = "OPENVPN_BIN_PATH"
+	config = "openvpn.path"
+
+	default = "/opt/openvpn/sbin/openvpn"
+}
+
+config_option "openvpn_root_check" {
+	type = "bool"
+
+	cmdline "switch" {
+		short = "r"
+	}
+
+	cmdline "description" {
+		long = "enable root check for OpenVPN binary"
+	}
+
+	config = "openvpn.enable_root_check"
+
+	default = true
+}
+
+config_option "openvpn_updown_scripts" {
+	type = "bool"
+
+	cmdline "switch" {
+		short = "s"
+	}
+
+	cmdline "description" {
+		long = "enable up/down scripts for OpenVPN"
+	}
+
+	config = "openvpn.enable_updown_scripts"
+
+	default = false
+}
+
+config_option "user_id" {
+	type = "int"
+
+	cmdline "switch" {
+		short = "u"
+	}
+
+	cmdline "description" {
+		short = "User ID"
+		long = "specify User ID for RVC process"
+	}
+
+	env = "RVC_USER_ID"
+	config = "global.user_id"
+
+	default = 501
+}
+
+config_option "restrict_socket" {
+	type = "bool"
+
+	cmdline "switch" {
+		short = "r"
+	}
+
+	cmdline "description" {
+		long = "restrict access to communication socket"
+	}
+
+	config = "global.restrict_socket"
+
+	default = true
+}
+
+config_option "log_directory" {
+	type = "string"
+
+	cmdline "switch" {
+		short = "l"
+	}
+
+	cmdline "description" {
+		long = "specify the log directory of RVD process"
+	}
+
+	env = "RVD_LOG_DIR"
+	config = "global.log_directory"
+
+	default = "/var/log/rvd"
+}
+
+config_option "vpn_config_paths" {
+	type = "string"
+
+	cmdline "switch" {
+		short = "p"
+	}
+
+	cmdline "description" {
+		long = "specify the directory path of VPN configurations"
+	}
+
+	config = "global.vpn_config_directory"
+
+	default = "/opt/rvc/etc/vpn.d"
+}

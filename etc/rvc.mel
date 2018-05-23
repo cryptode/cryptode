@@ -1,0 +1,184 @@
+
+config_option "connect" {
+	type = "string"
+
+	cmdline "switch" {
+		long = "connect"
+	}
+
+	cmdline "description" {
+		long = "connect to a VPN with given name"
+	}
+
+	default = "all"
+}
+
+config_option "disconnect" {
+	type = "string"
+
+	cmdline "switch" {
+		long = "disconnect"
+	}
+
+	cmdline "description" {
+		long = "disconnect VPN with given name"
+	}
+
+	default = "all"
+}
+
+config_option "reconnect" {
+	type = "string"
+
+	cmdline "switch" {
+		long = "reconnect"
+	}
+
+	cmdline "description" {
+		long = "reconnect VPN with given name"
+	}
+
+	default = "all"
+}
+
+config_option "status" {
+	type = "string"
+
+	cmdline "switch" {
+		long = "status"
+	}
+
+	cmdline "description" {
+		long = "get status of VPN connection with given name"
+	}
+
+	default = "all"
+}
+
+config_option "edit" {
+	type = "string"
+
+	cmdline "switch" {
+		long = "edit"
+	}
+
+	cmdline "arguments" "auto-connect" {
+		type = "string"
+	}
+
+	cmdline "arguments" "pre-exec-cmd" {
+		type = "string"
+	}
+
+	cmdline "arguments" "profile" {
+		type = "string"
+	}
+
+	cmdline "description" {
+		long = "edit VPN connection with given name"
+	}
+}
+
+config_option "remove" {
+	type = "string"
+
+	cmdline "switch" {
+		long = "remove"
+	}
+
+	cmdline "arguments" "force" {
+		type = "bool"
+	}
+
+	cmdline "description" {
+		long = "remove VPN connection (sudo required)"
+	}
+}
+
+config_option "import" {
+	type = "string"
+
+	cmdline "switch" {
+		long = "remove"
+	}
+
+	cmdline "arguments" "new-from-tblk" {
+		type = "bool"
+	}
+
+	cmdline "arguments" "new-from-ovpn" {
+		type = "bool"
+	}
+
+	cmdline "description" {
+		long = "import VPN connection (sudo required)"
+	}
+}
+
+config_option "reload" {
+	type = "bool"
+
+	cmdline "switch" {
+		long = "reload"
+	}
+
+	cmdline "description" {
+		long = "reload configuration (sudo required)"
+	}
+}
+
+config_option "dns-override" {
+	type = "string"
+
+	cmdline "switch" {
+		long = "dns-override"
+	}
+
+	cmdline "arguments" "enable" {
+		type = "string"
+	}
+
+	cmdline "arguments" "disable" {
+		type = "bool"
+	}
+
+	cmdline "arguments" "status" {
+		type = "bool"
+	}
+
+	cmdline "description" {
+		long = "override DNS settings (sudo required)"
+	}
+}
+
+config_option "script-security" {
+	type = "string"
+
+	cmdline "switch" {
+		long = "script-security"
+	}
+}
+
+config_option "version" {
+	type = "bool"
+
+	cmdline "switch" {
+		long = "version"
+	}
+
+	cmdline "description" {
+		long = "print version"
+	}
+}
+
+config_option "helper" {
+	type = "helper"
+
+	cmdline "switch" {
+		long = "help"
+	}
+
+	cmdline "description" {
+		long = "print help message"
+	}
+}
