@@ -41,3 +41,6 @@ tmp
 CMakeLists.txt
 cmake-build-debug/
 upload_release.sh
+
+rvd.nos.c
+rvd.nos.h
