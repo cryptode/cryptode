@@ -39,38 +39,10 @@
 #include <json-c/json.h>
 
 #include "rvd.h"
+#include "rvd.nos.h"
 
 static bool g_end_flag;
 static bool g_reload_config;
-
-/* rvd default configuration */
-static rvd_ctx_opt_t g_default_opts = {
-	OPENVPN_BINARY_PATH,
-	true,
-	false,
-	RVD_DEFAULT_UID,
-	true,
-	RVD_DEFAULT_LOGDIR_PATH,
-	RVC_CONFDIR_PATH,
-};
-
-/*
- * print help message
- */
-
-static void
-print_help(void)
-{
-	printf("usage: rvd <options>\n"
-		"  Options:\n"
-		"    -f <config file>\tset configuration file\n"
-		"    -D\t\t\tgoes daemon\n"
-		"    -c\t\t\tonly check config and exit\n"
-		"    -v\t\t\tprint version\n"
-		"    -h\t\t\tprint help message\n");
-
-	exit(0);
-}
 
 /*
  * print version
@@ -251,28 +223,13 @@ remove_pid_file(void)
 }
 
 /*
- * read configuration
+ * check for validation of configuration file
  */
 
 static int
-parse_config(rvd_ctx_opt_t *opt, const char *config_path)
+check_config_validataion(const char *config_path)
 {
-	int fd;
-
-	char buf[2048];
-	ssize_t buf_len = 0;
-
 	struct stat st;
-
-	struct rvd_json_object config_jobjs[] = {
-		{"openvpn_bin", RVD_JTYPE_STR, opt->ovpn_bin_path, sizeof(opt->ovpn_bin_path), false, NULL},
-		{"openvpn_root_check", RVD_JTYPE_BOOL, &opt->ovpn_root_check, 0, false, NULL},
-		{"openvpn_up_down_scripts", RVD_JTYPE_BOOL, &opt->ovpn_use_scripts, 0, false, NULL},
-		{"user_id", RVD_JTYPE_INT, &opt->allowed_uid, 0, false, NULL},
-		{"restrict_socket", RVD_JTYPE_BOOL, &opt->restrict_cmd_sock, 0, false, NULL},
-		{"log_directory", RVD_JTYPE_STR, opt->log_dir_path, sizeof(opt->log_dir_path), false, NULL},
-		{"vpn_config_dir", RVD_JTYPE_STR, &opt->vpn_config_dir, sizeof(opt->vpn_config_dir), false, NULL}
-	};
 
 	/* check whether configuration file has valid permission */
 	if (stat(config_path, &st) != 0 || st.st_size <= 0) {
@@ -287,37 +244,37 @@ parse_config(rvd_ctx_opt_t *opt, const char *config_path)
 		return -1;
 	}
 
-	/* open configuration file */
-	fd = open(config_path, O_RDONLY);
-	if (fd < 0) {
-		fprintf(stderr, "Couldn't open configuration file '%s' for reading(err:%d)\n", config_path, errno);
-		return -1;
-	}
+	return 0;
+}
 
-	/* read buffer */
-	while (buf_len < st.st_size) {
-		ssize_t read_len;
+/*
+ * parse config options
+ */
 
-		read_len = read(fd, &buf[buf_len], sizeof(buf) - buf_len);
-		if (read_len <= 0) {
-			close(fd);
-			return -1;
-		}
+static int
+parse_config_options(rvd_options_t *opts)
+{
+	const char *nos_cfg;
 
-		buf_len += read_len;
-	}
+	nereon_config_option_t rvd_opts[] = {
+		{"config_file", NEREON_TYPE_CONFIG, false, &opts->config_fpath},
+		{"go_daemon", NEREON_TYPE_BOOL, false, &opts->go_daemon},
+		{"check_config", NEREON_TYPE_BOOL, false, &opts->check_config},
+		{"print_version", NEREON_TYPE_BOOL, false, &opts->print_version},
+		{"helper", NEREON_TYPE_BOOL, false, &opts->print_help},
+		{"openvpn_bin", NEREON_TYPE_STRING, true, &opts->ovpn_bin_path},
+		{"openvpn_root_check", NEREON_TYPE_BOOL, false, &opts->ovpn_root_check},
+		{"openvpn_updown_scripts", NEREON_TYPE_BOOL, false, &opts->ovpn_use_scripts},
+		{"user_id", NEREON_TYPE_INT, true, &opts->allowed_uid},
+		{"restrict_socket", NEREON_TYPE_BOOL, false, &opts->restrict_cmd_sock},
+		{"log_directory", NEREON_TYPE_STRING, true, &opts->log_dir_path},
+		{"vpn_config_paths", NEREON_TYPE_STRING, true, &opts->vpn_config_dir}
+	};
 
-	buf[buf_len] = '\0';
-
-	/* close file */
-	close(fd);
-
-	/* set default options */
-	memcpy(opt, &g_default_opts, sizeof(rvd_ctx_opt_t));
-
-	/* parse configuration json */
-	if (rvd_json_parse(buf, config_jobjs, sizeof(config_jobjs) / sizeof(struct rvd_json_object)) != 0) {
-		fprintf(stderr, "Couldn't parse json configuration '%s' from config file\n", buf);
+	/* initialize libnereon context */
+	nos_cfg = get_nos_cfg();
+	if (nereon_ctx_init(&opts->nctx, nos_cfg) != 0) {
+		fprintf(stderr, "Failed to parse RVD NOS configuration\n");
 		return -1;
 	}
 
@@ -329,15 +286,8 @@ parse_config(rvd_ctx_opt_t *opt, const char *config_path)
  */
 
 static int
-rvd_ctx_init(rvd_ctx_t *c, const char *config_path)
+rvd_ctx_init(rvd_ctx_t *c)
 {
-	/* initialize context object */
-	memset(c, 0, sizeof(rvd_ctx_t));
-
-	/* read configruation */
-	if (parse_config(&c->opt, config_path ? config_path : RVD_CONFIG_PATH) != 0)
-		exit(-1);
-
 	/* initialize logging */
 	if (rvd_log_init(c->opt.log_dir_path) != 0) {
 		fprintf(stderr, "Couldn't create log file in directory '%s'\n", c->opt.log_dir_path);
@@ -378,6 +328,9 @@ rvd_ctx_finalize(rvd_ctx_t *c)
 
 	/* finalize logging */
 	rvd_log_finalize(&c);
+
+	/* finalize nereon context */
+	nereon_ctx_finalize(&c->opt.nctx);
 }
 
 /*
@@ -385,7 +338,7 @@ rvd_ctx_finalize(rvd_ctx_t *c)
  */
 
 static void
-rvd_ctx_reload(rvd_ctx_t *c, const char *config_path)
+rvd_ctx_reload(rvd_ctx_t *c)
 {
 	RVD_DEBUG_MSG("Main: Reloading rvd context");
 
@@ -396,7 +349,7 @@ rvd_ctx_reload(rvd_ctx_t *c, const char *config_path)
 	memset(c, 0, sizeof(rvd_ctx_t));
 
 	/* init rvd context */
-	if (rvd_ctx_init(c, config_path) != 0) {
+	if (rvd_ctx_init(c) != 0) {
 		RVD_DEBUG_ERR("Main: Couldn't reload rvd context");
 		rvd_ctx_finalize(c);
 	}
@@ -412,67 +365,38 @@ main(int argc, char *argv[])
 	rvd_ctx_t ctx;
 	pid_t pid;
 
-	const char *config_path = NULL;
-
-	bool go_daemon = false;
-	bool check_mode = false;
-
-	/* initialize rvd context */
+	/* initialize context object */
 	memset(&ctx, 0, sizeof(rvd_ctx_t));
 
 	/* check UID */
 	if (getuid() != 0) {
 		fprintf(stderr, "Please run as root\n");
-		exit(-1);
+		exit(1);
 	}
 
-	/* parse command line options */
-	if (argc > 1) {
-		int opt;
-		while ((opt = getopt(argc, argv, "Df:chv")) != -1) {
-			switch (opt) {
-				case 'f':
-					config_path = optarg;
-					break;
-
-				case 'D':
-					go_daemon = true;
-					break;
-
-				case 'c':
-					check_mode = true;
-					break;
-
-				case 'v':
-					print_version();
-					break;
-
-				default:
-					print_help();
-					break;
-			}
-		}
-	}
+	/* read configruation */
+	if (parse_config_options(&ctx.opt) != 0)
+		exit(1);
 
 	/* if check mode is enabled, then check configuration file and exit */
-	if (check_mode) {
-		rvd_ctx_opt_t opt;
+	if (ctx.opt.check_config) {
+		if (check_config_validataion(ctx.opt.config_fpath) == 0) {
+			printf("Success to check validation of the configuration file '%s'\n", ctx.opt.config_fpath);
+			exit(0);
+		}
 
-		if (parse_config(&opt, config_path ? config_path : RVD_CONFIG_PATH) != 0)
-			exit(-1);
-
-		printf("Success to parse the configuration file '%s'\n", config_path ? config_path : RVD_CONFIG_PATH);
-		exit(0);
+		fprintf(stderr, "Failed to check validation of the configuration '%s'\n", ctx.opt.config_fpath);
+		exit(1);
 	}
 
 	/* check if the process is already running */
 	if ((pid = check_process_running()) > 0) {
 		fprintf(stderr, "The rvd process is already running with PID %d. Exiting...\n", pid);
-		exit(-1);
+		exit(1);
 	}
 
 	/* if daemon mode is enabled, then daemonize the process */
-	if (go_daemon)
+	if (ctx.opt.go_daemon)
 		daemonize();
 
 	/* write PID file */
@@ -482,16 +406,16 @@ main(int argc, char *argv[])
 	init_signal();
 
 	/* initialize rvd context */
-	if (rvd_ctx_init(&ctx, config_path) != 0) {
+	if (rvd_ctx_init(&ctx) != 0) {
 		RVD_DEBUG_ERR("Main: Failed initializing rvd context.");
 
 		rvd_ctx_finalize(&ctx);
-		exit(-1);
+		exit(1);
 	}
 
 	while (!g_end_flag) {
 		if (g_reload_config) {
-			rvd_ctx_reload(&ctx, config_path);
+			rvd_ctx_reload(&ctx);
 			g_reload_config = false;
 		}
 

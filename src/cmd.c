@@ -51,7 +51,7 @@
  * create listen socket
  */
 
-static int create_listen_socket(rvd_ctx_opt_t *op)
+static int create_listen_socket(rvd_options_t *op)
 {
 	int listen_sock;
 	struct sockaddr_un listen_addr;

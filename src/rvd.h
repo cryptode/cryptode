@@ -8,6 +8,8 @@ struct rvd_ctx;
 #include <unistd.h>
 #include <sys/select.h>
 
+#include <nereon.h>
+
 #include "common.h"
 #include "log.h"
 #include "util.h"
@@ -18,23 +20,30 @@ struct rvd_ctx;
 #include "vpn.h"
 
 /* rvd context options */
-typedef struct rvd_ctx_option {
-	char ovpn_bin_path[RVD_MAX_PATH];
+typedef struct rvd_options {
+	nereon_ctx_t nctx;
+
+	char *config_fpath;
+	bool go_daemon;
+
+	bool check_config;
+	bool print_version;
+	bool print_help;
+
+	char *ovpn_bin_path;
 	bool ovpn_root_check;
 	bool ovpn_use_scripts;
 
 	int allowed_uid;
 	bool restrict_cmd_sock;
 
-	char log_dir_path[RVD_MAX_PATH];
-	char vpn_config_dir[RVD_MAX_PATH];
-} rvd_ctx_opt_t;
+	char *log_dir_path;
+	char *vpn_config_dir;
+} rvd_options_t;
 
 /* rvd context structure */
 typedef struct rvd_ctx {
-	const char *config_path;
-
-	rvd_ctx_opt_t opt;
+	rvd_options_t opt;
 
 	rvd_cmd_proc_t cmd_proc;
 	rvd_vpnconn_mgr_t vpnconn_mgr;
