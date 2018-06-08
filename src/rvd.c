@@ -252,7 +252,7 @@ check_config_validataion(const char *config_path)
  */
 
 static int
-parse_config_options(rvd_options_t *opts)
+parse_config_options(rvd_options_t *opts, int argc, char **argv)
 {
 	const char *nos_cfg;
 
@@ -275,6 +275,31 @@ parse_config_options(rvd_options_t *opts)
 	nos_cfg = get_nos_cfg();
 	if (nereon_ctx_init(&opts->nctx, nos_cfg) != 0) {
 		fprintf(stderr, "Failed to parse RVD NOS configuration\n");
+
+		return -1;
+	}
+
+	/* parse command line */
+	if (nereon_parse_cmdline(&opts->nctx, argc, argv) != 0) {
+		fprintf(stderr, "Failed to parse command line(err:%s)\n", nereon_get_errmsg());
+		nereon_print_usage(&opts->nctx);
+		nereon_ctx_finalize(&opts->nctx);
+
+		return -1;
+	}
+
+	/* parse configuration file */
+	if (nereon_parse_config_file(&opts->nctx, RVD_DEFAULT_CONFIG) != 0) {
+		fprintf(stderr, "Could not parse NOC configuration(err:%s)\n", nereon_get_errmsg());
+		nereon_ctx_finalize(&opts->nctx);
+
+		return -1;
+	}
+
+	if (nereon_get_config_options(&opts->nctx, rvd_opts, sizeof(rvd_opts) / sizeof(struct nereon_config_option)) != 0) {
+		fprintf(stderr, "Failed to get configuration options(err:%s)\n", nereon_get_errmsg());
+		nereon_ctx_finalize(&opts->nctx);
+
 		return -1;
 	}
 
@@ -375,7 +400,7 @@ main(int argc, char *argv[])
 	}
 
 	/* read configruation */
-	if (parse_config_options(&ctx.opt) != 0)
+	if (parse_config_options(&ctx.opt, argc, argv) != 0)
 		exit(1);
 
 	/* if check mode is enabled, then check configuration file and exit */
