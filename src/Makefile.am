@@ -20,7 +20,7 @@ rvc_LDFLAGS = $(JSONC_LDFLAGS) $(OPENSSL_LDFLAGS)
 include_HEADERS = common.h rvd.h cmd.h log.h util.h vpn.h rvc_shared.h conf.h json.h
 
 rvd.nos.c: rvd.nos
-	$(NEREON_TO_CC) rvd.nos
+	$(NEREON_TO_CC) rvd.nos ./
 
 clean-local:
 	rm -rf rvd.nos.*
