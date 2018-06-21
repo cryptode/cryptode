@@ -255,6 +255,7 @@ static int
 parse_config_options(rvd_options_t *opts, int argc, char **argv)
 {
 	const char *nos_cfg;
+	int ret = -1;
 
 	nereon_config_option_t rvd_opts[] = {
 		{"config_file", NEREON_TYPE_CONFIG, false, &opts->config_fpath},
@@ -275,7 +276,6 @@ parse_config_options(rvd_options_t *opts, int argc, char **argv)
 	nos_cfg = get_nos_cfg();
 	if (nereon_ctx_init(&opts->nctx, nos_cfg) != 0) {
 		fprintf(stderr, "Failed to parse RVD NOS configuration\n");
-
 		return -1;
 	}
 
@@ -283,27 +283,29 @@ parse_config_options(rvd_options_t *opts, int argc, char **argv)
 	if (nereon_parse_cmdline(&opts->nctx, argc, argv) != 0) {
 		fprintf(stderr, "Failed to parse command line(err:%s)\n", nereon_get_errmsg());
 		nereon_print_usage(&opts->nctx);
-		nereon_ctx_finalize(&opts->nctx);
-
-		return -1;
+		goto end;
 	}
 
 	/* parse configuration file */
 	if (nereon_parse_config_file(&opts->nctx, RVD_DEFAULT_CONFIG) != 0) {
 		fprintf(stderr, "Could not parse NOC configuration(err:%s)\n", nereon_get_errmsg());
-		nereon_ctx_finalize(&opts->nctx);
-
-		return -1;
+		goto end;
 	}
 
 	if (nereon_get_config_options(&opts->nctx, rvd_opts, sizeof(rvd_opts) / sizeof(struct nereon_config_option)) != 0) {
 		fprintf(stderr, "Failed to get configuration options(err:%s)\n", nereon_get_errmsg());
-		nereon_ctx_finalize(&opts->nctx);
-
-		return -1;
+		goto end;
 	}
 
-	return 0;
+	ret = check_config_validataion(opts->config_fpath);
+
+end:
+	nereon_ctx_finalize(&opts->nctx);
+
+	if (opts->check_config)
+		exit(ret);
+
+	return ret;
 }
 
 /*
@@ -402,17 +404,6 @@ main(int argc, char *argv[])
 	/* read configruation */
 	if (parse_config_options(&ctx.opt, argc, argv) != 0)
 		exit(1);
-
-	/* if check mode is enabled, then check configuration file and exit */
-	if (ctx.opt.check_config) {
-		if (check_config_validataion(ctx.opt.config_fpath) == 0) {
-			printf("Success to check validation of the configuration file '%s'\n", ctx.opt.config_fpath);
-			exit(0);
-		}
-
-		fprintf(stderr, "Failed to check validation of the configuration '%s'\n", ctx.opt.config_fpath);
-		exit(1);
-	}
 
 	/* check if the process is already running */
 	if ((pid = check_process_running()) > 0) {

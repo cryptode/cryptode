@@ -66,7 +66,7 @@ usage(void)
 {
 	fprintf(stderr, "Usage: rvd_tests [options]\n"
 					"options:\n"
-					"  --check-rvd-json       Tests for checking rvd.json permission\n"
+					"  --check-rvd-conf       Tests for checking rvd.conf permission\n"
 					"  --check-ovpn-bin       Tests for checking OpenVPN binary permission\n"
 					"  --check-ovpn-profile   Tests for checking OpenVPN profile permission\n"
 					"  --check-missing-json   Tests for checking missing JSON configuration\n"
@@ -376,16 +376,16 @@ run_rvc(char **args, char **json_resp)
 }
 
 /*
- * check for rvd_json permission
+ * check for rvd conf permission
  */
 
 static void
-permission_check_rvd_json(void)
+permission_check_rvd_conf(void)
 {
 	pid_t rvd_pid;
 	int exit_code;
 
-	printf("\n\n################## Checking for permission of rvd JSON configuration ######################\n\n");
+	printf("\n\n################## Checking for permission of rvd configuration ######################\n\n");
 
 	/* check for wrong persmission */
 	set_file_permission(RVD_CONFIG_PATH, RVD_CONF_WRONG_PERMISSION);
@@ -942,7 +942,7 @@ main(int argc, char *argv[])
 	}
 
 	if (argc == 1) {
-		permission_check_rvd_json();
+		permission_check_rvd_conf();
 		permission_check_ovpn_bin();
 		permission_check_ovpn_profile();
 #if 0
@@ -957,7 +957,7 @@ main(int argc, char *argv[])
 		check_dup_config();
 	} else {
 		if (strcmp(argv[1], "--check-rvd-json") == 0)
-			permission_check_rvd_json();
+			permission_check_rvd_conf();
 		else if (strcmp(argv[1], "--check-ovpn-bin") == 0)
 			permission_check_ovpn_bin();
 		else if (strcmp(argv[1], "--check-ovpn-profile") == 0)

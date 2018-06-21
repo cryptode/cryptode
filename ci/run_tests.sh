@@ -36,11 +36,11 @@ function install_rvd() {
 	echo "Installing rvc components..."
 
 	sudo install -d -g "${INST_GRP_NAME}" -m 755 -o root "${RVC_CONF_DIR}/vpn.d"
-	sudo install -m 600 -g "${INST_GRP_NAME}" -o root "etc/rvd.json" "${RVC_CONF_DIR}/"
+	sudo install -m 600 -g "${INST_GRP_NAME}" -o root "etc/rvd.conf" "${RVC_CONF_DIR}/"
 	sudo install -m 500 -g "${INST_GRP_NAME}" -o root "src/rvc" "${RVC_INST_DIR}/"
 	sudo install -m 555 -g "${INST_GRP_NAME}" -o root "src/rvd" "${RVD_INST_DIR}/"
-	sudo install -m 600 -g "${INST_GRP_NAME}" -o root "etc/rvd.json" "${RVC_CONF_DIR}/"
-	sudo install -m 600 -g "${INST_GRP_NAME}" -o root "ci/${RVD_CONF_FILE}" "${RVC_CONF_DIR}/rvd.json"
+	sudo install -m 600 -g "${INST_GRP_NAME}" -o root "etc/rvd.conf" "${RVC_CONF_DIR}/"
+	sudo install -m 600 -g "${INST_GRP_NAME}" -o root "ci/${RVD_CONF_FILE}" "${RVC_CONF_DIR}/rvd.conf"
 }
 
 run_openvpn_server

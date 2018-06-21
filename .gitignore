@@ -31,6 +31,7 @@ platforms/macos/rvc.dist
 rvc.pkg
 src/rvd
 etc/rvd.json
+etc/rvd.conf
 rvc.spec
 tests/rvd_tests
 tests/.deps
@@ -44,3 +45,6 @@ upload_release.sh
 
 rvd.nos.c
 rvd.nos.h
+
+tests/test-suite.log
+

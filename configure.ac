@@ -75,7 +75,7 @@ if test "x$isdarwin" = "xyes"; then
     LDFLAGS="$LDFLAGS -mmacosx-version-min=10.12"
 
     OPENVPN_BINARY_PATH=/opt/openvpn/sbin/openvpn
-    RVD_CONFIG_PATH=/opt/rvc/etc/rvd.json
+    RVD_CONFIG_PATH=/opt/rvc/etc/rvd.conf
     RVC_CONFDIR_PATH=/opt/rvc/etc/vpn.d
 
     RVD_LDADD="$JSONC_LIBDIR/libjson-c.a $NEREON_LIBDIR/libnereon.a"
@@ -84,7 +84,7 @@ if test "x$isdarwin" = "xyes"; then
     RVC_USER_ID=501
 else
     OPENVPN_BINARY_PATH=/usr/sbin/openvpn
-    RVD_CONFIG_PATH=/etc/rvc/rvd.json
+    RVD_CONFIG_PATH=/etc/rvc/rvd.conf
     RVC_CONFDIR_PATH=/etc/rvc/vpn.d
 
     RVD_LDADD="$JSONC_LIBS $NEREON_LIBDIR/libnereon.a"
@@ -157,7 +157,7 @@ AC_CONFIG_FILES([Makefile
                 platforms/epel/Makefile
                 src/Makefile
                 upload_release.sh
-                etc/rvd.json
+                etc/rvd.conf
                 platforms/epel/rvc.spec
                 tests/Makefile
                 ])

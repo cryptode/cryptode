@@ -1,13 +1,13 @@
 
 global {
-	user_id = 501
+	user_id = @RVC_USER_ID@
 	restrict_socket = true
 	log_directory = "/var/log/rvd"
-	vpn_config_paths = "/opt/rvc/etc/vpn.d"
+	vpn_config_paths = "@RVC_CONFDIR_PATH@"
 }
 
 openvpn {
-	sbin_path = "/opt/openvpn/sbin/openvpn"
+	sbin_path = "@OPENVPN_BINARY_PATH@"
 	root_check = true
 	enable_updown_scripts = false
 }
