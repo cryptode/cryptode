@@ -32,6 +32,7 @@ linux_install() {
 		autoconf
 		automake
 		libtool
+		cmake
 		libssl-dev
 		libjson-c-dev
 		pkg-config
@@ -39,6 +40,15 @@ linux_install() {
 	for p in ${packages}; do
 		sudo apt-get install -y ${p}
 	done
+
+	# install libnereon
+	git clone -b v0.9.1.4 https://github.com/riboseinc/libnereon
+	cd libnereon
+	mkdir build
+	cd build
+	cmake ..
+	make
+	sudo make install
 }
 
 crossplat_install() {

@@ -1,9 +1,0 @@
-{
-  "openvpn_bin": "@OPENVPN_BINARY_PATH@",
-  "openvpn_root_check": true,
-  "ovpn_up_down_scripts": false,
-  "user_id": @RVC_USER_ID@,
-  "restrict_socket": true,
-  "log_directory": "/var/log/rvd",
-  "vpn_config_paths": "@RVC_CONFDIR_PATH@"
-}

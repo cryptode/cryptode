@@ -1,5 +1,5 @@
 AC_PREREQ(2.60)
-AC_INIT([rvc], [1.1.2], [https://github.com/riboseinc/rvc/issues])
+AC_INIT([rvc], [1.2.0], [https://github.com/riboseinc/rvc/issues])
 AM_INIT_AUTOMAKE([foreign subdir-objects -Wall])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 AC_CONFIG_MACRO_DIR([m4])
@@ -37,10 +37,11 @@ AC_CHECK_HEADERS_ONCE(m4_flatten([
     sys/types.h
 ]))
 
-AC_CHECK_FUNCS([strlcpy strlcat])
+AC_CHECK_FUNCS([strlcpy strlcat getprogname])
 
 AX_CHECK_JSONC([], AC_MSG_ERROR([]))
 AX_CHECK_OPENSSL([], AC_MSG_ERROR([]))
+AX_CHECK_NEREON([], AC_MSG_ERROR([]))
 
 # add more host definitions if needed.
 islinux=no
@@ -74,19 +75,19 @@ if test "x$isdarwin" = "xyes"; then
     LDFLAGS="$LDFLAGS -mmacosx-version-min=10.12"
 
     OPENVPN_BINARY_PATH=/opt/openvpn/sbin/openvpn
-    RVD_CONFIG_PATH=/opt/rvc/etc/rvd.json
+    RVD_CONFIG_PATH=/opt/rvc/etc/rvd.conf
     RVC_CONFDIR_PATH=/opt/rvc/etc/vpn.d
 
-    RVD_LDADD="$JSONC_LIBDIR/libjson-c.a"
+    RVD_LDADD="$JSONC_LIBDIR/libjson-c.a $NEREON_LIBDIR/libnereon.a"
     RVC_LDADD="$JSONC_LIBDIR/libjson-c.a $OPENSSL_LIBDIR/libcrypto.a"
 
     RVC_USER_ID=501
 else
     OPENVPN_BINARY_PATH=/usr/sbin/openvpn
-    RVD_CONFIG_PATH=/etc/rvc/rvd.json
+    RVD_CONFIG_PATH=/etc/rvc/rvd.conf
     RVC_CONFDIR_PATH=/etc/rvc/vpn.d
 
-    RVD_LDADD="$JSONC_LIBS"
+    RVD_LDADD="$JSONC_LIBS $NEREON_LIBS"
     RVC_LDADD="$JSONC_LIBS $OPENSSL_LIBS"
 
     RVC_USER_ID=-1
@@ -155,8 +156,9 @@ AC_CONFIG_FILES([Makefile
                 platforms/macos/Makefile
                 platforms/epel/Makefile
                 src/Makefile
+                src/rvd.nos
                 upload_release.sh
-                etc/rvd.json
+                etc/rvd.conf
                 platforms/epel/rvc.spec
                 tests/Makefile
                 ])

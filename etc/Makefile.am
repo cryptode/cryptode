@@ -1,3 +1,3 @@
 
-EXTRA_DIST = rvd.json
-sysconf_DATA = rvd.json
+EXTRA_DIST = rvd.conf
+sysconf_DATA = rvd.conf
