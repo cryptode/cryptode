@@ -87,7 +87,7 @@ else
     RVD_CONFIG_PATH=/etc/rvc/rvd.conf
     RVC_CONFDIR_PATH=/etc/rvc/vpn.d
 
-    RVD_LDADD="$JSONC_LIBS $NEREON_LIBDIR/libnereon.a"
+    RVD_LDADD="$JSONC_LIBS $NEREON_LIBS"
     RVC_LDADD="$JSONC_LIBS $OPENSSL_LIBS"
 
     RVC_USER_ID=-1
