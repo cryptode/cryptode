@@ -300,7 +300,8 @@ parse_config_options(rvd_options_t *opts, int argc, char **argv)
 	ret = check_config_validataion(opts->config_fpath);
 
 end:
-	nereon_ctx_finalize(&opts->nctx);
+	if (ret != 0)
+		nereon_ctx_finalize(&opts->nctx);
 
 	if (opts->check_config)
 		exit(ret);
@@ -355,9 +356,6 @@ rvd_ctx_finalize(rvd_ctx_t *c)
 
 	/* finalize logging */
 	rvd_log_finalize(&c);
-
-	/* finalize nereon context */
-	nereon_ctx_finalize(&c->opt.nctx);
 }
 
 /*
@@ -367,13 +365,18 @@ rvd_ctx_finalize(rvd_ctx_t *c)
 static void
 rvd_ctx_reload(rvd_ctx_t *c)
 {
+	rvd_options_t opt;
+
 	RVD_DEBUG_MSG("Main: Reloading rvd context");
+
+	memcpy(&opt, &c->opt, sizeof(rvd_options_t));
 
 	/* finalize rvd context */
 	rvd_ctx_finalize(c);
 
 	/* init context object */
 	memset(c, 0, sizeof(rvd_ctx_t));
+	memcpy(&c->opt, &opt, sizeof(rvd_options_t));
 
 	/* init rvd context */
 	if (rvd_ctx_init(c) != 0) {
@@ -443,6 +446,9 @@ main(int argc, char *argv[])
 
 	/* remove PID file */
 	remove_pid_file();
+
+	/* finalize nereon context */
+	nereon_ctx_finalize(&ctx.opt.nctx);
 
 	return 0;
 }

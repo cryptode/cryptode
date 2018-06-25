@@ -175,7 +175,7 @@ config_option "vpn_config_paths" {
 		long = "specify the directory path of VPN configurations"
 	}
 
-	config = "global.vpn_config_directory"
+	config = "global.vpn_config_paths"
 
 	default = "/opt/rvc/etc/vpn.d"
 }
