@@ -12,7 +12,7 @@ config_option "config_file" {
 	}
 
 	env = "RVD_CONFIG_FILE"
-	default = "/opt/rvc/etc/rvd.conf"
+	default = "@RVD_CONFIG_PATH@"
 }
 
 config_option "go_daemon" {
@@ -78,7 +78,7 @@ config_option "openvpn_bin" {
 	env = "OPENVPN_BIN_PATH"
 
 	config = "openvpn.path"
-	default = "/opt/openvpn/sbin/openvpn"
+	default = "@OPENVPN_BINARY_PATH@"
 }
 
 config_option "openvpn_root_check" {
@@ -128,7 +128,7 @@ config_option "user_id" {
 	env = "RVC_USER_ID"
 	config = "global.user_id"
 
-	default = 501
+	default = @RVC_USER_ID@
 }
 
 config_option "restrict_socket" {
@@ -177,5 +177,5 @@ config_option "vpn_config_paths" {
 
 	config = "global.vpn_config_paths"
 
-	default = "/opt/rvc/etc/vpn.d"
+	default = "@RVC_CONFDIR_PATH@"
 }

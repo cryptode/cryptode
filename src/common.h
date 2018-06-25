@@ -26,9 +26,6 @@
 /* copyright message */
 #define RVC_COPYRIGHT_MSG          "Copyright 2017 Ribose Inc <https://www.ribose.com>"
 
-/* default RVD configuration path */
-#define RVD_DEFAULT_CONFIG         "/opt/rvc/etc/rvd.conf"
-
 /* rvd default command listen socket path */
 #define RVD_LISTEN_SOCK_PATH       "/var/run/rvd.sock"
 

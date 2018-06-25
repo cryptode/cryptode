@@ -287,7 +287,7 @@ parse_config_options(rvd_options_t *opts, int argc, char **argv)
 	}
 
 	/* parse configuration file */
-	if (nereon_parse_config_file(&opts->nctx, RVD_DEFAULT_CONFIG) != 0) {
+	if (nereon_parse_config_file(&opts->nctx, RVD_CONFIG_PATH) != 0) {
 		fprintf(stderr, "Could not parse NOC configuration(err:%s)\n", nereon_get_errmsg());
 		goto end;
 	}

@@ -156,6 +156,7 @@ AC_CONFIG_FILES([Makefile
                 platforms/macos/Makefile
                 platforms/epel/Makefile
                 src/Makefile
+                src/rvd.nos
                 upload_release.sh
                 etc/rvd.conf
                 platforms/epel/rvc.spec

@@ -23,4 +23,4 @@ rvd.nos.c: rvd.nos
 	$(NEREON_TO_CC) rvd.nos ./
 
 clean-local:
-	rm -rf rvd.nos.*
+	rm -rf rvd.nos.c rvd.nos.h
