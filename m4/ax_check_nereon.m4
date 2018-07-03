@@ -46,7 +46,7 @@ AC_DEFUN([AX_CHECK_NEREON], [
             NEREON_LDFLAGS="-L$nereondir/lib"
             NEREON_LIBS="-lnereon"
             NEREON_LIBDIR="$nereondir/lib"
-            NEREON_TO_CC="$nereondir/bin/nos_to_cc"
+            NEREON_TO_CC="$nereondir/bin/nos2cc"
             found=true
             AC_MSG_RESULT([yes])
             break

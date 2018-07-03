@@ -1,12 +1,19 @@
 
 # Changelog
 
-## [1.1.2] - 2017-05-11
+## [1.2.0] - 2018-07-03
+### Added
+
+- Integrated `libnereon` for parsing configurations
+
+# Changelog
+
+## [1.1.2] - 2018-05-11
 ### Changed
 
 - Set `user_id` in `rvd.json`
 
-## [1.1.1] - 2017-02-01
+## [1.1.1] - 2018-02-01
 ### Added
 
 - Added `rvd.systemd`
@@ -20,7 +27,7 @@
 
 - Removed `rvd.init` script
 
-## [1.1.0] - 2017-01-30
+## [1.1.0] - 2018-01-30
 ### Added
 
 ### Changed
@@ -29,7 +36,7 @@
 
 ### Removed
 
-## [1.0.4] - 2017-01-09
+## [1.0.4] - 2018-01-09
 ### Added
 
 - Added ChangeLog
