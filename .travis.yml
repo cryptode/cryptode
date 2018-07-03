@@ -28,7 +28,7 @@ addons:
 
 after_failure: cat tests/test-suite.log
 
-install:
+install: travis_wait mvn install
   - ./ci/install.sh
 
 script:
