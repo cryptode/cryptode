@@ -2,12 +2,12 @@
 #define __RVD_CONF_H__
 
 #define OVPN_CONFIG_EXTENSION			".ovpn"
-#define RVC_CONFIG_EXTENSION			".json"
+#define RVC_CONFIG_EXTENSION			".noc"
 
 #define OVPN_STATUS_NOT_LOADED          0x0000
 #define OVPN_STATUS_INVALID_PERMISSION  0x0001
 #define OVPN_STATUS_LOADED              0x0002
-#define OVPN_STATUS_HAVE_JSON           0x0004
+#define OVPN_STATUS_HAVE_NOC            0x0004
 
 #define MIN_PRE_EXEC_INTERVAL			1
 #define MAX_PRE_EXEC_INTERVAL			60

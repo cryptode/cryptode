@@ -38,6 +38,7 @@
 #include <json-c/json.h>
 
 #include "rvd.h"
+#include "conf.nos.h"
 
 /*
  * initialize RVC VPN configuration
@@ -108,9 +109,9 @@ int rvc_read_vpn_config(const char *config_dir, const char *config_name, struct 
 	struct rvc_vpn_config config;
 
 	char ovpn_profile_path[RVD_MAX_PATH];
-	char json_config_path[RVD_MAX_PATH];
+	char noc_config_path[RVD_MAX_PATH];
 
-	bool json_config_exist = true;
+	bool noc_config_exist = true;
 
 	struct stat st;
 
@@ -136,87 +137,73 @@ int rvc_read_vpn_config(const char *config_dir, const char *config_name, struct 
 	}
 
 	/* set json configuration path */
-	get_full_path(config_dir, config_name, json_config_path, sizeof(json_config_path));
-	strlcat(json_config_path, RVC_CONFIG_EXTENSION, sizeof(json_config_path));
+	get_full_path(config_dir, config_name, noc_config_path, sizeof(noc_config_path));
+	strlcat(noc_config_path, RVC_CONFIG_EXTENSION, sizeof(noc_config_path));
 
 	/* check whether configuration file is exist */
-	if (stat(json_config_path, &st) != 0 || !S_ISREG(st.st_mode) ||
+	if (stat(noc_config_path, &st) != 0 || !S_ISREG(st.st_mode) ||
 		st.st_size == 0)
-		json_config_exist = false;
+		noc_config_exist = false;
 
 	/* initializ VPN config */
 	init_rvc_vpn_config(&config, config_name, ovpn_profile_path);
 
 	/* parse config file */
-	if (json_config_exist) {
-		FILE *fp = NULL;
+	if (noc_config_exist) {
+		nereon_ctx_t vpn_conf_ctx;
+		char *pre_exec_cmd = NULL;
 
-		struct stat st;
-
-		char *config_buf;
-		size_t read_len;
-
-		rvd_json_object_t vpn_config[] = {
-			{"auto-connect", RVD_JTYPE_BOOL, &config.auto_connect, 0, false, NULL},
-			{"pre-connect-exec", RVD_JTYPE_STR, config.pre_exec_cmd, sizeof(config.pre_exec_cmd), false, NULL},
-			{"pre-connect-exec-interval", RVD_JTYPE_INT, &config.pre_exec_interval, 0, false, NULL}
+		nereon_config_option_t vpn_conf_opts[] = {
+			{"auto-connect", NEREON_TYPE_BOOL, false, &config.auto_connect},
+			{"pre-connect-exec", NEREON_TYPE_STRING, false, &pre_exec_cmd},
+			{"pre-connect-exec-interval", NEREON_TYPE_INT, false, &config.pre_exec_interval}
 		};
 
 #ifdef _RVD_SOURCE
-		RVD_DEBUG_MSG("CONF: Parsing configuration file '%s'", json_config_path);
+		RVD_DEBUG_MSG("CONF: Parsing configuration file '%s'", noc_config_path);
 #else
-		fprintf(stderr, "Parsing configuration file '%s'\n", json_config_path);
+		fprintf(stderr, "Parsing configuration file '%s'\n", noc_config_path);
 #endif
 
-		/* get the size of json configuration file */
-		if (stat(json_config_path, &st) != 0 || st.st_size <= 0) {
+		/* initialize VPN configuration parser */
+		if (nereon_ctx_init(&vpn_conf_ctx, get_vpnconf_nos_cfg()) != 0) {
 #ifdef _RVD_SOURCE
-			RVD_DEBUG_MSG("CONF: Invalid JSON configuration file '%s'", json_config_path);
+			RVD_DEBUG_ERR("CONF: Failed to parse VPN NOS configuration");
 #else
-			fprintf(stderr, "Invalid JSON configuration file '%s'\n", json_config_path);
-#endif
-		}
-
-		/* open configuration file */
-		fp = fopen(json_config_path, "r");
-		if (!fp) {
-#ifdef _RVD_SOURCE
-			RVD_DEBUG_ERR("CONF: Couldn't open configuration file '%s' for reading(err:%d)",
-					json_config_path, errno);
-#else
-			fprintf(stderr, "Couldn't open configuration file '%s' for reading(err:%d)\n",
-					json_config_path, errno);
+			fprintf(stderr, "Could not parse VPN NOS configuration\n");
 #endif
 			return -1;
 		}
 
-		/* read config buffer */
-		config_buf = (char *) malloc(st.st_size + 1);
-		if (!config_buf) {
-			fclose(fp);
+		if (nereon_parse_config_file(&vpn_conf_ctx, noc_config_path) != 0) {
+#ifdef _RVD_SOURCE
+			RVD_DEBUG_ERR("CONF: Failed to parse VPN configruration '%s'", noc_config_path);
+#else
+			fprintf(stderr, "Failed to parse VPN configuration '%s'\n", noc_config_path);
+#endif
+
+			nereon_ctx_finalize(&vpn_conf_ctx);
 			return -1;
 		}
 
-		read_len = fread(config_buf, 1, st.st_size, fp);
-		fclose(fp);
-
-		if (read_len > 0) {
-			config_buf[read_len] = '\0';
-
-			if (rvd_json_parse(config_buf, vpn_config, sizeof(vpn_config) / sizeof(rvd_json_object_t)) != 0) {
+		if (nereon_get_config_options(&vpn_conf_ctx, vpn_conf_opts, sizeof(vpn_conf_opts) / sizeof(nereon_config_option_t)) != 0) {
 #ifdef _RVD_SOURCE
-				RVD_DEBUG_ERR("CONF: Invalid configuration file '%s'", json_config_path);
+			RVD_DEBUG_ERR("CONF: Failed to get configuration options(err:%s)", nereon_get_errmsg());
 #else
-				fprintf(stderr, "Invalid configuration file '%s'\n", json_config_path);
+			fprintf(stderr, "Failed to get configuration options(err:%s)\n", nereon_get_errmsg());
 #endif
-				free(config_buf);
-				return -1;
-			}
 
-			/* set JSON configuration status */
-			config.load_status |= OVPN_STATUS_HAVE_JSON;
+			nereon_ctx_finalize(&vpn_conf_ctx);
+			return -1;
 		}
-		free(config_buf);
+
+		if (pre_exec_cmd)
+			strlcpy(config.pre_exec_cmd, pre_exec_cmd, sizeof(config.pre_exec_cmd));
+
+		nereon_ctx_finalize(&vpn_conf_ctx);
+
+		/* set JSON configuration status */
+		config.load_status |= OVPN_STATUS_HAVE_NOC;
 	}
 
 	/* check for the permissions of VPN config */
@@ -235,8 +222,8 @@ int rvc_read_vpn_config(const char *config_dir, const char *config_name, struct 
 
 int rvc_write_vpn_config(const char *config_dir, const char *config_name, struct rvc_vpn_config *vpn_config)
 {
+	FILE *fp;
 	int fd;
-	FILE *fp = NULL;
 
 	char json_config_path[RVD_MAX_PATH];
 	char *config_buffer;
