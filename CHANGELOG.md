@@ -1,6 +1,11 @@
 
 # Changelog
 
+## [1.2.1] - 2018-07-09
+### Changed
+
+- Fixed issues when parsing per-VPN configuration by `libnereon`
+
 ## [1.2.0] - 2018-07-03
 ### Added
 
