@@ -124,11 +124,11 @@ tls-version-min 1.2
 
 [source,sh]
 ----
-sudo vi /opt/rvc/etc/vpn.d/vpn1.json
+sudo vi /opt/rvc/etc/vpn.d/vpn1.noc
 ----
 
-.<RVC path>/etc/vpn.d/vpn1.json
-[source,json]
+.<RVC path>/etc/vpn.d/vpn1.noc
+[source]
 ----
 {
   "auto-connect": false,
@@ -142,10 +142,10 @@ Set the correct permissions on both files:
 [source,sh]
 ----
 sudo chmod 500 /opt/rvc/etc/vpn.d/vpn1.ovpn
-sudo chmod 500 /opt/rvc/etc/vpn.d/vpn1.json
+sudo chmod 500 /opt/rvc/etc/vpn.d/vpn1.noc
 ----
 
-After adding the new VPN called `vpn1` by adding the `.ovpn` + `.json` files
+After adding the new VPN called `vpn1` by adding the `.ovpn` + `.noc` files
 to `<RVC path>/etc/vpn.d` you need to reload `rvd`.
 
 Reload `rvd`:
@@ -283,7 +283,7 @@ RVC has the following structure:
 * `<RVC path>/bin/rvc`: the client that is used to make `rvd`
   connect/disconnect to VPNs
 * `<RVC path>/etc/rvd.conf`: the main configuration file for `rvd`
-* `<RVC path>/etc/vpn.d`: the directory in which `.ovpn` and `.json` files are
+* `<RVC path>/etc/vpn.d`: the directory in which `.ovpn` and `.noc` files are
   stored
 * `/var/run/rvd`: the socket that `rvc` uses to communicate with `rvd`
 * `/var/log/rvd/rvd.log`: the log file from `rvd`, use this for
@@ -297,7 +297,7 @@ Mandatory VPN configuration files:
 
 Optional VPN configuration files:
 
-* `<RVC path>/etc/vpn.d/<vpn>.json`: the `rvd` configuration of this
+* `<RVC path>/etc/vpn.d/<vpn>.noc`: the `rvd` configuration of this
   particular VPN
 
 VPN log files:
@@ -334,21 +334,26 @@ Dependencies:
 
 == Configuration
 
+RVC has HCL-based configuration format which is parsed by https://github.com/riboseinc/libnereon[libnereon]
+
 === Global Configuration
 
-The `<RVC path>/etc/rvd.json` configuration file looks like this on macOS:
+The `<RVC path>/etc/rvd.conf` configuration file looks like this on macOS:
 
-.<RVC path>/etc/rvd.json
-[source,json]
+.<RVC path>/etc/rvd.conf
+[source]
 ----
-{
-  "openvpn_bin": "/opt/openvpn/sbin/openvpn",
-  "openvpn_root_check": true,
-  "ovpn_up_down_scripts": false,
-  "user_id": 501,
-  "restrict_socket": true,
-  "log_directory": "/var/log/rvd.log",
-  "vpn_config_paths": "/opt/rvc/etc/vpn.d"
+global {
+  user_id = 501
+  restrict_socket = true
+  log_directory = "/var/log/rvd"
+  vpn_config_paths = "/opt/rvc/etc/vpn.d"
+}
+
+openvpn {
+  sbin_path = "/opt/openvpn/sbin/openvpn"
+  root_check = true
+  enable_updown_scripts = false
 }
 ----
 
@@ -376,7 +381,7 @@ NOTE: On macOS OpenVPN will be most likely installed by `brew` in
   OpenVPN allows to run up and down scripts to set routes and perform
   MFA actions. By default this behaviour is disabled and up scripts are
   handled by `rvd` on a per VPN basis with the `pre-connect-exec`
-  statement in the VPN .json file. **It is not advised to enable the
+  statement in the VPN .noc file. **It is not advised to enable the
   `ovpn_up_down_scripts` globally unless you really need this and know
   what you are doing.**
 
@@ -402,10 +407,10 @@ This file is **mandatory**.
 
 === Per-VPN Configuration
 
-Example `rvd` configuration for a VPN: `<RVC path>/etc/vpn.d/vpn1.json`.
+Example `rvd` configuration for a VPN: `<RVC path>/etc/vpn.d/vpn1.noc`.
 
-.<RVC path>/etc/vpn.d/vpn1.json
-[source,json]
+.<RVC path>/etc/vpn.d/vpn1.noc
+[source]
 ----
 {
   "auto-connect": false,
@@ -430,7 +435,7 @@ This file is **optional**.
   Repeat the execution of the `pre-connect-exec` at set intervals. This
   is useful for continuous MFA keep alive. 
 
-The `.json` configuration file for a VPN is *optional*. You should only
+The `.noc` configuration file for a VPN is *optional*. You should only
 create one if you need `auto-connect` and/or a `pre-connect-exec` script
 to run.
 
@@ -458,11 +463,11 @@ to fix this for macOS OpenVPN connection management.
   |
   v
 +--------------------+  +-main configuration------+
-| <RVC path>/bin/rvd +->| <RVC path>/etc/rvd.json |
+| <RVC path>/bin/rvd +->| <RVC path>/etc/rvd.conf |
 +-+----+-------------+  +-------------------------+
   |
   |        +-rvd VPN configuration file------+
-  |     +->| <RVC path>/etc/vpn.d/<vpn>.json |
+  |     +->| <RVC path>/etc/vpn.d/<vpn>.noc |
   |     |  +---------------------------------+
   +-----+
   |     |  +-OpenVPN configuration file------+
@@ -539,7 +544,7 @@ The per-connection OpenVPN files are stored as
 `-rw-------` permissions.
 
 The `rvd` VPN configuration are stored as
-`<RVC path>/etc/vpn.d/<vpn>.json`, owned by `root:wheel` and have
+`<RVC path>/etc/vpn.d/<vpn>.noc`, owned by `root:wheel` and have
 `-rw-------` permissions.
 
 This strict permission and owner scheme is to prevent your private keys
@@ -559,14 +564,14 @@ $ ls -la /opt/rvc/etc/vpn.d
 total 144
 drwxr-xr-x  14 root  wheel   476 Sep 15 13:28 .
 drwxr-xr-x   4 root  wheel   136 Sep 15 16:48 ..
--rw-------   1 root  wheel   146 Sep 11 13:50 vpn1.json
+-rw-------   1 root  wheel   146 Sep 11 13:50 vpn1.noc
 -rw-------   1 root  wheel  7240 Sep 11 13:50 vpn1.ovpn
 ----
 
 
 === Per-VPN Configuration
 
-VPNs do not not require a .json `rvd` configuration file. By default
+VPNs do not not require a .noc `rvd` configuration file. By default
 VPN connections will not `auto-connect` and no `pre-connect-exec` will
 be executed.
 
@@ -575,10 +580,10 @@ be executed.
 
 VPNs can be configured that a script is executed before OpenVPN will
 connect. This is defined in `pre-connect-exec` in
-`<RVC path>/etc/vpn.d/<vpn>.json`.
+`<RVC path>/etc/vpn.d/<vpn>.noc`.
 
 As `rvd` runs as `root` it will drop its root privileges to the UID
-defined with `user_id` in `<RVC path>/etc/rvd.json`.
+defined with `user_id` in `<RVC path>/etc/rvd.conf`.
 
 
 === Log Files

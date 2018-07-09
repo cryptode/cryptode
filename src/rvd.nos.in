@@ -155,6 +155,7 @@ config_option "log_directory" {
 	}
 
 	cmdline "description" {
+		short = "log directory path"
 		long = "specify the log directory of RVD process"
 	}
 
@@ -172,6 +173,7 @@ config_option "vpn_config_paths" {
 	}
 
 	cmdline "description" {
+		short = "VPN config path"
 		long = "specify the directory path of VPN configurations"
 	}
 

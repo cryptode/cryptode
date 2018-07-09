@@ -51,3 +51,5 @@ tests/test-suite.log
 tests/runtests.sh.log
 tests/runtests.sh.trs
 src/rvd.nos
+src/conf.nos.c
+src/conf.nos.h

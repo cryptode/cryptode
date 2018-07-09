@@ -1,0 +1,20 @@
+
+config_option "name" {
+	type = "string"
+	config = "name"
+}
+
+config_option auto-connect {
+	type = "bool"
+	config = "auto-connect"
+}
+
+config_option "pre-connect-exec" {
+	type = "string"
+	config = "pre-connect-exec"
+}
+
+config_option "pre-connect-exec-interval" {
+	type = "int"
+	config = "pre-connect-exec-interval"
+}

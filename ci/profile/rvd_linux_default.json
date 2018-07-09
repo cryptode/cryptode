@@ -1,9 +1,0 @@
-{
-  "openvpn_bin": "/usr/sbin/openvpn",
-  "openvpn_root_check": true,
-  "ovpn_up_down_scripts": false,
-  "user_id": 0,
-  "restrict_socket": true,
-  "log_directory": "/var/log/rvd",
-  "vpn_config_paths": "/etc/rvc/vpn.d"
-}
