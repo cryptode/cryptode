@@ -42,7 +42,7 @@ linux_install() {
 	done
 
 	# install libnereon
-	git clone https://github.com/riboseinc/libnereon
+	git clone -b v0.9.2 https://github.com/riboseinc/libnereon
 	cd libnereon
 	mkdir build
 	cd build
