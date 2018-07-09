@@ -40,7 +40,9 @@ linux_install() {
 	for p in ${packages}; do
 		sudo apt-get install -y ${p}
 	done
+}
 
+libnereon_install() {
 	# install libnereon
 	git clone -b v0.9.2 https://github.com/riboseinc/libnereon
 	cd libnereon
@@ -64,6 +66,7 @@ main() {
 		*) echo "unknown"; exit 1 ;;
 	esac
 
+	libnereon_install
 	crossplat_install
 }
 
