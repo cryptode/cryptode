@@ -8,7 +8,7 @@ if [ "$OS_TYPE" = "Darwin" ]; then
 	RVD_INST_DIR="/opt/rvc/bin"
 	OPENVPN_INSTALL_PATH="/usr/local/sbin/openvpn"
 	INST_GRP_NAME="wheel"
-	RVD_CONF_FILE="profile/rvd_osx_default.json"
+	RVD_CONF_FILE="profile/rvd_osx_default.conf"
 	RVC_CONF_DIR="/opt/rvc/etc"
 	RVC_OVPN_DIR="/opt/openvpn/sbin"
 
@@ -19,7 +19,7 @@ else
 	RVD_INST_DIR="/usr/sbin"
 	OPENVPN_INSTALL_PATH="/usr/sbin/openvpn"
 	INST_GRP_NAME="root"
-	RVD_CONF_FILE="profile/rvd_linux_default.json"
+	RVD_CONF_FILE="profile/rvd_linux_default.conf"
 	RVC_CONF_DIR="/etc/rvc"
 fi
 
