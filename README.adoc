@@ -52,19 +52,19 @@ sudo yum install https://github.com/<TODO>
 ----
 $ rvc
 Usage: rvc [options]
-    --connect           <all|connection name>                                                : connect to a VPN with given name (default:all)
-    --disconnect        <all|connection name>                                                : disconnect VPN with given name (default:all)
-    --reconnect         <all|connection name>                                                : reconnect VPN with given name (default:all)
-    --status            <all|connection name>                                                : get status of VPN connection with given name (default:all)
-    --json                                                                                   : display output as JSON format
-    --edit              <connection name> <--auto-connect|--pre-exec-cmd|--profile> <value>  : edit VPN connection with given name
-    --remove            <connection name> [--force]                                          : remove VPN connection (sudo required)
-    --import            <--new-from-tblk|--new-from-ovpn> <path>                             : import VPN connection (sudo required)
-    --reload                                                                                 : reload configuration (sudo required)
-    --dns-override      <--enable <DNS serve IP list>|--disable|--status>                    : override DNS settings (sudo required)
-    --script-security   <--enable|--disable>                                                 : enable/disable script security
-    --version                                                                                : print version
-    --help                                                                                   : print help message
+    connect         <all|connection name>                                        : connect to a VPN with given name (default:all)
+    disconnect      <all|connection name>                                        : disconnect VPN with given name (default:all)
+    reconnect       <all|connection name>                                        : reconnect VPN with given name (default:all)
+    status          <all|connection name>                                        : get status of VPN connection with given name (default:all)
+    json                                                                         : display output as JSON format
+    edit            <connection name> <auto-connect|pre-exec-cmd|profile> <value>: edit VPN connection with given name
+    remove          <connection name> [force]                                    : remove VPN connection (sudo required)
+    import          <new-from-tblk|new-from-ovpn> <path>                         : import VPN connection (sudo required)
+    reload                                                                       : reload configuration (sudo required)
+    dns-override    <enable <DNS serve IP list>|disable|status>                  : override DNS settings (sudo required)
+    script-security <enable|disable>                                             : enable/disable script security
+    version                                                                      : print version
+    help                                                                         : print help message
 ----
 
 === Add VPN Connection
@@ -150,7 +150,7 @@ Reload `rvd`:
 
 [source,console]
 ----
-$ sudo rvc --reload
+$ sudo rvc reload
 Sending reload signal to rvd process '3667' has succeeded.
 ----
 
@@ -158,7 +158,7 @@ Check status:
 
 [source,console]
 ----
-$ rvc --status vpn1
+$ rvc status vpn1
 name: vpn1
 	config-status: NOC configuration exists
 	profile: /opt/rvc/etc/vpn.d/vpn1.ovpn
@@ -179,7 +179,7 @@ name: vpn1
 
 [source,console]
 ----
-$ rvc --connect vpn1
+$ rvc connect vpn1
 name: vpn1
 	config-status: NOC configuration exists
 	profile: /opt/rvc/etc/vpn.d/vpn1.ovpn
@@ -193,7 +193,7 @@ name: vpn1
 	pre-exec-status:
 	pre-exec-interval:
 
-$ rvc --status vpn1
+$ rvc status vpn1
 name: vpn1
 	config-status: NOC configuration exists
 	profile: /opt/rvc/etc/vpn.d/vpn1.ovpn
@@ -217,7 +217,7 @@ name: vpn1
 
 [source,console]
 ----
-$ rvc --status vpn1
+$ rvc status vpn1
 name: vpn1
 	config-status: NOC configuration exists
 	profile: /opt/rvc/etc/vpn.d/vpn1.ovpn
@@ -241,7 +241,7 @@ name: vpn1
 
 [source,console]
 ----
-$ rvc --disconnect vpn1
+$ rvc disconnect vpn1
 name: vpn1
 	config-status: NOC configuration exists
 	profile: /opt/rvc/etc/vpn.d/vpn1.ovpn
@@ -255,7 +255,7 @@ name: vpn1
 	pre-exec-status:
 	pre-exec-interval:
 
-$ rvc --status vpn1
+$ rvc status vpn1
 name: vpn1
 	config-status: NOC configuration exists
 	profile: /opt/rvc/etc/vpn.d/vpn1.ovpn

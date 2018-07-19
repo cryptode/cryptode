@@ -94,7 +94,7 @@ config_option "edit" {
 	}
 
 	cmdline "description" {
-		short = "<connection name> <--auto-connect|--pre-exec-cmd|--profile> <value>"
+		short = "<connection name> <auto-connect|pre-exec-cmd|profile> <value>"
 		long = "edit VPN connection with given name"
 	}
 }
@@ -111,7 +111,7 @@ config_option "remove" {
 	}
 
 	cmdline "description" {
-		short = "<connection name> [--force]"
+		short = "<connection name> [force]"
 		long = "remove VPN connection (sudo required)"
 	}
 }
@@ -137,7 +137,7 @@ config_option "import" {
 	}
 
 	cmdline "description" {
-		short = "<--new-from-tblk|--new-from-ovpn> <path>"
+		short = "<new-from-tblk|new-from-ovpn> <path>"
 		long = "import VPN connection (sudo required)"
 	}
 }
@@ -179,7 +179,7 @@ config_option "dns-override" {
 	}
 
 	cmdline "description" {
-		short = "<--enable <DNS serve IP list>|--disable|--status>"
+		short = "<enable <DNS serve IP list>|disable|status>"
 		long = "override DNS settings (sudo required)"
 	}
 }
@@ -204,7 +204,7 @@ config_option "script-security" {
 	}
 
 	cmdline "description" {
-		short = "<--enable|--disable>"
+		short = "<enable|disable>"
 		long = "enable/disable script security"
 	}
 }
