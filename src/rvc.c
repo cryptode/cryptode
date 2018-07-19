@@ -177,12 +177,10 @@ int main(int argc, char *argv[])
 		ret = rvc_get_status(opt.status_name, opt.json, &resp_data);
 	else if (opt.reload) {
 		ret = rvc_reload();
-		goto end;
 	} else if (opt.import) {
 		int import_type = opt.import_tblk ? RVC_VPN_PROFILE_TBLK : RVC_VPN_PROFILE_OVPN;
 
 		ret = rvc_import(import_type, opt.import_path);
-		goto end;
 	} else if (opt.edit) {
 		int edit_type = RVC_VPNCONN_OPT_UNKNOWN;
 
@@ -194,7 +192,6 @@ int main(int argc, char *argv[])
 			edit_type = RVC_VPNCONN_OPT_PROFIEL;
 
 		ret = rvc_edit(opt.conn_name, edit_type, opt.edit_data);
-		goto end;
 	} else if (opt.remove) {
 		ret = rvc_remove(opt.conn_name, opt.remove_force ? 1 : 0);
 		goto end;
@@ -203,8 +200,8 @@ int main(int argc, char *argv[])
 			ret = rvc_dns_print();
 		else
 			ret = rvc_dns_override(opt.dns_override_enable ? 1 : 0, opt.dns_srvs);
-
-		goto end;
+	} else {
+		nereon_print_usage(&ctx);
 	}
 
 	if (resp_data) {

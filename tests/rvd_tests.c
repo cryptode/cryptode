@@ -421,7 +421,7 @@ permission_check_ovpn_bin(void)
 	pid_t rvd_pid;
 	int exit_code;
 
-	char *args[] = {RVC_BIN_PATH, "test", "connect", "--json", NULL};
+	char *args[] = {RVC_BIN_PATH, "--conect", "test", "--json", NULL};
 
 	printf("\n\n################## Checking for permission of OpenVPN binary ######################\n\n");
 
@@ -453,7 +453,7 @@ permission_check_ovpn_profile(void)
 	pid_t rvd_pid;
 	int exit_code;
 
-	char *args[] = {RVC_BIN_PATH, "test", "connect", "--json", NULL};
+	char *args[] = {RVC_BIN_PATH, "--connect", "test", "--json", NULL};
 
 	printf("\n\n################## Checking for permission of OpenVPN configuration ######################\n\n");
 
@@ -500,7 +500,7 @@ check_missing_json(void)
 	json_object *j_obj, *j_sub_obj;
 	int config_status = -1;
 
-	char *args[] = {RVC_BIN_PATH, "test", "connect", "--json", NULL};
+	char *args[] = {RVC_BIN_PATH, "--connect", "test", "--json", NULL};
 
 	printf("\n\n################## Checking for missing JSON configuration ######################\n\n");
 
@@ -558,7 +558,7 @@ check_missing_ovpn(void)
 	pid_t rvd_pid;
 	int exit_code;
 
-	char *args[] = {RVC_BIN_PATH, "test", "connect", "--json", NULL};
+	char *args[] = {RVC_BIN_PATH, "--connect", "test", "--json", NULL};
 
 	printf("\n\n################## Checking for missing OpenVPN configuration ######################\n\n");
 
@@ -589,8 +589,8 @@ check_default_connect(void)
 	json_object *j_obj, *j_sub_obj, *j_state_obj;
 	char *conn_status = NULL;
 
-	char *args1[] = {RVC_BIN_PATH, "test", "connect", "--json", NULL};
-	char *args2[] = {RVC_BIN_PATH, "test", "status", "--json", NULL};
+	char *args1[] = {RVC_BIN_PATH, "--connect", "test", "--json", NULL};
+	char *args2[] = {RVC_BIN_PATH, "--status", "test", "--json", NULL};
 
 	printf("\n\n################## Checking for OpenVPN connection with default configuration ######################\n\n");
 
@@ -652,8 +652,8 @@ check_preconn_cmd(void)
 	char *conn_status = NULL;
 	int pre_exec_status;
 
-	char *args1[] = {RVC_BIN_PATH, "test", "connect", "--json", NULL};
-	char *args2[] = {RVC_BIN_PATH, "test", "status", "--json", NULL};
+	char *args1[] = {RVC_BIN_PATH, "--connect", "test", "--json", NULL};
+	char *args2[] = {RVC_BIN_PATH, "--status", "test", "--json", NULL};
 
 	int i;
 
@@ -734,8 +734,8 @@ check_reload(void)
 {
 	pid_t rvd_pid;
 
-	char *args1[] = {RVC_BIN_PATH, "reload", NULL};
-	char *args2[] = {RVC_BIN_PATH, "test1", "status", "--json", NULL};
+	char *args1[] = {RVC_BIN_PATH, "--reload", NULL};
+	char *args2[] = {RVC_BIN_PATH, "--status", "test1", "--json", NULL};
 
 	int exit_code;
 
@@ -778,8 +778,8 @@ check_kill_ovpn(void)
 	json_object *j_obj, *j_sub_obj, *j_state_obj;
 	char *conn_status = NULL;
 
-	char *args1[] = {RVC_BIN_PATH, "test", "connect", "--json", NULL};
-	char *args2[] = {RVC_BIN_PATH, "test", "status", "--json", NULL};
+	char *args1[] = {RVC_BIN_PATH, "--connect", "test", "--json", NULL};
+	char *args2[] = {RVC_BIN_PATH, "--status", "test", "--json", NULL};
 
 	int ret;
 
@@ -850,7 +850,7 @@ check_auto_connect(void)
 	json_object *j_obj, *j_sub_obj, *j_state_obj;
 	char *conn_status = NULL;
 
-	char *args[] = {RVC_BIN_PATH, "test", "status", "--json", NULL};
+	char *args[] = {RVC_BIN_PATH, "--status", "test", "--json", NULL};
 
 	printf("\n\n################## Checking for auto starting of VPN connection ######################\n\n");
 
@@ -907,7 +907,7 @@ check_dup_config(void)
 	pid_t rvd_pid;
 	int exit_code;
 
-	char *args[] = {RVC_BIN_PATH, "import", "new-from-ovpn", "profile/test.ovpn", NULL};
+	char *args[] = {RVC_BIN_PATH, "--import", "--new-from-ovpn", "profile/test.ovpn", NULL};
 
 	printf("\n\n################## Checking for duplicate configurations ######################\n\n");
 
