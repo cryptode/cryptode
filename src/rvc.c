@@ -32,28 +32,43 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
+#include <nereon.h>
+#include "rvc.nos.h"
+
 #include "common.h"
 #include "rvc_shared.h"
 
 /*
- * rvc command list
+ * RVC options structure
  */
 
-static struct {
-	enum RVD_CMD_CODE code;
-	const char *name;
-} g_cmd_names[] = {
-	{RVD_CMD_CONNECT, "connect"},
-	{RVD_CMD_DISCONNECT, "disconnect"},
-	{RVD_CMD_RECONNECT, "reconnect"},
-	{RVD_CMD_STATUS, "status"},
-	{RVD_CMD_SCRIPT_SECURITY, "script-security"},
-	{RVD_CMD_RELOAD, "reload"},
-	{RVD_CMD_IMPORT, "import"},
-	{RVD_CMD_EDIT, "edit"},
-	{RVD_CMD_REMOVE, "remove"},
-	{RVD_CMD_DNS_OVERRIDE, "dns-override"},
-	{RVD_CMD_UNKNOWN, NULL}
+struct rvc_options {
+	char *conn_name, *disconn_name, *reconn_name, *status_name;
+
+	bool connect, disconnect;
+	bool reconnect, status;
+
+	bool json;
+
+	bool edit;
+	bool edit_auto_connect, edit_pre_exec_cmd, edit_profile;
+	char *edit_data;
+
+	bool remove, remove_force;
+
+	bool import, import_tblk, import_ovpn;
+	char *import_path;
+
+	bool reload;
+
+	bool dns_override;
+	bool dns_override_enable, dns_override_disable, dsn_override_status;
+	char *dns_srvs;
+
+	bool script_security;
+	bool script_security_enable, script_security_disable;
+
+	bool print_version;
 };
 
 /*
@@ -70,234 +85,135 @@ static void print_version(void)
 			RVC_COPYRIGHT_MSG);
 }
 
-
-/*
- * print help message
- */
-
-static void print_help(void)
-{
-	printf("usage: rvc <options>\n"
-		"  options:\n"
-		"    <all|connection name> connect [--json]\tconnect to a VPN with given name\n"
-		"    <all|connection name> disconnect [--json]\tdisconnect VPN with given name\n"
-		"    <all|connection name> reconnect [--json]\treconnect VPN with given name\n"
-		"    [all|connection name] status [--json]\tget status of VPN connection with given name\n"
-		"    <connection name> edit <auto-connect|pre-exec-cmd|profile> <value>\n"
-		"    <connection name> remove [--force]\t\tremove VPN connection (sudo required)\n"
-		"    import <new-from-tblk|new-from-ovpn> <path>\timport VPN connection (sudo required)\n"
-		"    reload\t\t\t\t\treload configuration (sudo required)\n"
-		"    dns-override <enable|disable|status> [DNS server IP list]\n"
-		"           override DNS settings. DNS server IP addresses should be separated by comma (sudo required)\n"
-		"    script-security <enable|disable>\t\tenable/disable script security\n"
-		"    help\t\t\t\t\tshow help message\n"
-		"    version\t\t\t\t\tprint version\n"
-		);
-}
-
 /*
  * main function
  */
 
 int main(int argc, char *argv[])
 {
-	enum RVD_CMD_CODE cmd_code = RVD_CMD_UNKNOWN;
-	int use_json = 0;
-	int opt_invalid = 0;
+	nereon_ctx_t ctx;
+	struct rvc_options opt;
+	bool require_exit = false;
 
-	int i, ret = -1;
+	int ret = -1;
 
-	const char *cmd_str = NULL;
-	const char *cmd_param = NULL;
 	char *resp_data = NULL;
 
-	/* check argument */
-	if (argc < 2) {
-		print_help();
-		exit(1);
+	struct nereon_config_option rvc_opts[] = {
+		{"connect", NEREON_TYPE_STRING, false, &opt.connect, &opt.conn_name},
+		{"disconnect", NEREON_TYPE_STRING, false, &opt.disconnect, &opt.disconn_name},
+		{"reconnect", NEREON_TYPE_STRING, false, &opt.reconnect, &opt.reconn_name},
+		{"status", NEREON_TYPE_STRING, false, &opt.status, &opt.status_name},
+
+		{"json", NEREON_TYPE_BOOL, false, NULL, &opt.json},
+
+		{"edit", NEREON_TYPE_STRING, false, &opt.edit, &opt.conn_name},
+		{"edit.auto-connect", NEREON_TYPE_STRING, false, &opt.edit_auto_connect, &opt.edit_data},
+		{"edit.pre-exec-cmd", NEREON_TYPE_STRING, false, &opt.edit_pre_exec_cmd, &opt.edit_data},
+		{"edit.profile", NEREON_TYPE_STRING, false, &opt.edit_profile, &opt.edit_data},
+
+		{"remove", NEREON_TYPE_STRING, false, &opt.remove, &opt.conn_name},
+		{"remove.force", NEREON_TYPE_BOOL, false, NULL, &opt.remove_force},
+
+		{"import", NEREON_TYPE_BOOL, false, NULL, &opt.import},
+		{"import.new-from-tblk", NEREON_TYPE_STRING, false, &opt.import_tblk, &opt.import_path},
+		{"import.new-from-ovpn", NEREON_TYPE_STRING, false, &opt.import_ovpn, &opt.import_path},
+
+		{"reload", NEREON_TYPE_STRING, false, &opt.reload, &opt.reload},
+
+		{"dns-override", NEREON_TYPE_BOOL, false, NULL, &opt.dns_override},
+		{"dns-override.enable", NEREON_TYPE_STRING, false, &opt.dns_override_enable, &opt.dns_srvs},
+		{"dns-override.disable", NEREON_TYPE_BOOL, false, NULL, &opt.dns_override_disable},
+		{"dns-override.status", NEREON_TYPE_BOOL, false, NULL, &opt.dsn_override_status},
+
+		{"script-security", NEREON_TYPE_BOOL, false, NULL, &opt.script_security},
+		{"script-security.enable", NEREON_TYPE_BOOL, false, NULL, &opt.script_security_enable},
+		{"script-security.disable", NEREON_TYPE_BOOL, false, NULL, &opt.script_security_disable},
+
+		{"version", NEREON_TYPE_BOOL, false, NULL, &opt.print_version},
+	};
+
+	/* initialize nereon context */
+	ret = nereon_ctx_init(&ctx, get_rvc_nos_cfg());
+	if (ret != 0) {
+		fprintf(stderr, "Could not initialize nereon context(err:%s)\n", nereon_get_errmsg());
+		exit(-1);
 	}
 
-	/* print help message */
-	if (strcmp(argv[1], "help") == 0) {
-		print_help();
-		exit(0);
+	/* print command line usage */
+	ret = nereon_parse_cmdline(&ctx, argc, argv, &require_exit);
+	if (ret != 0 || require_exit) {
+		if (ret != 0)
+			fprintf(stderr, "Failed to parse command line(err:%s)\n", nereon_get_errmsg());
+
+		nereon_print_usage(&ctx);
+		nereon_ctx_finalize(&ctx);
+
+		exit(ret);
+	}
+
+	/* get configuration options */
+	memset(&opt, 0, sizeof(struct rvc_options));
+	if (nereon_get_config_options(&ctx, rvc_opts, sizeof(rvc_opts) / sizeof(struct nereon_config_option)) != 0) {
+		fprintf(stderr, "Could not get confiugration options(err:%s)\n", nereon_get_errmsg());
+		nereon_ctx_finalize(&ctx);
+
+		exit(-1);
 	}
 
 	/* print version */
-	if (strcmp(argv[1], "version") == 0) {
+	if (opt.print_version) {
 		print_version();
 		exit(0);
 	}
 
-	/* get command string */
-	if (argc == 2) {
-		if (strcmp(argv[1], "reload") == 0 || strcmp(argv[1], "status") == 0)
-			cmd_str = argv[1];
-	} else {
-		if (strcmp(argv[1], "import") == 0 ||
-			strcmp(argv[1], "dns-override") == 0 ||
-			strcmp(argv[1], "script-security") == 0 ||
-			strcmp(argv[1], "status") == 0)
-			cmd_str = argv[1];
-		else
-			cmd_str = argv[2];
-	}
+	if (opt.connect)
+		ret = rvc_connect(opt.conn_name, opt.json, &resp_data);
+	else if (opt.disconnect)
+		ret = rvc_disconnect(opt.disconn_name, opt.json, &resp_data);
+	else if (opt.reconnect)
+		ret = rvc_reconnect(opt.reconn_name, opt.json, &resp_data);
+	else if (opt.status)
+		ret = rvc_get_status(opt.status_name, opt.json, &resp_data);
+	else if (opt.reload) {
+		ret = rvc_reload();
+		goto end;
+	} else if (opt.import) {
+		int import_type = opt.import_tblk ? RVC_VPN_PROFILE_TBLK : RVC_VPN_PROFILE_OVPN;
 
-	if (!cmd_str) {
-		print_help();
-		exit(1);
-	}
+		ret = rvc_import(import_type, opt.import_path);
+		goto end;
+	} else if (opt.edit) {
+		int edit_type = RVC_VPNCONN_OPT_UNKNOWN;
 
-	/* get command code */
-	for (i = 0; g_cmd_names[i].name != NULL; i++) {
-		if (strcmp(cmd_str, g_cmd_names[i].name) == 0) {
-			cmd_code = g_cmd_names[i].code;
-			break;
-		}
-	}
+		if (opt.edit_auto_connect)
+			edit_type = RVC_VPNCONN_OPT_AUTO_CONNECT;
+		else if (opt.edit_pre_exec_cmd)
+			edit_type = RVC_VPNCONN_OPT_PREEXEC_CMD;
+		else if (opt.edit_profile)
+			edit_type = RVC_VPNCONN_OPT_PROFIEL;
 
-	/* check command code */
-	if (cmd_code == RVD_CMD_UNKNOWN) {
-		fprintf(stderr, "Invalid command '%s'\n", argv[1]);
-		print_help();
-
-		exit(1);
-	}
-
-	switch (cmd_code) {
-	case RVD_CMD_CONNECT:
-	case RVD_CMD_DISCONNECT:
-	case RVD_CMD_RECONNECT:
-		if (argc == 3)
-			cmd_param = argv[1];
-		else if (argc == 4 && strcmp(argv[3], "--json") == 0) {
-			cmd_param = argv[1];
-			use_json = 1;
-		} else {
-			opt_invalid = 1;
-			break;
-		}
-
-		if (cmd_code == RVD_CMD_CONNECT)
-			ret = rvc_connect(cmd_param, use_json, &resp_data);
-		else if (cmd_code == RVD_CMD_DISCONNECT)
-			ret = rvc_disconnect(cmd_param, use_json, &resp_data);
-		else
-			ret = rvc_reconnect(cmd_param, use_json, &resp_data);
-
-		break;
-
-	case RVD_CMD_STATUS:
-		if (argc == 2)
-			cmd_param = "all";
-		else if (argc == 3) {
-			if (strcmp(argv[2], "--json") == 0) {
-				use_json = 1;
-				cmd_param = "all";
-			} else
-				cmd_param = argv[1];
-		} else if (argc == 4 && strcmp(argv[3], "--json") == 0) {
-			use_json = 1;
-			cmd_param = argv[1];
-		} else {
-			opt_invalid = 1;
-			break;
-		}
-
-		ret = rvc_get_status(cmd_param, use_json, &resp_data);
-		break;
-
-	case RVD_CMD_SCRIPT_SECURITY:
-		if (argc == 3 && (strcmp(argv[2], "enable") == 0 ||
-			(strcmp(argv[2], "disable")) == 0))
-			cmd_param = argv[2];
-		else
-			opt_invalid = 1;
-
-		break;
-
-	case RVD_CMD_RELOAD:
-		if (argc != 2)
-			opt_invalid = 1;
-		else {
-			ret = rvc_reload();
-			exit(ret);
-		}
-
-		break;
-
-	case RVD_CMD_IMPORT:
-		if (argc != 4)
-			opt_invalid = 1;
-		else {
-			int ret;
-			int import_type;
-
-			/* get import type */
-			if (strcmp(argv[2], "new-from-tblk") == 0)
-				import_type = RVC_VPN_PROFILE_TBLK;
-			else if (strcmp(argv[2], "new-from-ovpn") == 0)
-				import_type = RVC_VPN_PROFILE_OVPN;
-			else {
-				fprintf(stderr, "Invalid import type paramter '%s'\n", argv[2]);
-				exit(-1);
-			}
-
-			ret = rvc_import(import_type, argv[3]);
-			exit(ret);
-		}
-
-		break;
-
-	case RVD_CMD_EDIT:
-		if (argc != 5)
-			opt_invalid = 1;
-		else {
-			int ret;
-
-			/* edit connection info */
-			ret = rvc_edit(argv[1], argv[3], argv[4]);
-			exit(ret);
-		}
-
-		break;
-
-	case RVD_CMD_REMOVE:
-		if (argc == 3 || (argc == 4 && strcmp(argv[3], "--force") == 0)) {
-			ret = rvc_remove(argv[1], argc == 3 ? 0 : 1);
-			exit(ret);
-		} else
-			opt_invalid = 1;
-
-		break;
-
-	case RVD_CMD_DNS_OVERRIDE:
-		if (argc == 4 && strcmp(argv[2], "enable") == 0)
-			ret = rvc_dns_override(1, argv[3]);
-		else if (argc == 3 && strcmp(argv[2], "disable") == 0)
-			ret = rvc_dns_override(0, NULL);
-		else if (argc == 3 && strcmp(argv[2], "status") == 0)
+		ret = rvc_edit(opt.conn_name, edit_type, opt.edit_data);
+		goto end;
+	} else if (opt.remove) {
+		ret = rvc_remove(opt.conn_name, opt.remove_force ? 1 : 0);
+		goto end;
+	} else if (opt.dns_override) {
+		if (opt.dsn_override_status)
 			ret = rvc_dns_print();
 		else
-			opt_invalid = 1;
+			ret = rvc_dns_override(opt.dns_override_enable ? 1 : 0, opt.dns_srvs);
 
-		break;
-
-	default:
-		break;
-	}
-
-	if (opt_invalid) {
-		fprintf(stderr, "Invalid options\n");
-		print_help();
-
-		exit(1);
+		goto end;
 	}
 
 	if (resp_data) {
 		printf("%s\n", resp_data);
 		free(resp_data);
 	}
+
+end:
+	nereon_ctx_finalize(&ctx);
 
 	return ret;
 }

@@ -154,9 +154,9 @@ int rvc_read_vpn_config(const char *config_dir, const char *config_name, struct 
 		char *pre_exec_cmd = NULL;
 
 		nereon_config_option_t vpn_conf_opts[] = {
-			{"auto-connect", NEREON_TYPE_BOOL, false, &config.auto_connect},
-			{"pre-connect-exec", NEREON_TYPE_STRING, false, &pre_exec_cmd},
-			{"pre-connect-exec-interval", NEREON_TYPE_INT, false, &config.pre_exec_interval}
+			{"auto-connect", NEREON_TYPE_BOOL, false, NULL, &config.auto_connect},
+			{"pre-connect-exec", NEREON_TYPE_STRING, false, NULL, &pre_exec_cmd},
+			{"pre-connect-exec-interval", NEREON_TYPE_INT, false, NULL, &config.pre_exec_interval}
 		};
 
 #ifdef _RVD_SOURCE

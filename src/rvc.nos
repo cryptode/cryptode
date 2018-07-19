@@ -1,0 +1,234 @@
+
+config_option "connect" {
+	type = "string"
+
+	cmdline "switch" {
+		long = "connect"
+	}
+
+	cmdline "description" {
+		short = "<all|connection name>"
+		long = "connect to a VPN with given name (default:all)"
+	}
+
+	default = "all"
+}
+
+config_option "disconnect" {
+	type = "string"
+
+	cmdline "switch" {
+		long = "disconnect"
+	}
+
+	cmdline "description" {
+		short = "<all|connection name>"
+		long = "disconnect VPN with given name (default:all)"
+	}
+
+	default = "all"
+}
+
+config_option "reconnect" {
+	type = "string"
+
+	cmdline "switch" {
+		long = "reconnect"
+	}
+
+	cmdline "description" {
+		short = "<all|connection name>"
+		long = "reconnect VPN with given name (default:all)"
+	}
+
+	default = "all"
+}
+
+config_option "status" {
+	type = "string"
+
+	cmdline "switch" {
+		long = "status"
+	}
+
+	cmdline "description" {
+		short = "<all|connection name>"
+		long = "get status of VPN connection with given name (default:all)"
+	}
+
+	default = "all"
+}
+
+config_option "json" {
+	type = "bool"
+
+	cmdline "switch" {
+		long = "json"
+	}
+
+	cmdline "description" {
+		long = "display output as JSON format"
+	}
+}
+
+config_option "edit" {
+	type = "string"
+
+	cmdline "switch" {
+		long = "edit"
+	}
+
+	cmdline arguments {
+		auto-connect {
+			type = string
+		}
+
+		pre-exec-cmd {
+			type = string
+		}
+
+		profile {
+			type = string
+		}
+		mandatory = true
+	}
+
+	cmdline "description" {
+		short = "<connection name> <--auto-connect|--pre-exec-cmd|--profile> <value>"
+		long = "edit VPN connection with given name"
+	}
+}
+
+config_option "remove" {
+	type = "string"
+
+	cmdline "switch" {
+		long = "remove"
+	}
+
+	cmdline "arguments" "force" {
+		type = "bool"
+	}
+
+	cmdline "description" {
+		short = "<connection name> [--force]"
+		long = "remove VPN connection (sudo required)"
+	}
+}
+
+config_option "import" {
+	type = "bool"
+
+	cmdline "switch" {
+		long = "import"
+	}
+
+	cmdline "arguments" {
+		new-from-tblk {
+			type = string
+		}
+
+		new-from-ovpn {
+			type = string
+		}
+
+		mandatory = true
+		desc = path
+	}
+
+	cmdline "description" {
+		short = "<--new-from-tblk|--new-from-ovpn> <path>"
+		long = "import VPN connection (sudo required)"
+	}
+}
+
+config_option "reload" {
+	type = "bool"
+
+	cmdline "switch" {
+		long = "reload"
+	}
+
+	cmdline "description" {
+		long = "reload configuration (sudo required)"
+	}
+}
+
+config_option "dns-override" {
+	type = "bool"
+
+	cmdline "switch" {
+		long = "dns-override"
+	}
+
+	cmdline "arguments" {
+		enable {
+			type = "string"
+			desc = "DNS server IP list"
+		}
+
+		disable {
+			type = bool
+		}
+
+		status {
+			type = bool
+		}
+
+		mandatory = true
+	}
+
+	cmdline "description" {
+		short = "<--enable <DNS serve IP list>|--disable|--status>"
+		long = "override DNS settings (sudo required)"
+	}
+}
+
+config_option "script-security" {
+	type = "string"
+
+	cmdline "switch" {
+		long = "script-security"
+	}
+
+	cmdline "arguments" {
+		enable {
+			type = bool
+		}
+
+		disable {
+			type = bool
+		}
+
+		mandatory = true
+	}
+
+	cmdline "description" {
+		short = "<--enable|--disable>"
+		long = "enable/disable script security"
+	}
+}
+
+config_option "version" {
+	type = "bool"
+
+	cmdline "switch" {
+		long = "version"
+	}
+
+	cmdline "description" {
+		long = "print version"
+	}
+}
+
+config_option "help" {
+	type = "helper"
+
+	cmdline "switch" {
+		long = "help"
+	}
+
+	cmdline "description" {
+		long = "print help message"
+	}
+}

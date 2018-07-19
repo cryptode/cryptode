@@ -262,18 +262,18 @@ parse_config_options(rvd_options_t *opts, int argc, char **argv)
 	bool require_exit = false;
 
 	nereon_config_option_t rvd_opts[] = {
-		{"config_file", NEREON_TYPE_CONFIG, false, &opts->config_fpath},
-		{"go_daemon", NEREON_TYPE_BOOL, false, &opts->go_daemon},
-		{"check_config", NEREON_TYPE_BOOL, false, &opts->check_config},
-		{"print_version", NEREON_TYPE_BOOL, false, &opts->print_version},
-		{"helper", NEREON_TYPE_BOOL, false, &opts->print_help},
-		{"openvpn_bin", NEREON_TYPE_STRING, true, &opts->ovpn_bin_path},
-		{"openvpn_root_check", NEREON_TYPE_BOOL, false, &opts->ovpn_root_check},
-		{"openvpn_updown_scripts", NEREON_TYPE_BOOL, false, &opts->ovpn_use_scripts},
-		{"user_id", NEREON_TYPE_INT, true, &opts->allowed_uid},
-		{"restrict_socket", NEREON_TYPE_BOOL, false, &opts->restrict_cmd_sock},
-		{"log_directory", NEREON_TYPE_STRING, true, &opts->log_dir_path},
-		{"vpn_config_paths", NEREON_TYPE_STRING, true, &opts->vpn_config_dir}
+		{"config_file", NEREON_TYPE_CONFIG, false, NULL, &opts->config_fpath},
+		{"go_daemon", NEREON_TYPE_BOOL, false, NULL, &opts->go_daemon},
+		{"check_config", NEREON_TYPE_BOOL, false, NULL, &opts->check_config},
+		{"print_version", NEREON_TYPE_BOOL, false, NULL, &opts->print_version},
+		{"helper", NEREON_TYPE_BOOL, false, NULL, &opts->print_help},
+		{"openvpn_bin", NEREON_TYPE_STRING, true, NULL, &opts->ovpn_bin_path},
+		{"openvpn_root_check", NEREON_TYPE_BOOL, false, NULL, &opts->ovpn_root_check},
+		{"openvpn_updown_scripts", NEREON_TYPE_BOOL, false, NULL, &opts->ovpn_use_scripts},
+		{"user_id", NEREON_TYPE_INT, true, NULL, &opts->allowed_uid},
+		{"restrict_socket", NEREON_TYPE_BOOL, false, NULL, &opts->restrict_cmd_sock},
+		{"log_directory", NEREON_TYPE_STRING, true, NULL, &opts->log_dir_path},
+		{"vpn_config_paths", NEREON_TYPE_STRING, true, NULL, &opts->vpn_config_dir}
 	};
 
 	/* initialize libnereon context */
