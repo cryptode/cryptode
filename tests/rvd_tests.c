@@ -421,7 +421,7 @@ permission_check_ovpn_bin(void)
 	pid_t rvd_pid;
 	int exit_code;
 
-	char *args[] = {RVC_BIN_PATH, "conect", "test", "json", NULL};
+	char *args[] = {RVC_BIN_PATH, "connect", "test", "json", NULL};
 
 	printf("\n\n################## Checking for permission of OpenVPN binary ######################\n\n");
 
