@@ -154,9 +154,9 @@ int rvc_read_vpn_config(const char *config_dir, const char *config_name, struct 
 		char *pre_exec_cmd = NULL;
 
 		nereon_config_option_t vpn_conf_opts[] = {
-			{"auto-connect", NEREON_TYPE_BOOL, false, &config.auto_connect},
-			{"pre-connect-exec", NEREON_TYPE_STRING, false, &pre_exec_cmd},
-			{"pre-connect-exec-interval", NEREON_TYPE_INT, false, &config.pre_exec_interval}
+			{"auto-connect", NEREON_TYPE_BOOL, false, NULL, &config.auto_connect},
+			{"pre-connect-exec", NEREON_TYPE_STRING, false, NULL, &pre_exec_cmd},
+			{"pre-connect-exec-interval", NEREON_TYPE_INT, false, NULL, &config.pre_exec_interval}
 		};
 
 #ifdef _RVD_SOURCE
@@ -202,7 +202,7 @@ int rvc_read_vpn_config(const char *config_dir, const char *config_name, struct 
 
 		nereon_ctx_finalize(&vpn_conf_ctx);
 
-		/* set JSON configuration status */
+		/* set NOC configuration status */
 		config.load_status |= OVPN_STATUS_HAVE_NOC;
 	}
 
@@ -274,9 +274,9 @@ int rvc_write_vpn_config(const char *config_dir, const char *config_name, struct
 	/* build json buffer */
 	if (rvd_json_build(vpn_config_jobjs, sizeof(vpn_config_jobjs) / sizeof(rvd_json_object_t), &config_buffer) != 0) {
 #ifdef _RVD_SOURCE
-		RVD_DEBUG_ERR("CONF: Couldn't build JSON config. Out of memory!");
+		RVD_DEBUG_ERR("CONF: Couldn't build NOC config. Out of memory!");
 #else
-		fprintf(stderr, "Couldn't build JSON config. Out of memory!\n");
+		fprintf(stderr, "Couldn't build NOC config. Out of memory!\n");
 #endif
 		fclose(fp);
 		return -1;

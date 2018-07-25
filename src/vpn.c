@@ -1189,9 +1189,9 @@ static void get_single_conn_status(struct rvc_vpn_conn *vpn_conn, bool json_form
 		strlcpy(conf_load_status, "Invalid permission", sizeof(conf_load_status));
 	else {
 		if (vpn_conn->config.load_status & OVPN_STATUS_HAVE_NOC)
-			strlcpy(conf_load_status, "JSON configuration exists", sizeof(conf_load_status));
+			strlcpy(conf_load_status, "NOC configuration exists", sizeof(conf_load_status));
 		else
-			strlcpy(conf_load_status, "No JSON configuration exists", sizeof(conf_load_status));
+			strlcpy(conf_load_status, "No NOC configuration exists", sizeof(conf_load_status));
 	}
 
 	/* get connected time */

@@ -142,7 +142,7 @@ int rvc_import(int import_type, const char *import_path);
  * @return 0 If success, otherwise non-zero will be returned.
  */
 
-int rvc_edit(const char *conn_name, const char *opt, const char *opt_val);
+int rvc_edit(const char *conn_name, enum RVC_VPNCONN_OPTION opt_type, const char *opt_val);
 
 
 /** Remove RVD VPN connections

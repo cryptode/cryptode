@@ -53,3 +53,5 @@ tests/runtests.sh.trs
 src/rvd.nos
 src/conf.nos.c
 src/conf.nos.h
+src/rvc.nos.c
+src/rvc.nos.h

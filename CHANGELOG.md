@@ -1,6 +1,11 @@
 
 # Changelog
 
+## [1.2.2] - 2018-07-20
+### Added
+
+- Integrated `rvc` with `libnereon`
+
 ## [1.2.1] - 2018-07-09
 ### Changed
 

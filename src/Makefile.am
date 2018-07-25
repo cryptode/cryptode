@@ -13,11 +13,14 @@ rvd_CFLAGS = -D_RVD_SOURCE
 rvd_LDADD = $(RVD_LDADD)
 rvd_LDFLAGS = $(JSONC_LDFLAGS) $(NEREON_LDFLAGS)
 
-rvc_SOURCES = conf.nos.c rvc.c rvc_shared.c util.c conf.c json.c
+rvc_SOURCES = conf.nos.c rvc.nos.c rvc.c rvc_shared.c util.c conf.c json.c
 rvc_LDADD = $(RVC_LDADD)
 rvc_LDFLAGS = $(JSONC_LDFLAGS) $(OPENSSL_LDFLAGS) $(NEREON_LDFLAGS)
 
 include_HEADERS = common.h rvd.h cmd.h log.h util.h vpn.h rvc_shared.h conf.h json.h
+
+rvc.nos.c: rvc.nos
+	$(NEREON_TO_CC) rvc.nos ./ rvc
 
 rvd.nos.c: rvd.nos
 	$(NEREON_TO_CC) rvd.nos ./ rvd

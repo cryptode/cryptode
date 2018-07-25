@@ -83,24 +83,6 @@ struct rvd_vpn_state {
 };
 
 /*
- * rvc VPN connection option names
- */
-
-struct rvc_vpnconn_opts {
-	enum RVC_VPNCONN_OPTION opt;
-	const char *opt_str;
-} g_vpnconn_opts[] = {
-	{RVC_VPNCONN_OPT_AUTO_CONNECT, "auto-connect"},
-	{RVC_VPNCONN_OPT_PREEXEC_CMD, "pre-exec-cmd"},
-	{RVC_VPNCONN_OPT_PROFIEL, "profile"},
-#if 0
-	{RVC_VPNCONN_OPT_CERT, "certificate"},
-	{RVC_VPNCONN_OPT_KEYCHAIN, "keychain-item"},
-#endif
-	{RVC_VPNCONN_OPT_UNKNOWN, NULL}
-};
-
-/*
  * get process ID of rvd process
  */
 
@@ -842,17 +824,13 @@ static int check_connection_exist(const char *conn_name, struct rvc_vpnconn_stat
  * edit VPN connection
  */
 
-int rvc_edit(const char *conn_name, const char *opt, const char *opt_val)
+int rvc_edit(const char *conn_name, enum RVC_VPNCONN_OPTION opt_type, const char *opt_val)
 {
 	struct rvc_vpn_config vpn_config;
 	char *conf_dir = NULL;
 
 	struct rvc_vpnconn_status vpnconn_status;
 	int ret;
-
-	enum RVC_VPNCONN_OPTION opt_type = RVC_VPNCONN_OPT_UNKNOWN;
-
-	int i;
 
 	/* pre-checking for running enviroment of rvc */
 	ret = pre_check_running_env();
@@ -869,17 +847,9 @@ int rvc_edit(const char *conn_name, const char *opt, const char *opt_val)
 		return RVD_RESP_CONN_IN_PROGRESS;
 	}
 
-	/* check option */
-	for (i = 0; g_vpnconn_opts[i].opt_str != NULL; i++) {
-		if (strcmp(opt, g_vpnconn_opts[i].opt_str) == 0) {
-			opt_type = g_vpnconn_opts[i].opt;
-			break;
-		}
-	}
-
 	/* check option type is valid */
 	if (opt_type == RVC_VPNCONN_OPT_UNKNOWN) {
-		fprintf(stderr, "Unknown VPN configuration option '%s'", opt);
+		fprintf(stderr, "Unknown VPN configuration option");
 		return RVD_RESP_ERR_VPNCONF_OPT_TYPE;
 	}
 
