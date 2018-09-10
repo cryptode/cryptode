@@ -1,6 +1,6 @@
 
 global {
-	user_id = @RVC_USER_ID@
+	user_id = RVC_USER_ID
 	restrict_socket = true
 	log_directory = "/var/log/rvd"
 	vpn_config_paths = "@RVC_CONFDIR_PATH@"

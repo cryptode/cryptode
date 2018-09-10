@@ -80,8 +80,6 @@ if test "x$isdarwin" = "xyes"; then
 
     RVD_LDADD="$JSONC_LIBDIR/libjson-c.a $NEREON_LIBDIR/libnereon.a"
     RVC_LDADD="$JSONC_LIBDIR/libjson-c.a $OPENSSL_LIBDIR/libcrypto.a $NEREON_LIBDIR/libnereon.a"
-
-    RVC_USER_ID=501
 else
     OPENVPN_BINARY_PATH=/usr/sbin/openvpn
     RVD_CONFIG_PATH=/etc/rvc/rvd.conf
@@ -89,8 +87,6 @@ else
 
     RVD_LDADD="$JSONC_LIBS $NEREON_LIBS"
     RVC_LDADD="$JSONC_LIBS $OPENSSL_LIBS $NEREON_LIBS"
-
-    RVC_USER_ID=-1
 fi
 
 AC_DEFINE_UNQUOTED([RVC_USER_ID], ["$RVC_USER_ID"], [The User ID for RVC])
