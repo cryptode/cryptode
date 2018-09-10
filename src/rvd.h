@@ -8,7 +8,7 @@ struct rvd_ctx;
 #include <unistd.h>
 #include <sys/select.h>
 
-#include <nereon.h>
+#include <nereon/nereon.h>
 
 #include "common.h"
 #include "log.h"

@@ -127,8 +127,6 @@ config_option "user_id" {
 
 	env = "RVC_USER_ID"
 	config = "global.user_id"
-
-	default = @RVC_USER_ID@
 }
 
 config_option "restrict_socket" {

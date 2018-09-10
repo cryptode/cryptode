@@ -1,6 +1,12 @@
 
 # Changelog
 
+## [1.2.3] - 2018-09-10
+### Fixed
+
+- Removed `default:all` notation from NOS options
+- Set `RVD_USER_ID` while installing
+
 ## [1.2.2] - 2018-07-20
 ### Added
 

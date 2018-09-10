@@ -35,8 +35,9 @@ install -m 500 -g wheel -o root "${RVC_DATA_DIR}/bin/rvd" "${TARGET_PREFIX}/bin"
 install -m 555 -g wheel -o root "${RVC_DATA_DIR}/bin/rvc" "${TARGET_PREFIX}/bin"
 install -m 500 -g wheel -o root "${RVC_DATA_DIR}/bin/dns_util.sh" "${TARGET_PREFIX}/bin"
 install -m 600 -g wheel -o root "${RVC_DATA_DIR}/etc/rvd.conf" "${TARGET_PREFIX}/etc"
+
 # set the 'user_id' for 'pre-connect-exec' to the UID of the desktop user
-sed -i "" "s/@RVC_USER_ID@/${SUDO_UID}/g" "${TARGET_PREFIX}/etc/rvd.conf"
+sed -i "" "s/RVC_USER_ID/${SUDO_UID}/g" "${TARGET_PREFIX}/etc/rvd.conf"
 install -m 500 -g wheel -o root "${RVC_DATA_DIR}/sbin/openvpn" "${OPT_OPENVPN}/sbin"
 
 # unload rvd daemon

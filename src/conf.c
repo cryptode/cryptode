@@ -186,7 +186,7 @@ int rvc_read_vpn_config(const char *config_dir, const char *config_name, struct 
 			return -1;
 		}
 
-		if (nereon_get_config_options(&vpn_conf_ctx, vpn_conf_opts, sizeof(vpn_conf_opts) / sizeof(nereon_config_option_t)) != 0) {
+		if (nereon_get_config_options(&vpn_conf_ctx, vpn_conf_opts) != 0) {
 #ifdef _RVD_SOURCE
 			RVD_DEBUG_ERR("CONF: Failed to get configuration options(err:%s)", nereon_get_errmsg());
 #else
