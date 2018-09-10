@@ -302,7 +302,7 @@ parse_config_options(rvd_options_t *opts, int argc, char **argv)
 		goto end;
 	}
 
-	ret = nereon_get_config_options(&opts->nctx, rvd_opts, sizeof(rvd_opts) / sizeof(struct nereon_config_option));
+	ret = nereon_get_config_options(&opts->nctx, rvd_opts);
 	if (ret != 0) {
 		fprintf(stderr, "Failed to get configuration options(err:%s)\n", nereon_get_errmsg());
 		goto end;
