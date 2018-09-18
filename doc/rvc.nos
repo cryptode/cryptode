@@ -1,0 +1,192 @@
+
+program {
+	name "rvc"
+	description "The Relaxed VPN Client"
+	version "1.2.4"
+	copyright "Copyright (c) 2017, Ribose Inc"
+	homepage "https://www.ribose.com"
+	license ""
+}
+
+suboption json_flag {
+	switch "--json"
+	type "boolean"
+}
+
+option connect {
+	type "string"
+	switch "connect"
+	desc "connect to a VPN with given name (default:all)"
+	hint "[all|connection name] [--json]"
+	default "all"
+
+	suboptions {
+		option json_flag
+	}
+}
+
+option disconnect {
+	type "string"
+	switch "disconnect"
+	desc "disconnect VPN with given name (default:all)"
+	hint "[all|connection name] [--json]"
+	default "all"
+
+	suboptions {
+		option json_flag
+	}
+}
+
+option reconnect {
+	type "string"
+	switch "reconnect"
+	desc "reconnect VPN with given name (default:all)"
+	hint "[all|connection name] [--json]"
+	default "all"
+
+	suboptions {
+		option json_flag
+	}
+}
+
+option status {
+	type "string"
+	switch "status"
+	desc "get status of VPN connection with given name (default:all)"
+	hint "[all|connection name] [--json]"
+	default "all"
+
+	suboptions {
+		option json_flag
+	}
+}
+
+option edit {
+	type "string"
+	switch "edit"
+	desc "edit VPN connection with given name"
+	hint "<connection name> <auto-connect|pre-exec-cmd|profile> <value>"
+
+	suboptions {
+		requires true
+		type "mixed"
+
+		option auto-connect {
+			type "string"
+			switch "auto-connect"
+		}
+
+		option pre-exec-cmd {
+			type "string"
+			switch "pre-exec-cmd"
+		}
+
+		option profile {
+			type "string"
+			switch "profile"
+		}
+	}
+}
+
+option remove {
+	type "string"
+	switch "remove"
+	desc "remove VPN connection (sudo required)"
+	hint "<connection name> [--force]"
+
+	suboptions {
+		option force_flag {
+			type "boolean"
+			switch "--force"
+		}
+	}
+}
+
+option import {
+	type "boolean"
+	switch "import"
+	desc "import VPN connection (sudo required)"
+	hint "<new-from-tblk|new-from-ovpn> <path>"
+
+	suboptions {
+		requires true
+		type "single"
+
+		option new_from_tblk {
+			type "string"
+			switch "--new-from-tblk"
+		}
+
+		option new_from_ovpn {
+			type "string"
+			switch "--new-from-ovpn"
+		}
+	}
+}
+
+option reload {
+	type "boolean"
+	switch "reload"
+	desc "reload configuration (sudo required)"
+}
+
+option dns-override {
+	type "boolean"
+	switch "dns-override"
+	desc "override DNS settings (sudo required)"
+	hint "<enable <DNS serve IP list>|disable|status>"
+
+	suboptions {
+		requires true
+		type "single"
+
+		option enable {
+			type "string"
+			switch "--enable"
+		}
+
+		option disable {
+			type "boolean"
+			switch "--disable"
+		}
+
+		option status {
+			type "boolean"
+			switch "--status"
+		}
+	}
+}
+
+option script-security {
+	type "boolean"
+	switch "script-security"
+	desc "enable/disable script security"
+	hint "<enable|disable>"
+
+	suboptions {
+		requires true
+		type "single"
+
+		option enable {
+			type "boolean"
+			switch "--enable"
+		}
+
+		option disable {
+			type "boolean"
+			switch "--disable"
+		}
+	}
+}
+
+option version {
+	type "version"
+	switch "version"
+	desc "print version"
+}
+
+option help {
+	type "helper"
+	switch "help"
+	desc "print help message"
+}

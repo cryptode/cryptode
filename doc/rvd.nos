@@ -1,0 +1,124 @@
+
+program {
+	name "rvd"
+	description "The Relaxed VPN client Daemon"
+	version "1.2.4"
+	copyright "Copyright (c) 2017, Ribose Inc"
+	homepage "https://www.ribose.com"
+	license ""
+}
+
+config global {
+	config log_directory {
+		type "string"
+	}
+
+	config user_id {
+		type "integer"
+	}
+
+	config restrict_socket {
+		type "boolean"
+	}
+
+	config vpn_config_paths {
+		type "string"
+	}
+}
+
+config openvpn {
+	config sbin_path {
+		type "string"
+	}
+
+	config root_check {
+		type "boolean"
+	}
+
+	config enable_updown_scripts {
+		type "boolean"
+	}
+}
+
+option config {
+	type "config"
+	switch "-f|--config"
+	desc "set configuration file"
+	hint "config file"
+}
+
+option daemonize {
+	type "boolean"
+	switch "-D|--daemon"
+	desc "daemonize"
+}
+
+option check_config {
+	type "boolean"
+	switch "-c|--config-check"
+	desc "only check config and exit"
+}
+
+option version {
+	type "version"
+	switch "-v|--version"
+	desc "print version"
+}
+
+option help {
+	type "help"
+	switch "-h|--help"
+	desc "print help message"
+}
+
+option ovpn_bin_path {
+	type "string"
+	switch "-o|--openvpn-bin"
+	desc "specify OpenVPN binary path"
+	hint "OpenVPN binary path"
+	config "openvpn.sbin_path"
+}
+
+option root_check {
+	type "boolean"
+	switch "-r|--root-check"
+	desc "enable root check for OpenVPN binary"
+	config "openvpn.root_check"
+}
+
+option enable_script {
+	type "boolean"
+	switch "-s|--enable-script"
+	desc "enable up/down scripts for OpenVPN"
+	config "openvpn.enable_updown_scripts"
+}
+
+option user {
+	type "integer"
+	switch "-u|--user-id"
+	desc "specify user ID for RVC process"
+	config "global.user_id"
+}
+
+option restrict_access {
+	type "boolean"
+	switch "-r|--restrict-access"
+	desc "restrict access to communication socket"
+	config "global.restrict_socket"
+}
+
+option log_dir {
+	type "string"
+	switch "-l|--log-dir"
+	desc "specify the logging directory of RVD process"
+	hint "log directory path"
+	config "global.log_directory"
+}
+
+option vpn_config_dir {
+	type "string"
+	switch "-p|--vpn-config-dir"
+	desc "specify the directory path of VPN configurations"
+	hint "VPN config dir path"
+	config "global.vpn_config_paths"
+}
