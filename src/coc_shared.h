@@ -1,41 +1,66 @@
-#ifndef __RVC_H__
-#define __RVC_H__
+/*
+ * Copyright (c) 2017, [Ribose Inc](https://www.cryptode.com).
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
 
-#define RVC_DNS_UTIL_PATH				"/opt/rvc/bin/dns_util.sh"
+#ifndef __COC_H__
+#define __COC_H__
+
+#define COC_DNS_UTIL_PATH				"/opt/cryptode/bin/dns_util.sh"
 
 /*
  * VPN profile type
  */
 
-enum RVC_VPN_PROFILE_TYPE {
-	RVC_VPN_PROFILE_OVPN = 0,		/* OpenVPN profile */
-	RVC_VPN_PROFILE_TBLK			/* TunnelBlick profile */
+enum COC_VPN_PROFILE_TYPE {
+	COC_VPN_PROFILE_OVPN = 0,		/* OpenVPN profile */
+	COC_VPN_PROFILE_TBLK			/* TunnelBlick profile */
 };
 
-/* rvc VPN connction options */
-enum RVC_VPNCONN_OPTION {
-	RVC_VPNCONN_OPT_AUTO_CONNECT,
-	RVC_VPNCONN_OPT_PREEXEC_CMD,
-	RVC_VPNCONN_OPT_PROFIEL,
+/* cryptode VPN connction options */
+enum COC_VPNCONN_OPTION {
+	COC_VPNCONN_OPT_AUTO_CONNECT,
+	COC_VPNCONN_OPT_PREEXEC_CMD,
+	COC_VPNCONN_OPT_PROFIEL,
 #if 0
-	RVC_VPNCONN_OPT_CERT,
-	RVC_VPNCONN_OPT_KEYCHAIN,
+	COC_VPNCONN_OPT_CERT,
+	COC_VPNCONN_OPT_KEYCHAIN,
 #endif
-	RVC_VPNCONN_OPT_UNKNOWN
+	COC_VPNCONN_OPT_UNKNOWN
 };
 
 /*
  * VPN connection status
  */
 
-struct rvc_vpnconn_status {
-	enum RVD_VPNCONN_STATE conn_state;
+struct coc_vpnconn_status {
+	enum COD_VPNCONN_STATE conn_state;
 	bool auto_connect;
-	char ovpn_profile_path[RVD_MAX_PATH];
-	char pre_exec_cmd[RVD_MAX_CMD_LEN];
+	char ovpn_profile_path[COD_MAX_PATH];
+	char pre_exec_cmd[COD_MAX_CMD_LEN];
 };
 
-/** Try to connect to RVC VPN server
+/** Try to connect to COC VPN server
  *
  * The JSON buffer to be returned may have two types, single or array JSON buffer
  * by connection name.
@@ -50,9 +75,9 @@ struct rvc_vpnconn_status {
  * @return 0 If success, otherwise non-zero will be returned.
  */
 
-int rvc_connect(const char *name, int json_format, char **conn_status);
+int coc_connect(const char *name, int json_format, char **conn_status);
 
-/** Try to disconnect from RVC VPN server
+/** Try to disconnect from COC VPN server
  *
  * The JSON buffer to be returned may have two types, single or array JSON buffer
  * by connection name.
@@ -66,9 +91,9 @@ int rvc_connect(const char *name, int json_format, char **conn_status);
  * @return 0 If success, otherwise non-zero will be returned.
  */
 
-int rvc_disconnect(const char *name, int json_format, char **conn_status);
+int coc_disconnect(const char *name, int json_format, char **conn_status);
 
-/** Try to reconnect to RVC VPN server
+/** Try to reconnect to COC VPN server
  *
  * The JSON buffer to be returned may have two types, single or array JSON buffer
  * by connection name.
@@ -83,7 +108,7 @@ int rvc_disconnect(const char *name, int json_format, char **conn_status);
  * @return 0 If success, otherwise non-zero will be returned.
  */
 
-int rvc_reconnect(const char *name, int json_format, char **conn_status);
+int coc_reconnect(const char *name, int json_format, char **conn_status);
 
 /** Get connection status
  *
@@ -99,7 +124,7 @@ int rvc_reconnect(const char *name, int json_format, char **conn_status);
  * @return 0 If success, otherwise non-zero will be returned.
  */
 
-int rvc_get_status(const char *name, int json_format, char **conn_status);
+int coc_get_status(const char *name, int json_format, char **conn_status);
 
 /** Get the configuration directory
  *
@@ -107,16 +132,16 @@ int rvc_get_status(const char *name, int json_format, char **conn_status);
  * @return 0 If success, otherwise non-zero will be returned.
  */
 
-int rvc_get_confdir(char **conf_dir);
+int coc_get_confdir(char **conf_dir);
 
-/** Reload RVD VPN connections
+/** Reload COD VPN connections
  *
  * This function requires sudo privilege, so it needs to gain root privilege before calling.
  * 
  * @return 0 If success, otherwise non-zero will be returned.
  */
 
-int rvc_reload(void);
+int coc_reload(void);
 
 /** Import OpenVPN or TunnelBlick VPN profile
  *
@@ -129,10 +154,10 @@ int rvc_reload(void);
  * @return 0 If success, otherwise non-zero will be returned.
  */
 
-int rvc_import(int import_type, const char *import_path);
+int coc_import(int import_type, const char *import_path);
 
 /*
- * Edit RVC VPN connection info
+ * Edit COC VPN connection info
  *
  * This function requires sudo privilege, so it needs to gain root privilege before calling.
  * 
@@ -142,10 +167,10 @@ int rvc_import(int import_type, const char *import_path);
  * @return 0 If success, otherwise non-zero will be returned.
  */
 
-int rvc_edit(const char *conn_name, enum RVC_VPNCONN_OPTION opt_type, const char *opt_val);
+int coc_edit(const char *conn_name, enum COC_VPNCONN_OPTION opt_type, const char *opt_val);
 
 
-/** Remove RVD VPN connections
+/** Remove COD VPN connections
  *
  * This function requires sudo privilege, so it needs to gain root privilege before calling.
  *
@@ -154,7 +179,7 @@ int rvc_edit(const char *conn_name, enum RVC_VPNCONN_OPTION opt_type, const char
  * @return 0 If success, otherwise non-zero will be returned.
  */
 
-int rvc_remove(const char *conn_name, int force);
+int coc_remove(const char *conn_name, int force);
 
 /** Override DNS settings on the system
  *
@@ -165,7 +190,7 @@ int rvc_remove(const char *conn_name, int force);
  * @return 0 If success, otherwise non-zero will be returned.
  */
 
-int rvc_dns_override(int enabled, const char *dns_ip_list);
+int coc_dns_override(int enabled, const char *dns_ip_list);
 
 /** Print the current DNS setting on the system
  *
@@ -174,6 +199,6 @@ int rvc_dns_override(int enabled, const char *dns_ip_list);
  * @return 0 If success, otherwise non-zero will be returned.
  */
 
-int rvc_dns_print(void);
+int coc_dns_print(void);
 
-#endif /* __RVC_H__ */
+#endif /* __COC_H__ */

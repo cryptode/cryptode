@@ -1,3 +1,3 @@
 #!/bin/sh
 
-sudo ./rvd_tests
+sudo ./cryptoded_tests

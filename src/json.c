@@ -1,6 +1,6 @@
 
 /*
- * Copyright (c) 2017, [Ribose Inc](https://www.ribose.com).
+ * Copyright (c) 2017, [Ribose Inc](https://www.cryptode.com).
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,7 +37,7 @@
 #include "json.h"
 
 /* parse JSON string */
-int rvd_json_parse(const char *jbuf, rvd_json_object_t *objs, int objs_count)
+int cod_json_parse(const char *jbuf, cod_json_object_t *objs, int objs_count)
 {
 	json_object *j_obj;
 	int i, ret = -1;
@@ -49,7 +49,7 @@ int rvd_json_parse(const char *jbuf, rvd_json_object_t *objs, int objs_count)
 
 	for (i = 0; i < objs_count; i++) {
 		json_object *j_sub_obj = NULL, *j_par_obj = NULL;
-		rvd_json_object_t *obj = &objs[i];
+		cod_json_object_t *obj = &objs[i];
 
 		int obj_not_found = 0;
 
@@ -72,7 +72,7 @@ int rvd_json_parse(const char *jbuf, rvd_json_object_t *objs, int objs_count)
 		json_type j_type = json_object_get_type(j_sub_obj);
 
 		switch (obj->type) {
-		case RVD_JTYPE_STR:
+		case COD_JTYPE_STR:
 			if (j_type != json_type_string)
 				break;
 
@@ -81,7 +81,7 @@ int rvd_json_parse(const char *jbuf, rvd_json_object_t *objs, int objs_count)
 
 			break;
 
-		case RVD_JTYPE_BOOL:
+		case COD_JTYPE_BOOL:
 			if (j_type != json_type_boolean)
 				break;
 
@@ -90,7 +90,7 @@ int rvd_json_parse(const char *jbuf, rvd_json_object_t *objs, int objs_count)
 
 			break;
 
-		case RVD_JTYPE_INT:
+		case COD_JTYPE_INT:
 			if (j_type != json_type_int)
 				break;
 
@@ -99,7 +99,7 @@ int rvd_json_parse(const char *jbuf, rvd_json_object_t *objs, int objs_count)
 
 			break;
 
-		case RVD_JTYPE_INT64:
+		case COD_JTYPE_INT64:
 			if (j_type != json_type_int)
 				break;
 
@@ -108,17 +108,17 @@ int rvd_json_parse(const char *jbuf, rvd_json_object_t *objs, int objs_count)
 
 			break;
 
-		case RVD_JTYPE_STR_ARRAY:
+		case COD_JTYPE_STR_ARRAY:
 			if (j_type == json_type_array) {
-				struct rvd_json_array *arr_val;
+				struct cod_json_array *arr_val;
 				int arr_idx, arr_len;
 
 				/* allocate memory for array */
-				arr_val = (struct rvd_json_array *)malloc(sizeof(struct rvd_json_array));
+				arr_val = (struct cod_json_array *)malloc(sizeof(struct cod_json_array));
 				if (!arr_val)
 					break;
 
-				memset(arr_val, 0, sizeof(struct rvd_json_array));
+				memset(arr_val, 0, sizeof(struct cod_json_array));
 
 				arr_len = json_object_array_length(j_sub_obj);
 				if (arr_len <= 0) {
@@ -152,13 +152,13 @@ int rvd_json_parse(const char *jbuf, rvd_json_object_t *objs, int objs_count)
 					arr_val->arr_size++;
 				}
 
-				*((struct rvd_json_array **)obj->val) = arr_val;
+				*((struct cod_json_array **)obj->val) = arr_val;
 				ret = 0;
 			}
 
 			break;
 
-		case RVD_JTYPE_OBJ:
+		case COD_JTYPE_OBJ:
 			if (j_type != json_type_object)
 				break;
 
@@ -182,7 +182,7 @@ int rvd_json_parse(const char *jbuf, rvd_json_object_t *objs, int objs_count)
  * build JSON string
  */
 
-int rvd_json_build(rvd_json_object_t *objs, int objs_count, char **jbuf)
+int cod_json_build(cod_json_object_t *objs, int objs_count, char **jbuf)
 {
 	json_object *j_obj;
 	int i;
@@ -198,13 +198,13 @@ int rvd_json_build(rvd_json_object_t *objs, int objs_count, char **jbuf)
 
 	for (i = 0; i < objs_count; i++) {
 		json_object *j_sub_obj = NULL, *j_par_obj = NULL;
-		rvd_json_object_t *obj = &objs[i];
+		cod_json_object_t *obj = &objs[i];
 
 		if (obj->parent_key && !json_object_object_get_ex(j_obj, obj->parent_key, &j_par_obj))
 			continue;
 
 		switch (obj->type) {
-		case RVD_JTYPE_STR:
+		case COD_JTYPE_STR:
 			if (obj->val)
 				j_sub_obj = json_object_new_string((char *)obj->val);
 			else
@@ -212,19 +212,19 @@ int rvd_json_build(rvd_json_object_t *objs, int objs_count, char **jbuf)
 
 			break;
 
-		case RVD_JTYPE_BOOL:
+		case COD_JTYPE_BOOL:
 			j_sub_obj = json_object_new_boolean(*((bool *)(obj->val)));
 			break;
 
-		case RVD_JTYPE_INT:
+		case COD_JTYPE_INT:
 			j_sub_obj = json_object_new_int(*(int *)(obj->val));
 			break;
 
-		case RVD_JTYPE_INT64:
+		case COD_JTYPE_INT64:
 			j_sub_obj = json_object_new_int64(*(int64_t *)(obj->val));
 			break;
 
-		case RVD_JTYPE_OBJ:
+		case COD_JTYPE_OBJ:
 			if (obj->val)
 				j_sub_obj = json_tokener_parse((char *)obj->val);
 			else
@@ -256,7 +256,7 @@ int rvd_json_build(rvd_json_object_t *objs, int objs_count, char **jbuf)
  * add json buffer
  */
 
-int rvd_json_add(const char *jbuf, rvd_json_object_t *objs, int objs_count, char **ret_jbuf)
+int cod_json_add(const char *jbuf, cod_json_object_t *objs, int objs_count, char **ret_jbuf)
 {
 	json_object *j_obj;
 	int i;
@@ -271,7 +271,7 @@ int rvd_json_add(const char *jbuf, rvd_json_object_t *objs, int objs_count, char
 		return -1;
 
 	for (i = 0; i < objs_count; i++) {
-		rvd_json_object_t *obj = &objs[i];
+		cod_json_object_t *obj = &objs[i];
 		json_object *j_sub_obj = NULL;
 
 		json_object *j_par_obj = NULL;
@@ -281,23 +281,23 @@ int rvd_json_add(const char *jbuf, rvd_json_object_t *objs, int objs_count, char
 			continue;
 
 		switch (obj->type) {
-		case RVD_JTYPE_STR:
+		case COD_JTYPE_STR:
 			j_sub_obj = json_object_new_string((char *)obj->val);
 			break;
 
-		case RVD_JTYPE_BOOL:
+		case COD_JTYPE_BOOL:
 			j_sub_obj = json_object_new_boolean(*((bool *)(obj->val)));
 			break;
 
-		case RVD_JTYPE_INT:
+		case COD_JTYPE_INT:
 			j_sub_obj = json_object_new_int(*(int *)(obj->val));
 			break;
 
-		case RVD_JTYPE_INT64:
+		case COD_JTYPE_INT64:
 			j_sub_obj = json_object_new_int64(*(int64_t *)(obj->val));
 			break;
 
-		case RVD_JTYPE_OBJ:
+		case COD_JTYPE_OBJ:
 			if (obj->val)
 				j_sub_obj = json_tokener_parse((char *)obj->val);
 			else

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, [Ribose Inc](https://www.ribose.com).
+ * Copyright (c) 2017, [Ribose Inc](https://www.cryptode.com).
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,8 +38,8 @@
 #include <sys/stat.h>
 #include <json-c/json.h>
 
-#include "rvd.h"
-#include "rvd.nos.h"
+#include "cryptoded.h"
+#include "cryptoded.nos.h"
 
 static bool g_end_flag;
 static bool g_reload_config;
@@ -56,7 +56,7 @@ print_version(void)
 	printf("Relaxed VPN client daemon - %s (built on %s)\n%s\n",
 			PACKAGE_VERSION,
 			build_time,
-			RVC_COPYRIGHT_MSG);
+			COC_COPYRIGHT_MSG);
 
 	exit(0);
 }
@@ -68,7 +68,7 @@ print_version(void)
 static void
 signal_handler(const int signum)
 {
-	RVD_DEBUG_MSG("Main: Received signal %d", signum);
+	COD_DEBUG_MSG("Main: Received signal %d", signum);
 
 	/* if signal is SIGUSR1, then reload a config */
 	if (signum == SIGUSR1) {
@@ -94,7 +94,7 @@ init_signal()
 }
 
 /*
- * check if rvd process is running
+ * check if cryptoded process is running
  */
 
 static pid_t
@@ -108,7 +108,7 @@ check_process_running()
 	ssize_t buf_len;
 
 	/* open pid file */
-	pid_fp = fopen(RVD_PID_FPATH, "r");
+	pid_fp = fopen(COD_PID_FPATH, "r");
 	if (!pid_fp)
 		return 0;
 
@@ -191,19 +191,19 @@ write_pid_file(void)
 	int fd;
 
 	/* remove old pid file */
-	mkdir(RVD_PID_DPATH, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
-	unlink(RVD_PID_FPATH);
+	mkdir(COD_PID_DPATH, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
+	unlink(COD_PID_FPATH);
 
 	/* open pid file and write */
-	fd = open(RVD_PID_FPATH, O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR);
+	fd = open(COD_PID_FPATH, O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR);
 	if (fd < 0) {
-		fprintf(stderr, "Could not open PID file '%s' for writing\n", RVD_PID_FPATH);
+		fprintf(stderr, "Could not open PID file '%s' for writing\n", COD_PID_FPATH);
 		return;
 	}
 
 	pid_fp = fdopen(fd, "w");
 	if (!pid_fp) {
-		fprintf(stderr, "Could not open PID file '%s' for writing\n", RVD_PID_FPATH);
+		fprintf(stderr, "Could not open PID file '%s' for writing\n", COD_PID_FPATH);
 		close(fd);
 		return;
 	}
@@ -219,7 +219,7 @@ write_pid_file(void)
 static void
 remove_pid_file(void)
 {
-	unlink(RVD_PID_FPATH);
+	unlink(COD_PID_FPATH);
 }
 
 /*
@@ -254,14 +254,14 @@ check_config_validataion(const char *config_path)
  */
 
 static int
-parse_config_options(rvd_options_t *opts, int argc, char **argv)
+parse_config_options(cod_options_t *opts, int argc, char **argv)
 {
 	const char *nos_cfg;
 	int ret = -1;
 
 	bool require_exit = false;
 
-	nereon_config_option_t rvd_opts[] = {
+	nereon_config_option_t cod_opts[] = {
 		{"config_file", NEREON_TYPE_CONFIG, false, NULL, &opts->config_fpath},
 		{"go_daemon", NEREON_TYPE_BOOL, false, NULL, &opts->go_daemon},
 		{"check_config", NEREON_TYPE_BOOL, false, NULL, &opts->check_config},
@@ -277,7 +277,7 @@ parse_config_options(rvd_options_t *opts, int argc, char **argv)
 	};
 
 	/* initialize libnereon context */
-	nos_cfg = get_rvd_nos_cfg();
+	nos_cfg = get_cryptoded_nos_cfg();
 	if (nereon_ctx_init(&opts->nctx, nos_cfg) != 0) {
 		fprintf(stderr, "Failed to parse RVD NOS configuration\n");
 		return -1;
@@ -296,13 +296,13 @@ parse_config_options(rvd_options_t *opts, int argc, char **argv)
 	}
 
 	/* parse configuration file */
-	ret = nereon_parse_config_file(&opts->nctx, RVD_CONFIG_PATH);
+	ret = nereon_parse_config_file(&opts->nctx, CRYPTODED_CONFIG_PATH);
 	if (ret != 0) {
 		fprintf(stderr, "Could not parse NOC configuration(err:%s)\n", nereon_get_errmsg());
 		goto end;
 	}
 
-	ret = nereon_get_config_options(&opts->nctx, rvd_opts);
+	ret = nereon_get_config_options(&opts->nctx, cod_opts);
 	if (ret != 0) {
 		fprintf(stderr, "Failed to get configuration options(err:%s)\n", nereon_get_errmsg());
 		goto end;
@@ -321,29 +321,29 @@ end:
 }
 
 /*
- * initialize rvd context
+ * initialize cryptoded context
  */
 
 static int
-rvd_ctx_init(rvd_ctx_t *c)
+cod_ctx_init(cod_ctx_t *c)
 {
 	/* initialize logging */
-	if (rvd_log_init(c->opt.log_dir_path) != 0) {
+	if (cod_log_init(c->opt.log_dir_path) != 0) {
 		fprintf(stderr, "Couldn't create log file in directory '%s'\n", c->opt.log_dir_path);
 		return -1;
 	}
 
-	RVD_DEBUG_MSG("Main: Initializing rvd context");
+	COD_DEBUG_MSG("Main: Initializing cryptoded context");
 
 	/* initialize command manager */
-	if (rvd_cmd_proc_init(c) != 0) {
-		RVD_DEBUG_ERR("Main: Couldn't initialize command processor");
+	if (cod_cmd_proc_init(c) != 0) {
+		COD_DEBUG_ERR("Main: Couldn't initialize command processor");
 		return -1;
 	}
 
 	/* initialize VPN connection manager */
-	if (rvd_vpnconn_mgr_init(c) != 0) {
-		RVD_DEBUG_ERR("Main: Couldn't initialize VPN connection manager");
+	if (cod_vpnconn_mgr_init(c) != 0) {
+		COD_DEBUG_ERR("Main: Couldn't initialize VPN connection manager");
 		return -1;
 	}
 
@@ -351,48 +351,48 @@ rvd_ctx_init(rvd_ctx_t *c)
 }
 
 /*
- * finalize rvd context
+ * finalize cryptoded context
  */
 
 static void
-rvd_ctx_finalize(rvd_ctx_t *c)
+cod_ctx_finalize(cod_ctx_t *c)
 {
-	RVD_DEBUG_MSG("Main: Finalizing rvd context");
+	COD_DEBUG_MSG("Main: Finalizing cryptoded context");
 
 	/* finalize VPN connection manager */
-	rvd_vpnconn_mgr_finalize(&c->vpnconn_mgr);
+	cod_vpnconn_mgr_finalize(&c->vpnconn_mgr);
 
 	/* finalize command manager */
-	rvd_cmd_proc_finalize(&c->cmd_proc);
+	cod_cmd_proc_finalize(&c->cmd_proc);
 
 	/* finalize logging */
-	rvd_log_finalize(&c);
+	cod_log_finalize();
 }
 
 /*
- * reload rvd context
+ * reload cryptoded context
  */
 
 static void
-rvd_ctx_reload(rvd_ctx_t *c)
+cod_ctx_reload(cod_ctx_t *c)
 {
-	rvd_options_t opt;
+	cod_options_t opt;
 
-	RVD_DEBUG_MSG("Main: Reloading rvd context");
+	COD_DEBUG_MSG("Main: Reloading cryptoded context");
 
-	memcpy(&opt, &c->opt, sizeof(rvd_options_t));
+	memcpy(&opt, &c->opt, sizeof(cod_options_t));
 
-	/* finalize rvd context */
-	rvd_ctx_finalize(c);
+	/* finalize cryptoded context */
+	cod_ctx_finalize(c);
 
 	/* init context object */
-	memset(c, 0, sizeof(rvd_ctx_t));
-	memcpy(&c->opt, &opt, sizeof(rvd_options_t));
+	memset(c, 0, sizeof(cod_ctx_t));
+	memcpy(&c->opt, &opt, sizeof(cod_options_t));
 
-	/* init rvd context */
-	if (rvd_ctx_init(c) != 0) {
-		RVD_DEBUG_ERR("Main: Couldn't reload rvd context");
-		rvd_ctx_finalize(c);
+	/* init cryptoded context */
+	if (cod_ctx_init(c) != 0) {
+		COD_DEBUG_ERR("Main: Couldn't reload cryptoded context");
+		cod_ctx_finalize(c);
 	}
 }
 
@@ -403,11 +403,11 @@ rvd_ctx_reload(rvd_ctx_t *c)
 int
 main(int argc, char *argv[])
 {
-	rvd_ctx_t ctx;
+	cod_ctx_t ctx;
 	pid_t pid;
 
 	/* initialize context object */
-	memset(&ctx, 0, sizeof(rvd_ctx_t));
+	memset(&ctx, 0, sizeof(cod_ctx_t));
 
 	/* check UID */
 	if (getuid() != 0) {
@@ -421,7 +421,7 @@ main(int argc, char *argv[])
 
 	/* check if the process is already running */
 	if ((pid = check_process_running()) > 0) {
-		fprintf(stderr, "The rvd process is already running with PID %d. Exiting...\n", pid);
+		fprintf(stderr, "The cryptoded process is already running with PID %d. Exiting...\n", pid);
 		exit(1);
 	}
 
@@ -435,25 +435,25 @@ main(int argc, char *argv[])
 	/* init signal */
 	init_signal();
 
-	/* initialize rvd context */
-	if (rvd_ctx_init(&ctx) != 0) {
-		RVD_DEBUG_ERR("Main: Failed initializing rvd context.");
+	/* initialize cryptoded context */
+	if (cod_ctx_init(&ctx) != 0) {
+		COD_DEBUG_ERR("Main: Failed initializing cryptoded context.");
 
-		rvd_ctx_finalize(&ctx);
+		cod_ctx_finalize(&ctx);
 		exit(1);
 	}
 
 	while (!g_end_flag) {
 		if (g_reload_config) {
-			rvd_ctx_reload(&ctx);
+			cod_ctx_reload(&ctx);
 			g_reload_config = false;
 		}
 
 		sleep(1);
 	}
 
-	/* finalize rvc context */
-	rvd_ctx_finalize(&ctx);
+	/* finalize cryptoded context */
+	cod_ctx_finalize(&ctx);
 
 	/* remove PID file */
 	remove_pid_file();

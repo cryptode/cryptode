@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, [Ribose Inc](https://www.ribose.com).
+ * Copyright (c) 2017, [Ribose Inc](https://www.cryptode.com).
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,16 +33,16 @@
 #include <stdbool.h>
 
 #include <nereon/nereon.h>
-#include "rvc.nos.h"
+#include "cryptode.nos.h"
 
 #include "common.h"
-#include "rvc_shared.h"
+#include "coc_shared.h"
 
 /*
- * RVC options structure
+ * COC options structure
  */
 
-struct rvc_options {
+struct coc_options {
 	char *conn_name, *disconn_name, *reconn_name, *status_name;
 
 	bool connect, disconnect;
@@ -79,10 +79,10 @@ static void print_version(void)
 {
 	static const char build_time[] = { __DATE__ " " __TIME__ };
 
-	printf("Relaxed VPN command line client - %s (built on %s)\n%s\n",
+	printf("Crypt-ode VPN manager - %s (built on %s)\n%s\n",
 			PACKAGE_VERSION,
 			build_time,
-			RVC_COPYRIGHT_MSG);
+			COC_COPYRIGHT_MSG);
 }
 
 /*
@@ -92,14 +92,14 @@ static void print_version(void)
 int main(int argc, char *argv[])
 {
 	nereon_ctx_t ctx;
-	struct rvc_options opt;
+	struct coc_options opt;
 	bool require_exit = false;
 
 	int ret = -1;
 
 	char *resp_data = NULL;
 
-	struct nereon_config_option rvc_opts[] = {
+	struct nereon_config_option coc_opts[] = {
 		{"connect", NEREON_TYPE_STRING, false, &opt.connect, &opt.conn_name},
 		{"disconnect", NEREON_TYPE_STRING, false, &opt.disconnect, &opt.disconn_name},
 		{"reconnect", NEREON_TYPE_STRING, false, &opt.reconnect, &opt.reconn_name},
@@ -134,7 +134,7 @@ int main(int argc, char *argv[])
 	};
 
 	/* initialize nereon context */
-	ret = nereon_ctx_init(&ctx, get_rvc_nos_cfg());
+	ret = nereon_ctx_init(&ctx, get_cryptode_nos_cfg());
 	if (ret != 0) {
 		fprintf(stderr, "Could not initialize nereon context(err:%s)\n", nereon_get_errmsg());
 		exit(-1);
@@ -153,8 +153,8 @@ int main(int argc, char *argv[])
 	}
 
 	/* get configuration options */
-	memset(&opt, 0, sizeof(struct rvc_options));
-	if (nereon_get_config_options(&ctx, rvc_opts) != 0) {
+	memset(&opt, 0, sizeof(struct coc_options));
+	if (nereon_get_config_options(&ctx, coc_opts) != 0) {
 		fprintf(stderr, "Could not get confiugration options(err:%s)\n", nereon_get_errmsg());
 		nereon_ctx_finalize(&ctx);
 
@@ -168,38 +168,38 @@ int main(int argc, char *argv[])
 	}
 
 	if (opt.connect)
-		ret = rvc_connect(opt.conn_name, opt.json, &resp_data);
+		ret = coc_connect(opt.conn_name, opt.json, &resp_data);
 	else if (opt.disconnect)
-		ret = rvc_disconnect(opt.disconn_name, opt.json, &resp_data);
+		ret = coc_disconnect(opt.disconn_name, opt.json, &resp_data);
 	else if (opt.reconnect)
-		ret = rvc_reconnect(opt.reconn_name, opt.json, &resp_data);
+		ret = coc_reconnect(opt.reconn_name, opt.json, &resp_data);
 	else if (opt.status)
-		ret = rvc_get_status(opt.status_name, opt.json, &resp_data);
+		ret = coc_get_status(opt.status_name, opt.json, &resp_data);
 	else if (opt.reload) {
-		ret = rvc_reload();
+		ret = coc_reload();
 	} else if (opt.import) {
-		int import_type = opt.import_tblk ? RVC_VPN_PROFILE_TBLK : RVC_VPN_PROFILE_OVPN;
+		int import_type = opt.import_tblk ? COC_VPN_PROFILE_TBLK : COC_VPN_PROFILE_OVPN;
 
-		ret = rvc_import(import_type, opt.import_path);
+		ret = coc_import(import_type, opt.import_path);
 	} else if (opt.edit) {
-		int edit_type = RVC_VPNCONN_OPT_UNKNOWN;
+		int edit_type = COC_VPNCONN_OPT_UNKNOWN;
 
 		if (opt.edit_auto_connect)
-			edit_type = RVC_VPNCONN_OPT_AUTO_CONNECT;
+			edit_type = COC_VPNCONN_OPT_AUTO_CONNECT;
 		else if (opt.edit_pre_exec_cmd)
-			edit_type = RVC_VPNCONN_OPT_PREEXEC_CMD;
+			edit_type = COC_VPNCONN_OPT_PREEXEC_CMD;
 		else if (opt.edit_profile)
-			edit_type = RVC_VPNCONN_OPT_PROFIEL;
+			edit_type = COC_VPNCONN_OPT_PROFIEL;
 
-		ret = rvc_edit(opt.conn_name, edit_type, opt.edit_data);
+		ret = coc_edit(opt.conn_name, edit_type, opt.edit_data);
 	} else if (opt.remove) {
-		ret = rvc_remove(opt.conn_name, opt.remove_force ? 1 : 0);
+		ret = coc_remove(opt.conn_name, opt.remove_force ? 1 : 0);
 		goto end;
 	} else if (opt.dns_override) {
 		if (opt.dsn_override_status)
-			ret = rvc_dns_print();
+			ret = coc_dns_print();
 		else
-			ret = rvc_dns_override(opt.dns_override_enable ? 1 : 0, opt.dns_srvs);
+			ret = coc_dns_override(opt.dns_override_enable ? 1 : 0, opt.dns_srvs);
 	} else {
 		nereon_print_usage(&ctx);
 	}

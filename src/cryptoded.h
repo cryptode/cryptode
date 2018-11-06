@@ -23,25 +23,55 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __COD_CMD_H__
-#define __COD_CMD_H__
+#ifndef __CRYPT_ODED_MAIN_H__
+#define __CRYPT_ODED_MAIN_H__
 
-/* cryptoded command processor */
-typedef struct cod_cmd_proc {
-	bool init_flag;
-	bool end_flag;
+struct cod_ctx;
 
-	int listen_sock;                /* unix domain socket listening for commands */
+#include <pthread.h>
+#include <stdbool.h>
+#include <unistd.h>
+#include <sys/select.h>
 
-	pthread_mutex_t cmd_mt;         /* mutex */
+#include <nereon/nereon.h>
 
-	pthread_t pt_cmd_proc;          /* command processor main thread ID */
+#include "common.h"
+#include "log.h"
+#include "util.h"
 
-	struct cod_ctx *c;
-} cod_cmd_proc_t;
+#include "json.h"
+#include "cmd.h"
+#include "conf.h"
+#include "vpn.h"
 
-/* cryptoded command processor functions */
-int cod_cmd_proc_init(struct cod_ctx *c);
-void cod_cmd_proc_finalize(cod_cmd_proc_t *cmd_proc);
+/* cryptoded context options */
+typedef struct cod_options {
+	nereon_ctx_t nctx;
 
-#endif /* __COD_CMD_H__ */
+	char *config_fpath;
+	bool go_daemon;
+
+	bool check_config;
+	bool print_version;
+	bool print_help;
+
+	char *ovpn_bin_path;
+	bool ovpn_root_check;
+	bool ovpn_use_scripts;
+
+	int allowed_uid;
+	bool restrict_cmd_sock;
+
+	char *log_dir_path;
+	char *vpn_config_dir;
+} cod_options_t;
+
+/* cryptoded context structure */
+typedef struct cod_ctx {
+	cod_options_t opt;
+
+	cod_cmd_proc_t cmd_proc;
+	cod_vpnconn_mgr_t vpnconn_mgr;
+} cod_ctx_t;
+
+#endif /* __CRYPT_ODED_MAIN_H__ */

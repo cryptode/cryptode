@@ -1,20 +1,20 @@
 %{?systemd_requires}
-%define rvc_confdir %{_sysconfdir}/rvc
+%define cryptode_confdir %{_sysconfdir}/cryptode
 
 %define version @PACKAGE_VERSION@
 %define release 1
 
-Name: rvc
+Name: cryptode
 Summary: Relaxed VPN Client command line tool
 Version: %{version}
 Release: %{release}%{?dist}
 License: GPLv2+
-URL: https://github.com/riboseinc/rvc
+URL: https://github.com/riboseinc/cryptode
 Group: System Environment/Daemons
 
-Source0: rvc-%{version}.tar.gz
-Source1: rvd.conf
-Source2: rvd.service
+Source0: cryptode-%{version}.tar.gz
+Source1: cryptoded.conf
+Source2: cryptoded.service
 
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
 BuildRequires: json-c-devel openssl-devel
@@ -22,14 +22,14 @@ BuildRequires: setup >= 2.5
 Requires: json-c openssl
 
 %description
-RVC is a secure CLI-based OpenVPN client for Linux/MacOS.
+cryptode is a secure CLI-based OpenVPN client for Linux/MacOS.
 
 %prep
 %setup -q -n %{name}-%{version}
 
 %build
 rm -rf %{buildroot}
-./configure --prefix=%{buildroot}/usr --sysconfdir=%{buildroot}/etc/rvc
+./configure --prefix=%{buildroot}/usr --sysconfdir=%{buildroot}/etc/cryptode
 make
 
 %install
@@ -42,27 +42,30 @@ install -p -m 644 %{SOURCE2} %{buildroot}/%{_unitdir}
 
 %files
 %defattr(-,root,root,-)
-%config(noreplace) %{rvc_confdir}/rvd.conf
-%attr(0600, root, root) %{rvc_confdir}/rvd.conf
-%attr(0644, root, root) %{_unitdir}/rvd.service
-%{_sbindir}/rvd
+%config(noreplace) %{cryptode_confdir}/cryptoded.conf
+%attr(0600, root, root) %{cryptode_confdir}/cryptoded.conf
+%attr(0644, root, root) %{_unitdir}/cryptoded.service
+%{_sbindir}/cryptoded
 %{_bindir}/%{name}
 
 %clean
 rm -rf %{buildroot}
 
 %post
-mkdir -p %{rvc_confdir}/vpn.d
-mkdir -p %{_localstatedir}/log/rvd
-%systemd_post rvd.service
+mkdir -p %{cryptode_confdir}/vpn.d
+mkdir -p %{_localstatedir}/log/cryptoded
+%systemd_post cryptoded.service
 
 %preun
-%systemd_preun rvd.service
+%systemd_preun cryptoded.service
 
 %postun
-%systemd_postun_with_restart rvd.service
-rm -rf %{_localstatedir}/log/rvd
+%systemd_postun_with_restart cryptoded.service
+rm -rf %{_localstatedir}/log/cryptoded
 
 %changelog
+* Sun Nov 06 2018 Jin JinRu <jin.jinru840430@gmail.com> - 0.9.0
+- Moved rvc to cryptode
+
 * Sun Oct 01 2017 Jin JinRu <jin.jinru840430@gmail.com> - 0.9.0
 - Added first version of rvc

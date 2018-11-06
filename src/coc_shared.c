@@ -1,6 +1,6 @@
 
 /*
- * Copyright (c) 2017, [Ribose Inc](https://www.ribose.com).
+ * Copyright (c) 2017, [Ribose Inc](https://www.cryptode.com).
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -56,7 +56,7 @@
 #include "util.h"
 #include "json.h"
 
-#include "rvc_shared.h"
+#include "coc_shared.h"
 
 /* TunnelBlick credential types */
 #define TBLK_CRED_TYPE_CA		0
@@ -70,16 +70,16 @@ static int g_sock;
  * rvc connection state strings
  */
 
-struct rvd_vpn_state {
-	enum RVD_VPNCONN_STATE state;
+struct cod_vpn_state {
+	enum COD_VPNCONN_STATE state;
 	const char *state_str;
 } g_conn_state[] = {
-	{RVD_CONN_STATE_DISCONNECTED, "DISCONNECTED"},
-	{RVD_CONN_STATE_CONNECTED, "CONNECTED"},
-	{RVD_CONN_STATE_CONNECTING, "CONNECTING"},
-	{RVD_CONN_STATE_DISCONNECTING, "DISCONNECTING"},
-	{RVD_CONN_STATE_RECONNECTING, "RECONNECTING"},
-	{RVD_CONN_STATE_UNKNOWN, NULL}
+	{COD_CONN_STATE_DISCONNECTED, "DISCONNECTED"},
+	{COD_CONN_STATE_CONNECTED, "CONNECTED"},
+	{COD_CONN_STATE_CONNECTING, "CONNECTING"},
+	{COD_CONN_STATE_DISCONNECTING, "DISCONNECTING"},
+	{COD_CONN_STATE_RECONNECTING, "RECONNECTING"},
+	{COD_CONN_STATE_UNKNOWN, NULL}
 };
 
 /*
@@ -97,7 +97,7 @@ get_pid_of_rvd()
 	ssize_t buf_len;
 
 	/* open pid file */
-	pid_fp = fopen(RVD_PID_FPATH, "r");
+	pid_fp = fopen(COD_PID_FPATH, "r");
 	if (!pid_fp)
 		return 0;
 
@@ -213,7 +213,7 @@ static int write_tblk_cred(const char *dir, int cred_type, const char *fname, FI
 {
 	FILE *cred_fp;
 
-	char cred_path[RVD_MAX_PATH];
+	char cred_path[COD_MAX_PATH];
 	char *cred_data;
 
 	int ret;
@@ -264,8 +264,8 @@ static int write_tblk_cred(const char *dir, int cred_type, const char *fname, FI
 
 static int convert_tblk_to_ovpn(const char *conf_dir, const char *container_path, const char *ovpn_name)
 {
-	char ovpn_path[RVD_MAX_PATH];
-	char new_ovpn_path[RVD_MAX_PATH];
+	char ovpn_path[COD_MAX_PATH];
+	char new_ovpn_path[COD_MAX_PATH];
 
 	FILE *fp, *new_fp = NULL;
 	int new_fd;
@@ -283,7 +283,7 @@ static int convert_tblk_to_ovpn(const char *conf_dir, const char *container_path
 
 	/* check the file size */
 	fsize = get_file_size(ovpn_path);
-	if (fsize > RVC_MAX_IMPORT_SIZE)
+	if (fsize > COC_MAX_IMPORT_SIZE)
 		return -1;
 
 	/* open the profile */
@@ -364,7 +364,7 @@ static int import_ovpn_from_tblk(const char *conf_dir, const char *tblk_path)
 	DIR *dir;
 	struct dirent *entry;
 
-	char container_path[RVD_MAX_PATH];
+	char container_path[COD_MAX_PATH];
 
 	struct stat st;
 	int count = 0;
@@ -404,23 +404,23 @@ static int import_ovpn_from_tblk(const char *conf_dir, const char *tblk_path)
  * send command and print response
  */
 
-static int send_cmd(enum RVD_CMD_CODE cmd_code, const char *cmd_param, int use_json, char **resp_data)
+static int send_cmd(enum COD_CMD_CODE cmd_code, const char *cmd_param, int use_json, char **resp_data)
 {
 	char *cmd;
 	ssize_t ret;
 
-	char resp[RVD_MAX_RESP_LEN];
+	char resp[COD_MAX_RESP_LEN];
 
-	rvd_json_object_t cmd_jobjs[] = {
-		{"cmd", RVD_JTYPE_INT, &cmd_code, 0, false, NULL},
-		{"json", RVD_JTYPE_BOOL, &use_json, 0, false, NULL},
-		{"param", RVD_JTYPE_STR, (void*)cmd_param, 0, false, NULL}
+	cod_json_object_t cmd_jobjs[] = {
+		{"cmd", COD_JTYPE_INT, &cmd_code, 0, false, NULL},
+		{"json", COD_JTYPE_BOOL, &use_json, 0, false, NULL},
+		{"param", COD_JTYPE_STR, (void *)cmd_param, 0, false, NULL}
 	};
 
 	/* build JSON command */
-	if (rvd_json_build(cmd_jobjs, sizeof(cmd_jobjs) / sizeof(rvd_json_object_t), &cmd) != 0) {
+	if (cod_json_build(cmd_jobjs, sizeof(cmd_jobjs) / sizeof(cod_json_object_t), &cmd) != 0) {
 		fprintf(stderr, "Couldn't create JSON object\n");
-		return RVD_RESP_NO_MEMORY;
+		return COD_RESP_NO_MEMORY;
 	}
 
 	/* send command */
@@ -428,7 +428,7 @@ static int send_cmd(enum RVD_CMD_CODE cmd_code, const char *cmd_param, int use_j
 	if (ret <= 0) {
 		fprintf(stderr, "Couldn't send command %s\n", cmd);
 		free(cmd);
-		return RVD_RESP_SOCK_CONN;
+		return COD_RESP_SOCK_CONN;
 	}
 	free(cmd);
 
@@ -436,12 +436,12 @@ static int send_cmd(enum RVD_CMD_CODE cmd_code, const char *cmd_param, int use_j
 	ret = recv(g_sock, resp, sizeof(resp) - 1, 0);
 	if (ret <= 0) {
 		fprintf(stderr, "Couldn't receive response\n");
-		return RVD_RESP_SOCK_CONN;
+		return COD_RESP_SOCK_CONN;
 	}
 	resp[ret] = '\0';
 	*resp_data = strdup(resp);
 
-	return RVD_RESP_OK;
+	return COD_RESP_OK;
 }
 
 /*
@@ -458,13 +458,13 @@ static int parse_resp(const char *resp, char **resp_data)
 	j_obj = json_tokener_parse(resp);
 	if (!j_obj) {
 		fprintf(stderr, "Invalid JSON response '%s'\n", resp);
-		return RVD_RESP_JSON_INVALID;
+		return COD_RESP_JSON_INVALID;
 	}
 
 	if (!json_object_object_get_ex(j_obj, "code", &j_sub_obj)) {
 		fprintf(stderr, "Invalid JSON response '%s'\n", resp);
 		json_object_put(j_obj);
-		return RVD_RESP_JSON_INVALID;
+		return COD_RESP_JSON_INVALID;
 	}
 
 	resp_code = json_object_get_int(j_sub_obj);
@@ -472,7 +472,7 @@ static int parse_resp(const char *resp, char **resp_data)
 	if (!json_object_object_get_ex(j_obj, "data", &j_sub_obj)) {
 		fprintf(stderr, "Invalid JSON response '%s'\n", resp);
 		json_object_put(j_obj);
-		return RVD_RESP_JSON_INVALID;
+		return COD_RESP_JSON_INVALID;
 	}
 
 	*resp_data = strdup(json_object_get_string(j_sub_obj));
@@ -496,7 +496,7 @@ static int connect_to_rvd(void)
 	/* set server address */
 	memset(&addr, 0, sizeof(struct sockaddr_un));
 	addr.sun_family = AF_UNIX;
-	strlcpy(addr.sun_path, RVD_LISTEN_SOCK_PATH, sizeof(addr.sun_path));
+	strlcpy(addr.sun_path, COD_LISTEN_SOCK_PATH, sizeof(addr.sun_path));
 
 	/* connect to rvd */
 	return connect(g_sock, (struct sockaddr *) &addr, sizeof(struct sockaddr_un));
@@ -515,12 +515,12 @@ int send_cmd_to_rvd(int cmd_code, const char *param, int json_format, char **res
 	ret = connect_to_rvd();
 	if (ret != 0) {
 		fprintf(stderr, "Couldn't to connect to rvd(err:%d)\n", errno);
-		return RVD_RESP_SOCK_CONN;
+		return COD_RESP_SOCK_CONN;
 	}
 
 	/* send command to core */
 	ret = send_cmd(cmd_code, param, json_format, &resp);
-	if (ret == RVD_RESP_OK)
+	if (ret == COD_RESP_OK)
 		ret = parse_resp(resp, resp_data);
 
 	/* close socket */
@@ -533,45 +533,45 @@ int send_cmd_to_rvd(int cmd_code, const char *param, int json_format, char **res
  * Try to connect VPN server
  */
 
-int rvc_connect(const char *name, int json_format, char **conn_status)
+int coc_connect(const char *name, int json_format, char **conn_status)
 {
-	return send_cmd_to_rvd(RVD_CMD_CONNECT, name, json_format, conn_status);
+	return send_cmd_to_rvd(COD_CMD_CONNECT, name, json_format, conn_status);
 }
 
 /*
  * Try to disconnect from VPN server
  */
 
-int rvc_disconnect(const char *name, int json_format, char **conn_status)
+int coc_disconnect(const char *name, int json_format, char **conn_status)
 {
-	return send_cmd_to_rvd(RVD_CMD_DISCONNECT, name, json_format, conn_status);
+	return send_cmd_to_rvd(COD_CMD_DISCONNECT, name, json_format, conn_status);
 }
 
 /*
  * Try to reconnect VPN server
  */
 
-int rvc_reconnect(const char *name, int json_format, char **conn_status)
+int coc_reconnect(const char *name, int json_format, char **conn_status)
 {
-	return send_cmd_to_rvd(RVD_CMD_RECONNECT, name, json_format, conn_status);
+	return send_cmd_to_rvd(COD_CMD_RECONNECT, name, json_format, conn_status);
 }
 
 /*
  * Get connection status
  */
 
-int rvc_get_status(const char *name, int json_format, char **conn_status)
+int coc_get_status(const char *name, int json_format, char **conn_status)
 {
-	return send_cmd_to_rvd(RVD_CMD_STATUS, name, json_format, conn_status);
+	return send_cmd_to_rvd(COD_CMD_STATUS, name, json_format, conn_status);
 }
 
 /*
  * Get the configuration directory
  */
 
-int rvc_get_confdir(char **conf_dir)
+int coc_get_confdir(char **conf_dir)
 {
-	return send_cmd_to_rvd(RVD_CMD_GET_CONFDIR, NULL, false, conf_dir);
+	return send_cmd_to_rvd(COD_CMD_GET_CONFDIR, NULL, false, conf_dir);
 }
 
 
@@ -581,7 +581,7 @@ int rvc_get_confdir(char **conf_dir)
  * check whether rvc is located into desired installation directory
  */
 
-static const char *g_rvc_allowed_paths[] = {
+static const char *g_coc_allowed_paths[] = {
 #ifdef _DARWIN_C_SOURCE
 	"/opt/rvc/bin/rvc",
 #else
@@ -591,9 +591,9 @@ static const char *g_rvc_allowed_paths[] = {
 	NULL
 };
 
-static int check_rvc_bin_path(void)
+static int check_coc_bin_path(void)
 {
-	char run_path[RVD_MAX_PATH];
+	char run_path[COD_MAX_PATH];
 	int i = 0;
 
 #if _DARWIN_C_SOURCE
@@ -608,8 +608,8 @@ static int check_rvc_bin_path(void)
 		return -1;
 #endif
 
-	for (i = 0; g_rvc_allowed_paths[i] != NULL; i++) {
-		if (strcmp(g_rvc_allowed_paths[i], run_path) == 0)
+	for (i = 0; g_coc_allowed_paths[i] != NULL; i++) {
+		if (strcmp(g_coc_allowed_paths[i], run_path) == 0)
 			return 0;
 	}
 
@@ -626,18 +626,18 @@ static int pre_check_running_env(void)
 	/* check UID is root */
 	if (getuid() != 0) {
 		fprintf(stderr, "This option requires root privileges. Please run with 'sudo'\n");
-		return RVD_RESP_SUDO_REQUIRED;
+		return COD_RESP_SUDO_REQUIRED;
 	}
 
 #ifdef ENABLE_STRICT_PATH
 	/* check rvc binrary path */
-	if (check_rvc_bin_path() != 0) {
+	if (check_coc_bin_path() != 0) {
 #ifdef _DARWIN_C_SOURCE
 		fprintf(stderr, "Wrong path, rvc needs to be installed in '/opt/rvc/bin'\n");
 #else
 		fprintf(stderr, "Wrong path, rvc needs to be installed in '/usr/bin' or '/usr/local/bin'\n");
 #endif
-		return RVD_RESP_ERR_WRONG_RVC_PATH;
+		return COD_RESP_ERR_WRONG_COC_PATH;
 	}
 #endif
 
@@ -648,7 +648,7 @@ static int pre_check_running_env(void)
  * reload VPN connections
  */
 
-int rvc_reload()
+int coc_reload(void)
 {
 	pid_t pid_rvd;
 	int ret;
@@ -662,24 +662,24 @@ int rvc_reload()
 	pid_rvd = get_pid_of_rvd();
 	if (pid_rvd <= 0) {
 		fprintf(stderr, "The rvd process isn't running.\n");
-		return RVD_RESP_RVD_NOT_RUNNING;
+		return COD_RESP_COD_NOT_RUNNING;
 	}
 
 	/* send SIGUSR1 signal */
 	if (kill(pid_rvd, SIGUSR1) < 0) {
 		fprintf(stderr, "Couldn't to send SIGUSR1 signal to rvd process.(err:%d)\n", errno);
-		return RVD_RESP_SEND_SIG; 
+		return COD_RESP_SEND_SIG;
 	} else
 		fprintf(stderr, "Sending reload signal to rvd process '%d' has succeeded.\n", pid_rvd);
 
-	return RVD_RESP_OK;
+	return COD_RESP_OK;
 }
 
 /*
  * import VPN profiles
  */
 
-int rvc_import(int import_type, const char *import_path)
+int coc_import(int import_type, const char *import_path)
 {
 	char *conf_dir = NULL;
 	int ret;
@@ -690,57 +690,57 @@ int rvc_import(int import_type, const char *import_path)
 		return ret;
 
 	/* get configuration directory path */
-	if (rvc_get_confdir(&conf_dir) != 0) {
+	if (coc_get_confdir(&conf_dir) != 0) {
 		fprintf(stderr, "Couldn't get the configuration directory of rvd\n");
 		if (conf_dir)
 			free(conf_dir);
-		return RVD_RESP_INVALID_CONF_DIR;
+		return COD_RESP_INVALID_CONF_DIR;
 	}
 
 	/* check import type */
-	if (import_type != RVC_VPN_PROFILE_OVPN && import_type != RVC_VPN_PROFILE_TBLK) {
+	if (import_type != COC_VPN_PROFILE_OVPN && import_type != COC_VPN_PROFILE_TBLK) {
 		fprintf(stderr, "Invalid VPN profile type\n");
 		free(conf_dir);
-		return RVD_RESP_INVALID_PROFILE_TYPE;
+		return COD_RESP_INVALID_PROFILE_TYPE;
 	}
 
 	/* checks whether import_path has valid extension */
-	if (!is_valid_extension(import_path, import_type == RVC_VPN_PROFILE_TBLK ? ".tblk" : ".ovpn")) {
+	if (!is_valid_extension(import_path, import_type == COC_VPN_PROFILE_TBLK ? ".tblk" : ".ovpn")) {
 		fprintf(stderr, "Invalid extension of file '%s'\n", import_path);
 		free(conf_dir);
-		return RVD_RESP_INVALID_PROFILE_TYPE;
+		return COD_RESP_INVALID_PROFILE_TYPE;
 	}
 
-	if (import_type == RVC_VPN_PROFILE_TBLK) {
+	if (import_type == COC_VPN_PROFILE_TBLK) {
 		ret = import_ovpn_from_tblk(conf_dir, import_path);
 		if (ret <= 0) {
 			fprintf(stderr, "Couldn't import OpenVPN profile from TunnelBlick profile '%s'", import_path);
 			free(conf_dir);
-			return RVD_RESP_INVALID_PROFILE_TYPE;
+			return COD_RESP_INVALID_PROFILE_TYPE;
 		}
 	} else {
 		size_t fsize;
 
 		/* checks whether size of imported profile */
 		fsize = get_file_size(import_path);
-		if (fsize <= 0 || fsize >= RVC_MAX_IMPORT_SIZE) {
+		if (fsize <= 0 || fsize >= COC_MAX_IMPORT_SIZE) {
 			fprintf(stderr, "Invalid size or too large file '%s'\n", import_path);
 			free(conf_dir);
-			return RVD_RESP_IMPORT_TOO_LARGE;
+			return COD_RESP_IMPORT_TOO_LARGE;
 		}
 
 		/* checks whether same profile is exist */
 		if (is_exist_file_in_dir(conf_dir, import_path)) {
 			fprintf(stderr, "The same configuration is already exist in '%s'\n", conf_dir);
 			free(conf_dir);
-			return RVD_RESP_IMPORT_EXIST_PROFILE;
+			return COD_RESP_IMPORT_EXIST_PROFILE;
 		}
 
 		/* copy files into rvd config directory */
 		if (copy_file_into_dir(conf_dir, import_path, S_IRUSR | S_IWUSR) != 0) {
 			fprintf(stderr, "Couldn't copy file '%s' into '%s'\n", import_path, conf_dir);
 			free(conf_dir);
-			return RVD_RESP_UNKNOWN_ERR;
+			return COD_RESP_UNKNOWN_ERR;
 		}
 	}
 
@@ -748,14 +748,14 @@ int rvc_import(int import_type, const char *import_path)
 
 	free(conf_dir);
 
-	return rvc_reload();
+	return coc_reload();
 }
 
 /*
  * check if the connection is exist
  */
 
-static int check_connection_exist(const char *conn_name, struct rvc_vpnconn_status *vpnconn_status)
+static int check_connection_exist(const char *conn_name, struct coc_vpnconn_status *vpnconn_status)
 {
 	int resp_code;
 	char state_str[64];
@@ -765,42 +765,42 @@ static int check_connection_exist(const char *conn_name, struct rvc_vpnconn_stat
 
 	int i;
 
-	rvd_json_object_t status_jobjs[] = {
-		{"code", RVD_JTYPE_INT, &resp_code, 0, true, NULL},
-		{"status", RVD_JTYPE_STR, state_str, sizeof(state_str), true, "data"},
-		{"profile", RVD_JTYPE_STR, vpnconn_status->ovpn_profile_path, sizeof(vpnconn_status->ovpn_profile_path),
+	cod_json_object_t status_jobjs[] = {
+		{"code", COD_JTYPE_INT, &resp_code, 0, true, NULL},
+		{"status", COD_JTYPE_STR, state_str, sizeof(state_str), true, "data"},
+		{"profile", COD_JTYPE_STR, vpnconn_status->ovpn_profile_path, sizeof(vpnconn_status->ovpn_profile_path),
 							true, "data"},
-		{"auto-connect", RVD_JTYPE_STR, auto_connect, sizeof(auto_connect), true, "data"},
-		{"pre-exec-cmd", RVD_JTYPE_STR, vpnconn_status->pre_exec_cmd, sizeof(vpnconn_status->pre_exec_cmd),
+		{"auto-connect", COD_JTYPE_STR, auto_connect, sizeof(auto_connect), true, "data"},
+		{"pre-exec-cmd", COD_JTYPE_STR, vpnconn_status->pre_exec_cmd, sizeof(vpnconn_status->pre_exec_cmd),
 							true, "data"}
 	};
 
 	/* initiailize connection status */
-	memset(vpnconn_status, 0, sizeof(struct rvc_vpnconn_status));
+	memset(vpnconn_status, 0, sizeof(struct coc_vpnconn_status));
 
 	/* check connection status */
-	if (rvc_get_status(conn_name, 1, &resp_data) != 0) {
+	if (coc_get_status(conn_name, 1, &resp_data) != 0) {
 		fprintf(stderr, "Couldn't get status for VPN connection '%s'\n", conn_name);
 
 		if (resp_data)
 			free(resp_data);
 
-		return RVD_RESP_RVD_NOT_RUNNING;
+		return COD_RESP_COD_NOT_RUNNING;
 	}
 
 	/* parse response */
-	if (rvd_json_parse(resp_data, status_jobjs, sizeof(status_jobjs) / sizeof(rvd_json_object_t)) != 0) {
+	if (cod_json_parse(resp_data, status_jobjs, sizeof(status_jobjs) / sizeof(cod_json_object_t)) != 0) {
 		fprintf(stderr, "Couldn't parse connection status response '%s'\n", resp_data);
 		free(resp_data);
 
-		return RVD_RESP_JSON_INVALID;
+		return COD_RESP_JSON_INVALID;
 	}
 
 	/* free response data */
 	free(resp_data);
 
 	/* set connection status */
-	vpnconn_status->conn_state = RVD_CONN_STATE_UNKNOWN;
+	vpnconn_status->conn_state = COD_CONN_STATE_UNKNOWN;
 	for (i = 0; g_conn_state[i].state_str != NULL; i++) {
 		if (strcmp(g_conn_state[i].state_str, state_str) == 0) {
 			vpnconn_status->conn_state = g_conn_state[i].state;
@@ -812,24 +812,24 @@ static int check_connection_exist(const char *conn_name, struct rvc_vpnconn_stat
 	vpnconn_status->auto_connect = strcmp(auto_connect, "Enabled") == 0 ? true : false;
 
 	/* check response code */
-	if (resp_code != RVD_RESP_OK) {
+	if (resp_code != COD_RESP_OK) {
 		fprintf(stderr, "Couldn't find VPN connection with name '%s'\n", conn_name);
-		return RVD_RESP_CONN_NOT_FOUND;
+		return COD_RESP_CONN_NOT_FOUND;
 	}
 
-	return RVD_RESP_OK;
+	return COD_RESP_OK;
 }
 
 /*
  * edit VPN connection
  */
 
-int rvc_edit(const char *conn_name, enum RVC_VPNCONN_OPTION opt_type, const char *opt_val)
+int coc_edit(const char *conn_name, enum COC_VPNCONN_OPTION opt_type, const char *opt_val)
 {
-	struct rvc_vpn_config vpn_config;
+	struct coc_vpn_config vpn_config;
 	char *conf_dir = NULL;
 
-	struct rvc_vpnconn_status vpnconn_status;
+	struct coc_vpnconn_status vpnconn_status;
 	int ret;
 
 	/* pre-checking for running enviroment of rvc */
@@ -839,57 +839,57 @@ int rvc_edit(const char *conn_name, enum RVC_VPNCONN_OPTION opt_type, const char
 
 	/* check connection status */
 	ret = check_connection_exist(conn_name, &vpnconn_status);
-	if (ret != RVD_RESP_OK)
+	if (ret != COD_RESP_OK)
 		return ret;
 
-	if (vpnconn_status.conn_state != RVD_CONN_STATE_DISCONNECTED) {
+	if (vpnconn_status.conn_state != COD_CONN_STATE_DISCONNECTED) {
 		fprintf(stderr, "The connection '%s' is in connected or pending progress.\n", conn_name);
-		return RVD_RESP_CONN_IN_PROGRESS;
+		return COD_RESP_CONN_IN_PROGRESS;
 	}
 
 	/* check option type is valid */
-	if (opt_type == RVC_VPNCONN_OPT_UNKNOWN) {
+	if (opt_type == COC_VPNCONN_OPT_UNKNOWN) {
 		fprintf(stderr, "Unknown VPN configuration option");
-		return RVD_RESP_ERR_VPNCONF_OPT_TYPE;
+		return COD_RESP_ERR_VPNCONF_OPT_TYPE;
 	}
 
 	/* get configuration directory path */
-	if (rvc_get_confdir(&conf_dir) != 0) {
+	if (coc_get_confdir(&conf_dir) != 0) {
 		fprintf(stderr, "Couldn't get the configuration directory of rvd\n");
 
 		if (conf_dir)
 			free(conf_dir);
 
-		return RVD_RESP_INVALID_CONF_DIR;
+		return COD_RESP_INVALID_CONF_DIR;
 	}
 
 	/* read old configuration */
-	if (rvc_read_vpn_config(conf_dir, conn_name, &vpn_config) != 0) {
+	if (coc_read_vpn_config(conf_dir, conn_name, &vpn_config) != 0) {
 		fprintf(stderr, "Couldn't get the VPN configuration with name '%s'", conn_name);
 		free(conf_dir);
-		return RVD_RESP_ERR_NOT_FOUND_VPNCONF;
+		return COD_RESP_ERR_NOT_FOUND_VPNCONF;
 	}
 
-	ret = RVD_RESP_OK;
+	ret = COD_RESP_OK;
 
 	switch (opt_type) {
-	case RVC_VPNCONN_OPT_AUTO_CONNECT:
+	case COC_VPNCONN_OPT_AUTO_CONNECT:
 		if (strcmp(opt_val, "enable") == 0)
 			vpn_config.auto_connect = true;
 		else if (strcmp(opt_val, "disable") == 0)
 			vpn_config.auto_connect = false;
 		else {
 			fprintf(stderr, "Wrong option value. Please try to specify 'enable' or 'disable'\n");
-			ret = RVD_RESP_ERR_VPNCONF_OPT_VAL;
+			ret = COD_RESP_ERR_VPNCONF_OPT_VAL;
 		}
 
 		break;
 
-	case RVC_VPNCONN_OPT_PREEXEC_CMD:
+	case COC_VPNCONN_OPT_PREEXEC_CMD:
 		strlcpy(vpn_config.pre_exec_cmd, opt_val, sizeof(vpn_config.pre_exec_cmd));
 		break;
 
-	case RVC_VPNCONN_OPT_PROFIEL:
+	case COC_VPNCONN_OPT_PROFIEL:
 		strlcpy(vpn_config.ovpn_profile_path, opt_val, sizeof(vpn_config.ovpn_profile_path));
 		break;
 
@@ -898,8 +898,8 @@ int rvc_edit(const char *conn_name, enum RVC_VPNCONN_OPTION opt_type, const char
 	}
 
 	/* write the configuration */
-	if (ret == RVD_RESP_OK) {
-		ret = rvc_write_vpn_config(conf_dir, conn_name, &vpn_config);
+	if (ret == COD_RESP_OK) {
+		ret = coc_write_vpn_config(conf_dir, conn_name, &vpn_config);
 		if (ret != 0) {
 			fprintf(stderr, "Couldn't edit VPN confiugration with name '%s'\n", conn_name);
 		}
@@ -908,16 +908,16 @@ int rvc_edit(const char *conn_name, enum RVC_VPNCONN_OPTION opt_type, const char
 	/* free configuration directory buffer */
 	free(conf_dir);
 
-	return RVD_RESP_OK;
+	return COD_RESP_OK;
 }
 
 /*
  * remove VPN connection
  */
 
-int rvc_remove(const char *conn_name, int force)
+int coc_remove(const char *conn_name, int force)
 {
-	struct rvc_vpnconn_status vpnconn_status;
+	struct coc_vpnconn_status vpnconn_status;
 	int ret;
 
 	/* pre-checking for running enviroment of rvc */
@@ -927,19 +927,19 @@ int rvc_remove(const char *conn_name, int force)
 
 	/* check connection status */
 	ret = check_connection_exist(conn_name, &vpnconn_status);
-	if (ret != RVD_RESP_OK)
+	if (ret != COD_RESP_OK)
 		return ret;
 
-	if (vpnconn_status.conn_state != RVD_CONN_STATE_DISCONNECTED && !force) {
+	if (vpnconn_status.conn_state != COD_CONN_STATE_DISCONNECTED && !force) {
 		fprintf(stderr, "The connection '%s' is in connected or pending progress.\n", conn_name);
-		return RVD_RESP_CONN_IN_PROGRESS;
+		return COD_RESP_CONN_IN_PROGRESS;
 	}
 
 	/* remove profile connection */
 	unlink(vpnconn_status.ovpn_profile_path);
 
 	/* reload rvd */
-	return rvc_reload();
+	return coc_reload();
 }
 
 /*
@@ -949,26 +949,26 @@ int rvc_remove(const char *conn_name, int force)
 static int check_dns_util_path()
 {
 	/* check whether dns utility is exist */
-	if (!is_exist_path(RVC_DNS_UTIL_PATH, 0)) {
-		fprintf(stderr, "No exist rvc DNS utility '%s'\n", RVC_DNS_UTIL_PATH);
-		return RVD_RESP_NO_EXIST_DNS_UTIL;
+	if (!is_exist_path(COC_DNS_UTIL_PATH, 0)) {
+		fprintf(stderr, "No exist rvc DNS utility '%s'\n", COC_DNS_UTIL_PATH);
+		return COD_RESP_NO_EXIST_DNS_UTIL;
 	}
 
 	/* check whether rvc utility is exist and valid permission */
-	if (!is_valid_permission(RVC_DNS_UTIL_PATH, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH) ||
-		!is_owned_by_user(RVC_DNS_UTIL_PATH, "root")) {
-		fprintf(stderr, "rvc DNS utility '%s' has wrong owner or permission.\n", RVC_DNS_UTIL_PATH);
-		return RVD_RESP_WRONG_PERMISSION;
+	if (!is_valid_permission(COC_DNS_UTIL_PATH, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH) ||
+		!is_owned_by_user(COC_DNS_UTIL_PATH, "root")) {
+		fprintf(stderr, "rvc DNS utility '%s' has wrong owner or permission.\n", COC_DNS_UTIL_PATH);
+		return COD_RESP_WRONG_PERMISSION;
 	}
 
-	return RVD_RESP_OK;
+	return COD_RESP_OK;
 }
 
 /*
  * Override DNS settings
  */
 
-int rvc_dns_override(int enabled, const char *dns_ip_list)
+int coc_dns_override(int enabled, const char *dns_ip_list)
 {
 	char cmd[512];
 	int ret;
@@ -980,30 +980,30 @@ int rvc_dns_override(int enabled, const char *dns_ip_list)
 
 	/* check utility path */
 	ret = check_dns_util_path();
-	if (ret != RVD_RESP_OK)
+	if (ret != COD_RESP_OK)
 		return ret;
 
 	/* build command string */
 	if (enabled)
-		snprintf(cmd, sizeof(cmd), "%s enable %s", RVC_DNS_UTIL_PATH, dns_ip_list);
+		snprintf(cmd, sizeof(cmd), "%s enable %s", COC_DNS_UTIL_PATH, dns_ip_list);
 	else
-		snprintf(cmd, sizeof(cmd), "%s disable", RVC_DNS_UTIL_PATH);
+		snprintf(cmd, sizeof(cmd), "%s disable", COC_DNS_UTIL_PATH);
 
 	/* run command */
 	ret = system(cmd);
 	if (ret != 0)
-		return RVD_RESP_ERR_DNS_UTIL;
+		return COD_RESP_ERR_DNS_UTIL;
 
-	return RVD_RESP_OK;
+	return COD_RESP_OK;
 }
 
 /*
  * print DNS setting on the system
  */
 
-int rvc_dns_print(void)
+int coc_dns_print(void)
 {
-	char cmd[RVD_MAX_PATH];
+	char cmd[COD_MAX_PATH];
 	int ret;
 
 	/* pre-checking for running enviroment of rvc */
@@ -1013,16 +1013,16 @@ int rvc_dns_print(void)
 
 	/* check utility path */
 	ret = check_dns_util_path();
-	if (ret != RVD_RESP_OK)
+	if (ret != COD_RESP_OK)
 		return ret;
 
 	/* build command */
-	snprintf(cmd, sizeof(cmd), "%s status", RVC_DNS_UTIL_PATH);
+	snprintf(cmd, sizeof(cmd), "%s status", COC_DNS_UTIL_PATH);
 
 	/* run command */
 	ret = system(cmd);
 	if (ret != 0)
-		return RVD_RESP_ERR_DNS_UTIL;
+		return COD_RESP_ERR_DNS_UTIL;
 
-	return RVD_RESP_OK;
+	return COD_RESP_OK;
 }

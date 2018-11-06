@@ -11,8 +11,8 @@ config_option "config_file" {
 		long = "set configuration file"
 	}
 
-	env = "RVD_CONFIG_FILE"
-	default = "@RVD_CONFIG_PATH@"
+	env = "CRYPTODED_CONFIG_FILE"
+	default = "@CRYPTODED_CONFIG_PATH@"
 }
 
 config_option "go_daemon" {
@@ -122,10 +122,10 @@ config_option "user_id" {
 
 	cmdline "description" {
 		short = "User ID"
-		long = "specify User ID for RVC process"
+		long = "specify User ID for cryptode process"
 	}
 
-	env = "RVC_USER_ID"
+	env = "CRYPTODE_USER_ID"
 	config = "global.user_id"
 }
 
@@ -154,13 +154,13 @@ config_option "log_directory" {
 
 	cmdline "description" {
 		short = "log directory path"
-		long = "specify the log directory of RVD process"
+		long = "specify the log directory of cryptoded process"
 	}
 
-	env = "RVD_LOG_DIR"
+	env = "CRYPTODED_LOG_DIR"
 	config = "global.log_directory"
 
-	default = "/var/log/rvd"
+	default = "/var/log/cod"
 }
 
 config_option "vpn_config_paths" {
@@ -177,5 +177,5 @@ config_option "vpn_config_paths" {
 
 	config = "global.vpn_config_paths"
 
-	default = "@RVC_CONFDIR_PATH@"
+	default = "@CRYPTODE_CONFDIR_PATH@"
 }

@@ -24,6 +24,7 @@ CHECKPATCH_FLAGS+=" --ignore SSCANF_TO_KSTRTO"
 CHECKPATCH_FLAGS+=" --ignore EXECUTE_PERMISSIONS"
 CHECKPATCH_FLAGS+=" --ignore MULTISTATEMENT_MACRO_USE_DO_WHILE"
 CHECKPATCH_FLAGS+=" --ignore STORAGE_CLASS"
+CHECKPATCH_FLAGS+=" --ignore SPDX_LICENSE_TAG"
 
 # checkpatch.pl will ignore the following paths
 CHECKPATCH_IGNORE+=" checkpatch.pl.patch Makefile test/Makefile test/http.redirect/hello.txt"

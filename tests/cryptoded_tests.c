@@ -42,20 +42,20 @@
 #include "../src/conf.h"
 
 #ifdef __APPLE__
-#define RVD_BIN_PATH                 "/opt/rvc/bin/rvd"
-#define RVC_BIN_PATH                 "/opt/rvc/bin/rvc"
+#define COD_BIN_PATH                 "/opt/cryptode/bin/cryptoded"
+#define COC_BIN_PATH                 "/opt/cryptode/bin/cryptode"
 #else
-#define RVD_BIN_PATH                 "/usr/sbin/rvd"
-#define RVC_BIN_PATH                 "/usr/bin/rvc"
+#define COD_BIN_PATH                 "/usr/sbin/cryptoded"
+#define COC_BIN_PATH                 "/usr/bin/cryptode"
 #endif
 
-#define RVD_CONF_VALID_PERMISSION     (S_IRUSR | S_IWUSR)
-#define RVD_CONF_WRONG_PERMISSION     (S_IRUSR | S_IWUSR | S_IROTH | S_IWOTH)
+#define COD_CONF_VALID_PERMISSION     (S_IRUSR | S_IWUSR)
+#define COD_CONF_WRONG_PERMISSION     (S_IRUSR | S_IWUSR | S_IROTH | S_IWOTH)
 
 #define OVPN_BIN_VALID_PERMISSION     (S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)
 #define OVPN_BIN_WRONG_PERMISSION     (S_IRUSR | S_IXUSR | S_IROTH | S_IWOTH)
 
-#define RVD_MAX_STOP_TIMEOUT          10
+#define COD_MAX_STOP_TIMEOUT          10
 
 /*
  * print usage
@@ -64,9 +64,9 @@
 static void
 usage(void)
 {
-	fprintf(stderr, "Usage: rvd_tests [options]\n"
+	fprintf(stderr, "Usage: cryptoded_tests [options]\n"
 					"options:\n"
-					"  --check-rvd-conf       Tests for checking rvd.conf permission\n"
+					"  --check-cryptoded-conf Tests for checking cryptoded.conf permission\n"
 					"  --check-ovpn-bin       Tests for checking OpenVPN binary permission\n"
 					"  --check-ovpn-profile   Tests for checking OpenVPN profile permission\n"
 					"  --check-missing-json   Tests for checking missing JSON configuration\n"
@@ -82,7 +82,7 @@ usage(void)
 }
 
 /*
- * set the permission for RVC configuration
+ * set the permission for cryptode configuration
  */
 
 static void
@@ -108,7 +108,7 @@ print_ovpn_log(const char *ovpn_profile_name)
 	char *buf;
 
 	/* allocate logging buffer */
-	snprintf(ovpn_log_path, sizeof(ovpn_log_path), "/var/log/rvd/%s.ovpn.log", ovpn_profile_name);
+	snprintf(ovpn_log_path, sizeof(ovpn_log_path), "/var/log/cod/%s.ovpn.log", ovpn_profile_name);
 	if (stat(ovpn_log_path, &st) != 0 || st.st_size == 0) {
 		fprintf(stderr, "Couldn't get stat of log file '%s'\n", ovpn_log_path);
 		return;
@@ -137,11 +137,11 @@ print_ovpn_log(const char *ovpn_profile_name)
 }
 
 /*
- * start RVD process
+ * start cryptoded process
  */
 
 static pid_t
-start_rvd(void)
+start_cryptoded(void)
 {
 	pid_t pid;
 
@@ -152,7 +152,7 @@ start_rvd(void)
 	}
 
 	if (pid == 0) {
-		char *const args[] = {RVD_BIN_PATH, NULL};
+		char *const args[] = {COD_BIN_PATH, NULL};
 
 		execv(args[0], args);
 		exit(1);
@@ -162,11 +162,11 @@ start_rvd(void)
 }
 
 /*
- * stop RVD process
+ * stop cryptoded process
  */
 
 static int
-stop_rvd(pid_t pid)
+stop_cryptoded(pid_t pid)
 {
 	int w, status;
 	int timeout = 0;
@@ -178,8 +178,8 @@ stop_rvd(pid_t pid)
 		if (w < 0)
 			return -1;
 		else if (w == 0) {
-			if (timeout == RVD_MAX_STOP_TIMEOUT) {
-				fprintf(stderr, "RVD process isn't responding for SIGTERM signal\n");
+			if (timeout == COD_MAX_STOP_TIMEOUT) {
+				fprintf(stderr, "cryptoded process isn't responding for SIGTERM signal\n");
 				kill(pid, SIGKILL);
 				exit(1);
 			}
@@ -209,7 +209,7 @@ install_ovpn_profile(const char *ovpn_profile_name, const char *dst_profile_name
 
 	/* install openvpn profile */
 	snprintf(cmd, sizeof(cmd), "install -m %s profile/%s.ovpn %s/%s.ovpn",
-			wrong_permission ? "0644" : "0600", ovpn_profile_name, RVC_CONFDIR_PATH, dst_profile_name);
+			wrong_permission ? "0644" : "0600", ovpn_profile_name, CRYPTODE_CONFDIR_PATH, dst_profile_name);
 	status = system(cmd);
 	if (status) {
 		fprintf(stderr, "Failed to run command '%s'(exit:%d)\n", cmd, status);
@@ -226,7 +226,7 @@ uninstall_ovpn_profile(const char *ovpn_profile_name)
 {
 	char path[256];
 
-	snprintf(path, sizeof(path), "%s/%s.ovpn", RVC_CONFDIR_PATH, ovpn_profile_name);
+	snprintf(path, sizeof(path), "%s/%s.ovpn", CRYPTODE_CONFDIR_PATH, ovpn_profile_name);
 	unlink(path);
 }
 
@@ -241,7 +241,7 @@ install_json_config(const char *json_config_name, const char *dst_config_name)
 	int status;
 
 	snprintf(cmd, sizeof(cmd), "install -m 0600 profile/%s.json %s/%s.json",
-			json_config_name, RVC_CONFDIR_PATH, dst_config_name);
+			json_config_name, CRYPTODE_CONFDIR_PATH, dst_config_name);
 	status = system(cmd);
 	if (status) {
 		fprintf(stderr, "Failed to run command '%s'(exit:%d)\n", cmd, status);
@@ -258,7 +258,7 @@ uninstall_json_config(const char *json_config_name)
 {
 	char path[256];
 
-	snprintf(path, sizeof(path), "%s/%s.json", RVC_CONFDIR_PATH, json_config_name);
+	snprintf(path, sizeof(path), "%s/%s.json", CRYPTODE_CONFDIR_PATH, json_config_name);
 	unlink(path);
 }
 
@@ -304,7 +304,7 @@ kill_ovpn(const char *ovpn_profile_name)
 	pid_t pid;
 
 	/* get pid of openvpn process */
-	snprintf(pid_fpath, sizeof(pid_fpath), "%s/%s.ovpn.pid", RVD_PID_DPATH, ovpn_profile_name);
+	snprintf(pid_fpath, sizeof(pid_fpath), "%s/%s.ovpn.pid", COD_PID_DPATH, ovpn_profile_name);
 	pid_fp = fopen(pid_fpath, "r");
 	if (!pid_fp) {
 		fprintf(stderr, "Couldn't open PID file of openvpn process '%s'\n", ovpn_profile_name);
@@ -332,7 +332,7 @@ kill_ovpn(const char *ovpn_profile_name)
  */
 
 static int
-run_rvc(char **args, char **json_resp)
+run_cryptode(char **args, char **json_resp)
 {
 	pid_t pid;
 	int w, status;
@@ -376,39 +376,39 @@ run_rvc(char **args, char **json_resp)
 }
 
 /*
- * check for rvd conf permission
+ * check for cryptoded conf permission
  */
 
 static void
-permission_check_rvd_conf(void)
+permission_check_cod_conf(void)
 {
-	pid_t rvd_pid;
+	pid_t cryptoded_pid;
 	int exit_code;
 
-	printf("\n\n################## Checking for permission of rvd configuration ######################\n\n");
+	printf("\n\n################## Checking for permission of cryptoded configuration ######################\n\n");
 
 	/* check for wrong persmission */
-	set_file_permission(RVD_CONFIG_PATH, RVD_CONF_WRONG_PERMISSION);
-	rvd_pid = start_rvd();
+	set_file_permission(CRYPTODED_CONFIG_PATH, COD_CONF_WRONG_PERMISSION);
+	cryptoded_pid = start_cryptoded();
 	sleep(3);
-	exit_code = stop_rvd(rvd_pid);
+	exit_code = stop_cryptoded(cryptoded_pid);
 	if (exit_code == 0) {
-		fprintf(stderr, "RVD is starting with the configuration with wrong permission.\n");
+		fprintf(stderr, "cryptoded is starting with the configuration with wrong permission.\n");
 		exit(1);
 	}
 
 	/* check for valid permission */
-	set_file_permission(RVD_CONFIG_PATH, RVD_CONF_VALID_PERMISSION);
-	rvd_pid = start_rvd();
+	set_file_permission(CRYPTODED_CONFIG_PATH, COD_CONF_VALID_PERMISSION);
+	cryptoded_pid = start_cryptoded();
 	sleep(3);
-	exit_code = stop_rvd(rvd_pid);
+	exit_code = stop_cryptoded(cryptoded_pid);
 	if (exit_code != 0) {
-		fprintf(stderr, "Failed test the case 'CHECK-RVD-JSON'"
-				"RVD isn't started with the configuration with valid persmission.\n");
+		fprintf(stderr, "Failed test the case 'CHECK-CRYPTODED-JSON'"
+				"cryptoded isn't started with the configuration with valid persmission.\n");
 		exit(1);
 	}
 
-	printf("Success to test the case 'CHECK-RVD-JSON'\n");
+	printf("Success to test the case 'CHECK-CRYPTODED-JSON'\n");
 }
 
 /*
@@ -418,20 +418,20 @@ permission_check_rvd_conf(void)
 static void
 permission_check_ovpn_bin(void)
 {
-	pid_t rvd_pid;
+	pid_t cryptoded_pid;
 	int exit_code;
 
-	char *args[] = {RVC_BIN_PATH, "connect", "test", "json", NULL};
+	char *args[] = {COC_BIN_PATH, "connect", "test", "json", NULL};
 
 	printf("\n\n################## Checking for permission of OpenVPN binary ######################\n\n");
 
 	/* install ovpn profile and set the permission for it */
 	install_ovpn_profile("test", "test", 0);
 	set_file_permission(OPENVPN_BINARY_PATH, OVPN_BIN_WRONG_PERMISSION);
-	rvd_pid = start_rvd();
+	cryptoded_pid = start_cryptoded();
 	sleep(3);
-	exit_code = run_rvc(args, NULL);
-	stop_rvd(rvd_pid);
+	exit_code = run_cryptode(args, NULL);
+	stop_cryptoded(cryptoded_pid);
 	set_file_permission(OPENVPN_BINARY_PATH, OVPN_BIN_VALID_PERMISSION);
 	uninstall_ovpn_profile("test");
 	if (exit_code == 0) {
@@ -450,19 +450,19 @@ permission_check_ovpn_bin(void)
 static void
 permission_check_ovpn_profile(void)
 {
-	pid_t rvd_pid;
+	pid_t cryptoded_pid;
 	int exit_code;
 
-	char *args[] = {RVC_BIN_PATH, "connect", "test", "json", NULL};
+	char *args[] = {COC_BIN_PATH, "connect", "test", "json", NULL};
 
 	printf("\n\n################## Checking for permission of OpenVPN configuration ######################\n\n");
 
 	/* install ovpn profile and set the permission for it */
 	install_ovpn_profile("test", "test", 1);
-	rvd_pid = start_rvd();
+	cryptoded_pid = start_cryptoded();
 	sleep(3);
-	exit_code = run_rvc(args, NULL);
-	stop_rvd(rvd_pid);
+	exit_code = run_cryptode(args, NULL);
+	stop_cryptoded(cryptoded_pid);
 	uninstall_ovpn_profile("test");
 	if (exit_code == 0) {
 		fprintf(stderr, "Failed to test the case 'CHECK-OVPN-PROFILE'."
@@ -472,10 +472,10 @@ permission_check_ovpn_profile(void)
 
 	/* install ovpn profile and set the permission for it */
 	install_ovpn_profile("test", "test", 0);
-	rvd_pid = start_rvd();
+	cryptoded_pid = start_cryptoded();
 	sleep(3);
-	exit_code = run_rvc(args, NULL);
-	stop_rvd(rvd_pid);
+	exit_code = run_cryptode(args, NULL);
+	stop_cryptoded(cryptoded_pid);
 	uninstall_ovpn_profile("test");
 	if (exit_code != 0) {
 		fprintf(stderr, "Failed to test the case 'CHECK-OVPN-PROFILE'."
@@ -493,22 +493,22 @@ permission_check_ovpn_profile(void)
 static void
 check_missing_json(void)
 {
-	pid_t rvd_pid;
+	pid_t cryptoded_pid;
 	int exit_code;
 	char *resp_buf = NULL;
 
 	json_object *j_obj, *j_sub_obj;
 	int config_status = -1;
 
-	char *args[] = {RVC_BIN_PATH, "connect", "test", "json", NULL};
+	char *args[] = {COC_BIN_PATH, "connect", "test", "json", NULL};
 
 	printf("\n\n################## Checking for missing JSON configuration ######################\n\n");
 
 	install_ovpn_profile("test", "test", 0);
-	rvd_pid = start_rvd();
+	cryptoded_pid = start_cryptoded();
 	sleep(3);
-	exit_code = run_rvc(args, &resp_buf);
-	stop_rvd(rvd_pid);
+	exit_code = run_cryptode(args, &resp_buf);
+	stop_cryptoded(cryptoded_pid);
 	uninstall_ovpn_profile("test");
 	if (exit_code != 0) {
 		fprintf(stderr, "Failed to test the case 'CHECK-JSON-CONFIG'."
@@ -555,18 +555,18 @@ check_missing_json(void)
 static void
 check_missing_ovpn(void)
 {
-	pid_t rvd_pid;
+	pid_t cryptoded_pid;
 	int exit_code;
 
-	char *args[] = {RVC_BIN_PATH, "connect", "test", "json", NULL};
+	char *args[] = {COC_BIN_PATH, "connect", "test", "json", NULL};
 
 	printf("\n\n################## Checking for missing OpenVPN configuration ######################\n\n");
 
 	uninstall_ovpn_profile("test");
-	rvd_pid = start_rvd();
+	cryptoded_pid = start_cryptoded();
 	sleep(3);
-	exit_code = run_rvc(args, NULL);
-	stop_rvd(rvd_pid);
+	exit_code = run_cryptode(args, NULL);
+	stop_cryptoded(cryptoded_pid);
 	if (exit_code == 0) {
 		fprintf(stderr, "Failed to test the case 'CHECK-MISSING-OVPN'"
 				"Connected by missing OpenVPN profile\n");
@@ -583,25 +583,25 @@ check_missing_ovpn(void)
 static void
 check_default_connect(void)
 {
-	pid_t rvd_pid;
+	pid_t cryptoded_pid;
 	char *resp_buf = NULL;
 
 	json_object *j_obj, *j_sub_obj, *j_state_obj;
 	char *conn_status = NULL;
 
-	char *args1[] = {RVC_BIN_PATH, "connect", "test", "json", NULL};
-	char *args2[] = {RVC_BIN_PATH, "status", "test", "json", NULL};
+	char *args1[] = {COC_BIN_PATH, "connect", "test", "json", NULL};
+	char *args2[] = {COC_BIN_PATH, "status", "test", "json", NULL};
 
 	printf("\n\n################## Checking for OpenVPN connection with default configuration ######################\n\n");
 
 	/* try to connect and get status */
 	install_ovpn_profile("test", "test", 0);
-	rvd_pid = start_rvd();
+	cryptoded_pid = start_cryptoded();
 	sleep(3);
-	run_rvc(args1, NULL);
+	run_cryptode(args1, NULL);
 	sleep(5);
-	run_rvc(args2, &resp_buf);
-	stop_rvd(rvd_pid);
+	run_cryptode(args2, &resp_buf);
+	stop_cryptoded(cryptoded_pid);
 	uninstall_ovpn_profile("test");
 
 	/* parse status buffer */
@@ -644,7 +644,7 @@ check_default_connect(void)
 static void
 check_preconn_cmd(void)
 {
-	pid_t rvd_pid;
+	pid_t cryptoded_pid;
 	char *resp_buf = NULL;
 
 	json_object *j_obj, *j_sub_obj, *j_state_obj;
@@ -652,8 +652,8 @@ check_preconn_cmd(void)
 	char *conn_status = NULL;
 	int pre_exec_status;
 
-	char *args1[] = {RVC_BIN_PATH, "connect", "test", "json", NULL};
-	char *args2[] = {RVC_BIN_PATH, "status", "test", "json", NULL};
+	char *args1[] = {COC_BIN_PATH, "connect", "test", "json", NULL};
+	char *args2[] = {COC_BIN_PATH, "status", "test", "json", NULL};
 
 	int i;
 
@@ -663,12 +663,12 @@ check_preconn_cmd(void)
 		/* try to connect and get status */
 		install_ovpn_profile("test", "test", 0);
 		install_json_config(i == 0 ? "pre-exec-failed" : "pre-exec-success", "test");
-		rvd_pid = start_rvd();
+		cryptoded_pid = start_cryptoded();
 		sleep(3);
-		run_rvc(args1, NULL);
+		run_cryptode(args1, NULL);
 		sleep(5);
-		run_rvc(args2, &resp_buf);
-		stop_rvd(rvd_pid);
+		run_cryptode(args2, &resp_buf);
+		stop_cryptoded(cryptoded_pid);
 		uninstall_json_config("test");
 		uninstall_ovpn_profile("test");
 
@@ -732,31 +732,31 @@ check_preconn_cmd(void)
 static void
 check_reload(void)
 {
-	pid_t rvd_pid;
+	pid_t cryptoded_pid;
 
-	char *args1[] = {RVC_BIN_PATH, "reload", NULL};
-	char *args2[] = {RVC_BIN_PATH, "status", "test1", "json", NULL};
+	char *args1[] = {COC_BIN_PATH, "reload", NULL};
+	char *args2[] = {COC_BIN_PATH, "status", "test1", "json", NULL};
 
 	int exit_code;
 
 	/* try to connect and get status */
 	install_ovpn_profile("test", "test", 0);
-	rvd_pid = start_rvd();
+	cryptoded_pid = start_cryptoded();
 	sleep(3);
 	install_ovpn_profile("test", "test1", 0);
-	run_rvc(args1, NULL);
+	run_cryptode(args1, NULL);
 	sleep(5);
-	exit_code = run_rvc(args2, NULL);
+	exit_code = run_cryptode(args2, NULL);
 	if (exit_code != 0) {
-		stop_rvd(rvd_pid);
+		stop_cryptoded(cryptoded_pid);
 		fprintf(stderr, "Failed to test the case 'CHECK-RELOAD'\n");
 		exit(1);
 	}
 	uninstall_ovpn_profile("test1");
-	run_rvc(args1, NULL);
+	run_cryptode(args1, NULL);
 	sleep(5);
-	exit_code = run_rvc(args2, NULL);
-	stop_rvd(rvd_pid);
+	exit_code = run_cryptode(args2, NULL);
+	stop_cryptoded(cryptoded_pid);
 	if (exit_code == 0) {
 		fprintf(stderr, "Failed to test the case 'CHECK-RELOAD'\n");
 		exit(1);
@@ -772,14 +772,14 @@ check_reload(void)
 static void
 check_kill_ovpn(void)
 {
-	pid_t rvd_pid;
+	pid_t cryptoded_pid;
 	char *resp_buf = NULL;
 
 	json_object *j_obj, *j_sub_obj, *j_state_obj;
 	char *conn_status = NULL;
 
-	char *args1[] = {RVC_BIN_PATH, "connect", "test", "json", NULL};
-	char *args2[] = {RVC_BIN_PATH, "status", "test", "json", NULL};
+	char *args1[] = {COC_BIN_PATH, "connect", "test", "json", NULL};
+	char *args2[] = {COC_BIN_PATH, "status", "test", "json", NULL};
 
 	int ret;
 
@@ -787,16 +787,16 @@ check_kill_ovpn(void)
 
 	/* try to connect and get status */
 	install_ovpn_profile("test", "test", 0);
-	rvd_pid = start_rvd();
+	cryptoded_pid = start_cryptoded();
 	sleep(3);
-	run_rvc(args1, NULL);
+	run_cryptode(args1, NULL);
 	sleep(5);
 	ret = kill_ovpn("test");
 	if (ret == 0) {
 		sleep(8);
-		run_rvc(args2, &resp_buf);
+		run_cryptode(args2, &resp_buf);
 	}
-	stop_rvd(rvd_pid);
+	stop_cryptoded(cryptoded_pid);
 	uninstall_ovpn_profile("test");
 
 	if (ret != 0) {
@@ -844,23 +844,23 @@ check_kill_ovpn(void)
 static void
 check_auto_connect(void)
 {
-	pid_t rvd_pid;
+	pid_t cryptoded_pid;
 	char *resp_buf = NULL;
 
 	json_object *j_obj, *j_sub_obj, *j_state_obj;
 	char *conn_status = NULL;
 
-	char *args[] = {RVC_BIN_PATH, "status", "test", "json", NULL};
+	char *args[] = {COC_BIN_PATH, "status", "test", "json", NULL};
 
 	printf("\n\n################## Checking for auto starting of VPN connection ######################\n\n");
 
 	/* try to connect and get status */
 	install_ovpn_profile("test", "test", 0);
 	install_json_config("auto-connect", "test");
-	rvd_pid = start_rvd();
+	cryptoded_pid = start_cryptoded();
 	sleep(10);
-	run_rvc(args, &resp_buf);
-	stop_rvd(rvd_pid);
+	run_cryptode(args, &resp_buf);
+	stop_cryptoded(cryptoded_pid);
 	uninstall_ovpn_profile("test");
 	uninstall_json_config("test");
 
@@ -904,20 +904,20 @@ check_auto_connect(void)
 static void
 check_dup_config(void)
 {
-	pid_t rvd_pid;
+	pid_t cryptoded_pid;
 	int exit_code;
 
-	char *args[] = {RVC_BIN_PATH, "import", "new-from-ovpn", "profile/test.ovpn", NULL};
+	char *args[] = {COC_BIN_PATH, "import", "new-from-ovpn", "profile/test.ovpn", NULL};
 
 	printf("\n\n################## Checking for duplicate configurations ######################\n\n");
 
 	/* try to connect and get status */
 	install_ovpn_profile("test", "test", 0);
 	install_json_config("test", "test");
-	rvd_pid = start_rvd();
+	cryptoded_pid = start_cryptoded();
 	sleep(3);
-	exit_code = run_rvc(args, NULL);
-	stop_rvd(rvd_pid);
+	exit_code = run_cryptode(args, NULL);
+	stop_cryptoded(cryptoded_pid);
 	uninstall_ovpn_profile("test");
 	uninstall_json_config("test");
 
@@ -942,7 +942,7 @@ main(int argc, char *argv[])
 	}
 
 	if (argc == 1) {
-		permission_check_rvd_conf();
+		permission_check_cod_conf();
 		permission_check_ovpn_bin();
 		permission_check_ovpn_profile();
 #if 0
@@ -956,8 +956,8 @@ main(int argc, char *argv[])
 		check_auto_connect();
 		check_dup_config();
 	} else {
-		if (strcmp(argv[1], "--check-rvd-json") == 0)
-			permission_check_rvd_conf();
+		if (strcmp(argv[1], "--check-cryptoded-json") == 0)
+			permission_check_cod_conf();
 		else if (strcmp(argv[1], "--check-ovpn-bin") == 0)
 			permission_check_ovpn_bin();
 		else if (strcmp(argv[1], "--check-ovpn-profile") == 0)

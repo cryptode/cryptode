@@ -2,32 +2,32 @@
 AM_CFLAGS = $(JSONC_INCLUDES) $(OPENSSL_INCLUDES) $(NEREON_INCLUDES) -Wall -Wextra
 
 if DARWIN
-bin_PROGRAMS = rvd rvc
+bin_PROGRAMS = cryptoded cryptode
 else
-bin_PROGRAMS = rvc
-sbin_PROGRAMS = rvd
+bin_PROGRAMS = cryptode
+sbin_PROGRAMS = cryptoded
 endif
 
-rvd_SOURCES = rvd.nos.c conf.nos.c rvd.c log.c cmd.c util.c vpn.c conf.c json.c
-rvd_CFLAGS = -D_RVD_SOURCE
-rvd_LDADD = $(RVD_LDADD)
-rvd_LDFLAGS = $(JSONC_LDFLAGS) $(NEREON_LDFLAGS)
+cryptoded_SOURCES = cryptoded.nos.c conf.nos.c cryptoded.c log.c cmd.c util.c vpn.c conf.c json.c
+cryptoded_CFLAGS = -D_CRYPTODED_SOURCE
+cryptoded_LDADD = $(CRYPTODED_LDADD)
+cryptoded_LDFLAGS = $(JSONC_LDFLAGS) $(NEREON_LDFLAGS)
 
-rvc_SOURCES = conf.nos.c rvc.nos.c rvc.c rvc_shared.c util.c conf.c json.c
-rvc_LDADD = $(RVC_LDADD)
-rvc_LDFLAGS = $(JSONC_LDFLAGS) $(OPENSSL_LDFLAGS) $(NEREON_LDFLAGS)
+cryptode_SOURCES = conf.nos.c cryptode.nos.c cryptode.c coc_shared.c util.c conf.c json.c
+cryptode_LDADD = $(CRYPTODE_LDADD)
+cryptode_LDFLAGS = $(JSONC_LDFLAGS) $(OPENSSL_LDFLAGS) $(NEREON_LDFLAGS)
 
-include_HEADERS = common.h rvd.h cmd.h log.h util.h vpn.h rvc_shared.h conf.h json.h
+include_HEADERS = common.h cryptoded.h cmd.h log.h util.h vpn.h coc_shared.h conf.h json.h
 
-rvc.nos.c: rvc.nos
-	$(NEREON_TO_CC) rvc.nos ./ rvc
+cryptode.nos.c: cryptode.nos
+	$(NEREON_TO_CC) cryptode.nos ./ cryptode
 
-rvd.nos.c: rvd.nos
-	$(NEREON_TO_CC) rvd.nos ./ rvd
+cryptoded.nos.c: cryptoded.nos
+	$(NEREON_TO_CC) cryptoded.nos ./ cryptoded
 
 conf.nos.c: conf.nos
 	$(NEREON_TO_CC) conf.nos ./ vpnconf
 
 clean-local:
-	rm -rf rvd.nos.c rvd.nos.h
+	rm -rf cryptoded.nos.c cryptoded.nos.h
 	rm -rf conf.nos.c conf.nos.h

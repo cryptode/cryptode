@@ -12,14 +12,14 @@ rpmdev-setuptree
 
 # make and move tar.gz
 make dist
-mv rvc*.tar.gz ~/rpmbuild/SOURCES/
+mv cryptode*.tar.gz ~/rpmbuild/SOURCES/
 
 # copy extra files
-cp platforms/epel/rvc.spec ~/rpmbuild/SPECS/
-cp platforms/epel/rvd.service ~/rpmbuild/SOURCES/
-cp etc/rvd.conf ~/rpmbuild/SOURCES/
+cp platforms/epel/cryptode.spec ~/rpmbuild/SPECS/
+cp platforms/epel/cryptoded.service ~/rpmbuild/SOURCES/
+cp etc/cryptoded.conf ~/rpmbuild/SOURCES/
 
 # build rpm
 cd ~/rpmbuild/
-rpmbuild -ba SPECS/rvc.spec
+rpmbuild -ba SPECS/cryptode.spec
 
