@@ -6,8 +6,8 @@ noinst_PROGRAMS =
 TESTS =
 
 if ENABLE_TESTS
-noinst_PROGRAMS += rvd_tests
-rvd_tests_LDADD = $(RVD_LDADD)
-rvd_tests_LDFLAGS = $(JSONC_LDFLAGS)
+noinst_PROGRAMS += cryptoded_tests
+cryptoded_tests_LDADD = $(CRYPTODED_LDADD)
+cryptoded_tests_LDFLAGS = $(JSONC_LDFLAGS)
 TESTS += $(dist_check_SCRIPTS)
 endif

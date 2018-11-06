@@ -1,5 +1,5 @@
 AC_PREREQ(2.60)
-AC_INIT([rvc], [1.2.3], [https://github.com/riboseinc/rvc/issues])
+AC_INIT([cryptode], [1.3.0], [https://cryptode.com])
 AM_INIT_AUTOMAKE([foreign subdir-objects -Wall])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 AC_CONFIG_MACRO_DIR([m4])
@@ -75,38 +75,38 @@ if test "x$isdarwin" = "xyes"; then
     LDFLAGS="$LDFLAGS -mmacosx-version-min=10.12"
 
     OPENVPN_BINARY_PATH=/opt/openvpn/sbin/openvpn
-    RVD_CONFIG_PATH=/opt/rvc/etc/rvd.conf
-    RVC_CONFDIR_PATH=/opt/rvc/etc/vpn.d
+    CRYPTODE_CONFDIR_PATH=/opt/cryptode/etc/vpn.d
+    CRYPTODED_CONFIG_PATH=/opt/cryptode/etc/cryptoded.conf
 
-    RVD_LDADD="$JSONC_LIBDIR/libjson-c.a $NEREON_LIBDIR/libnereon.a"
-    RVC_LDADD="$JSONC_LIBDIR/libjson-c.a $OPENSSL_LIBDIR/libcrypto.a $NEREON_LIBDIR/libnereon.a"
+    CRYPTODE_LDADD="$JSONC_LIBDIR/libjson-c.a $OPENSSL_LIBDIR/libcrypto.a $NEREON_LIBDIR/libnereon.a"
+    CRYPTODED_LDADD="$JSONC_LIBDIR/libjson-c.a $NEREON_LIBDIR/libnereon.a"
 else
     OPENVPN_BINARY_PATH=/usr/sbin/openvpn
-    RVD_CONFIG_PATH=/etc/rvc/rvd.conf
-    RVC_CONFDIR_PATH=/etc/rvc/vpn.d
+    CRYPTODE_CONFDIR_PATH=/etc/cryptode/vpn.d
+    CRYPTODED_CONFIG_PATH=/etc/cryptode/cryptoded.conf
 
-    RVD_LDADD="$JSONC_LIBS $NEREON_LIBS"
-    RVC_LDADD="$JSONC_LIBS $OPENSSL_LIBS $NEREON_LIBS"
+    CRYPTODE_LDADD="$JSONC_LIBS $OPENSSL_LIBS $NEREON_LIBS"
+    CRYPTODED_LDADD="$JSONC_LIBS $NEREON_LIBS"
 fi
 
-AC_DEFINE_UNQUOTED([RVC_USER_ID], ["$RVC_USER_ID"], [The User ID for RVC])
-AC_SUBST(RVC_USER_ID)
+AC_DEFINE_UNQUOTED([CRYPTODE_USER_ID], ["$CRYPTODE_USER_ID"], [The User ID for cryptode])
+AC_SUBST(CRYPTODE_USER_ID)
 
 AC_DEFINE_UNQUOTED([OPENVPN_BINARY_PATH], ["$OPENVPN_BINARY_PATH"], [The path to OpenVPN binary])
 AC_SUBST(OPENVPN_BINARY_PATH)
 
-AC_DEFINE_UNQUOTED([RVD_CONFIG_PATH], ["$RVD_CONFIG_PATH"], [The path to RVD configuration])
-AC_SUBST(RVD_CONFIG_PATH)
+AC_DEFINE_UNQUOTED([CRYPTODED_CONFIG_PATH], ["$CRYPTODED_CONFIG_PATH"], [The path to cryptoded configuration])
+AC_SUBST(CRYPTODED_CONFIG_PATH)
 
-AC_DEFINE_UNQUOTED([RVC_CONFDIR_PATH], ["$RVC_CONFDIR_PATH"], [The directory path to RVC configuration])
-AC_SUBST(RVC_CONFDIR_PATH)
+AC_DEFINE_UNQUOTED([CRYPTODE_CONFDIR_PATH], ["$CRYPTODE_CONFDIR_PATH"], [The directory path to cryptode configuration])
+AC_SUBST(CRYPTODE_CONFDIR_PATH)
 
-AC_SUBST(RVD_LDADD)
-AC_SUBST(RVC_LDADD)
+AC_SUBST(CRYPTODE_LDADD)
+AC_SUBST(CRYPTODED_LDADD)
 
 AC_ARG_ENABLE(
   [strict-path],
-  [AS_HELP_STRING([--enable-strict-path], [enable strict for the paths of rvd and rvc processes @<:@default=yes@:>@])],
+  [AS_HELP_STRING([--enable-strict-path], [enable strict for the paths of cryptoded and cryptode processes @<:@default=yes@:>@])],
   ,
   [enable_strict_path="yes"]
 )
@@ -152,10 +152,10 @@ AC_CONFIG_FILES([Makefile
                 platforms/macos/Makefile
                 platforms/epel/Makefile
                 src/Makefile
-                src/rvd.nos
+                src/cryptoded.nos
                 upload_release.sh
-                etc/rvd.conf
-                platforms/epel/rvc.spec
+                etc/cryptoded.conf
+                platforms/epel/cryptode.spec
                 tests/Makefile
                 ])
 

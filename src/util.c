@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, [Ribose Inc](https://www.ribose.com).
+ * Copyright (c) 2017, [Ribose Inc](https://www.cryptode.com).
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -340,8 +340,8 @@ int get_file_name_by_path(const char *file_path, char *file_name, size_t size)
 /* check whether the file is exist in the directory */
 int is_exist_file_in_dir(const char *dir_path, const char *file_path)
 {
-	char file_name[RVD_MAX_FILE_NAME];
-	char dst_path[RVD_MAX_PATH];
+	char file_name[COD_MAX_FILE_NAME];
+	char dst_path[COD_MAX_PATH];
 
 	struct stat st;
 
@@ -362,8 +362,8 @@ int is_exist_file_in_dir(const char *dir_path, const char *file_path)
 /* copy file into directory */
 int copy_file_into_dir(const char *dir_path, const char *file_path, mode_t mode)
 {
-	char file_name[RVD_MAX_FILE_NAME];
-	char dst_path[RVD_MAX_PATH];
+	char file_name[COD_MAX_FILE_NAME];
+	char dst_path[COD_MAX_PATH];
 
 	int src_fd = -1, dst_fd = -1;
 	int ret = 0;

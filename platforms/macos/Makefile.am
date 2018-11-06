@@ -1,6 +1,6 @@
 
-EXTRA_DIST = com.ribose.rvd.plist
-rvd_macos_datadir = $(prefix)/var/plist
-rvd_macos_data_DATA = com.ribose.rvd.plist
+EXTRA_DIST = com.ribose.cryptoded.plist
+cryptoded_macos_datadir = $(prefix)/var/plist
+cryptoded_macos_data_DATA = com.ribose.cryptoded.plist
 
-bin_SCRIPTS = rvc_install.sh rvc_uninstall.sh dns_util.sh
+bin_SCRIPTS = cryptode_install.sh cryptode_uninstall.sh dns_util.sh

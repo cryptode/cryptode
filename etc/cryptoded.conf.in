@@ -1,9 +1,9 @@
 
 global {
-	user_id = RVC_USER_ID
+	user_id = CRYPTODE_USER_ID
 	restrict_socket = true
-	log_directory = "/var/log/rvd"
-	vpn_config_paths = "@RVC_CONFDIR_PATH@"
+	log_directory = "/var/log/cryptoded"
+	vpn_config_paths = "@CRYPTODE_CONFDIR_PATH@"
 }
 
 openvpn {

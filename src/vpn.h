@@ -1,5 +1,30 @@
-#ifndef __RVD_VPN_H__
-#define __RVD_VPN_H__
+/*
+ * Copyright (c) 2017, [Ribose Inc](https://www.cryptode.com).
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+#ifndef __COD_VPN_H__
+#define __COD_VPN_H__
 
 #define OVPN_MGM_PORT_START                  6001
 
@@ -15,11 +40,11 @@
 #define OVPN_CONN_RETRY_TIMEOUT_MIN         "5"
 #define OVPN_CONN_RETRY_TIMEOUT_MAX         "30"
 
-#define RVD_OVPN_CONN_TIMEOUT               10
-#define RVD_OVPN_STOP_TIMEOUT               10
-#define RVD_PRE_EXEC_TIMEOUT                60
+#define COD_OVPN_CONN_TIMEOUT               10
+#define COD_OVPN_STOP_TIMEOUT               10
+#define COD_PRE_EXEC_TIMEOUT                60
 
-struct rvd_vpnconn_mgr;
+struct cod_vpnconn_mgr;
 
 /* OpenVPN proto version */
 enum OVPN_PROTO_VERSION {
@@ -43,18 +68,18 @@ enum OVPN_CONN_STATE {
 };
 
 /* vpn connection structure */
-struct rvc_vpn_conn {
+struct coc_vpn_conn {
 	bool end_flag;
 	bool conn_cancel;
 
-	struct rvc_vpn_config config;
+	struct coc_vpn_config config;
 
-	enum RVD_VPNCONN_STATE conn_state;
+	enum COD_VPNCONN_STATE conn_state;
 	enum OVPN_CONN_STATE ovpn_state;
 
 	time_t connected_tm;
 
-	char tun_ip[RVD_MAX_IPADDR_LEN + 1];
+	char tun_ip[COD_MAX_IPADDR_LEN + 1];
 
 	pid_t ovpn_pid;
 	bool enable_script_sec;
@@ -69,39 +94,39 @@ struct rvc_vpn_conn {
 	pthread_t pt_conn, pt_disconn, pt_reconn;
 	pthread_t pt_conn_mon;
 
-	struct rvd_vpnconn_mgr *vpnconn_mgr;
+	struct cod_vpnconn_mgr *vpnconn_mgr;
 
-	struct rvc_vpn_conn *next;
-	struct rvc_vpn_conn *prev;
+	struct coc_vpn_conn *next;
+	struct coc_vpn_conn *prev;
 };
 
-/* rvd VPN connection manager structure */
-typedef struct rvd_vpnconn_mgr {
+/* cryptoded VPN connection manager structure */
+typedef struct cod_vpnconn_mgr {
 	bool init_flag;
 	bool end_flag;
 
 	int vpn_conns_count;
-	struct rvc_vpn_conn *vpn_conns;
+	struct coc_vpn_conn *vpn_conns;
 
 	pthread_t pt_read_conf;
 	pthread_mutex_t conn_mt;
 
-	struct rvd_ctx *c;
-} rvd_vpnconn_mgr_t;
+	struct cod_ctx *c;
+} cod_vpnconn_mgr_t;
 
-/* rvd VPN connection manager functions */
-int rvd_vpnconn_mgr_init(struct rvd_ctx *c);
-void rvd_vpnconn_mgr_finalize(rvd_vpnconn_mgr_t *vpnconn_mgr);
+/* cryptoded VPN connection manager functions */
+int cod_vpnconn_mgr_init(struct cod_ctx *c);
+void cod_vpnconn_mgr_finalize(cod_vpnconn_mgr_t *vpnconn_mgr);
 
-int rvd_vpnconn_connect(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name);
-void rvd_vpnconn_disconnect(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name);
+int cod_vpnconn_connect(cod_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name);
+void cod_vpnconn_disconnect(cod_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name);
 
-void rvd_vpnconn_reconnect(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name);
+void cod_vpnconn_reconnect(cod_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name);
 
-void rvd_vpnconn_getstatus(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name, bool json_format, char **state_jstr);
+void cod_vpnconn_getstatus(cod_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name, bool json_format, char **state_jstr);
 
-struct rvc_vpn_conn *rvd_vpnconn_get_byname(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name);
+struct coc_vpn_conn *cod_vpnconn_get_byname(cod_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name);
 
-void rvd_vpnconn_enable_script_sec(rvd_vpnconn_mgr_t *vpnconn_mgr, bool enable_script_security);
+void cod_vpnconn_enable_script_sec(cod_vpnconn_mgr_t *vpnconn_mgr, bool enable_script_security);
 
-#endif /* __RVD_VPN_H__ */
+#endif /* __COD_VPN_H__ */

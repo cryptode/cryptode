@@ -32,7 +32,7 @@ fi
 echo "running './autogen.sh':"
 ./autogen.sh
 
-if [ -z "$RVC_BUILD_PKG" ]; then
+if [ -z "$CRYPTODE_BUILD_PKG" ]; then
 	./configure --with-openssl="${OPENSSL_DIR}"
 else
 	./configure --prefix="$PKGBUILD_DIR" --sysconfdir='${prefix}/etc' --with-openssl="$OPENSSL_DIR"

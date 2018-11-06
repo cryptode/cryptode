@@ -4,23 +4,23 @@ set -eu
 
 OS_TYPE=`uname`
 if [ "$OS_TYPE" = "Darwin" ]; then
-	RVC_INST_DIR="/opt/rvc/bin"
-	RVD_INST_DIR="/opt/rvc/bin"
+	CRYPTODE_INST_DIR="/opt/cryptode/bin"
+	CRYPTODED_INST_DIR="/opt/cryptode/bin"
 	OPENVPN_INSTALL_PATH="/usr/local/sbin/openvpn"
 	INST_GRP_NAME="wheel"
-	RVD_CONF_FILE="profile/rvd_osx_default.conf"
-	RVC_CONF_DIR="/opt/rvc/etc"
-	RVC_OVPN_DIR="/opt/openvpn/sbin"
+	CRYPTODED_CONF_FILE="profile/cryptoded_osx_default.conf"
+	CRYPTODE_CONF_DIR="/opt/cryptode/etc"
+	CRYPTODE_OVPN_DIR="/opt/openvpn/sbin"
 
-	sudo install -d -g "${INST_GRP_NAME}" -m 755 -o root "${RVC_INST_DIR}/bin" "${RVC_OVPN_DIR}/sbin"
-	sudo install -m 500 -g "${INST_GRP_NAME}" -o root "${OPENVPN_INSTALL_PATH}" "${RVC_OVPN_DIR}/"
+	sudo install -d -g "${INST_GRP_NAME}" -m 755 -o root "${CRYPTODE_INST_DIR}/bin" "${CRYPTODE_OVPN_DIR}/sbin"
+	sudo install -m 500 -g "${INST_GRP_NAME}" -o root "${OPENVPN_INSTALL_PATH}" "${CRYPTODE_OVPN_DIR}/"
 else
-	RVC_INST_DIR="/usr/bin"
-	RVD_INST_DIR="/usr/sbin"
+	CRYPTODE_INST_DIR="/usr/bin"
+	CRYPTODED_INST_DIR="/usr/sbin"
 	OPENVPN_INSTALL_PATH="/usr/sbin/openvpn"
 	INST_GRP_NAME="root"
-	RVD_CONF_FILE="profile/rvd_linux_default.conf"
-	RVC_CONF_DIR="/etc/rvc"
+	CRYPTODED_CONF_FILE="profile/cryptoded_linux_default.conf"
+	CRYPTODE_CONF_DIR="/etc/cryptode"
 fi
 
 # run openvpn server
@@ -31,20 +31,20 @@ function run_openvpn_server() {
 	[ "$?" -eq 0 ] || echo $?
 }
 
-# install rvc
-function install_rvd() {
-	echo "Installing rvc components..."
+# install cryptode
+function install_cryptoded() {
+	echo "Installing cryptode components..."
 
-	sudo install -d -g "${INST_GRP_NAME}" -m 755 -o root "${RVC_CONF_DIR}/vpn.d"
-	sudo install -m 600 -g "${INST_GRP_NAME}" -o root "etc/rvd.conf" "${RVC_CONF_DIR}/"
-	sudo install -m 500 -g "${INST_GRP_NAME}" -o root "src/rvc" "${RVC_INST_DIR}/"
-	sudo install -m 555 -g "${INST_GRP_NAME}" -o root "src/rvd" "${RVD_INST_DIR}/"
-	sudo install -m 600 -g "${INST_GRP_NAME}" -o root "etc/rvd.conf" "${RVC_CONF_DIR}/"
-	sudo install -m 600 -g "${INST_GRP_NAME}" -o root "ci/${RVD_CONF_FILE}" "${RVC_CONF_DIR}/rvd.conf"
+	sudo install -d -g "${INST_GRP_NAME}" -m 755 -o root "${CRYPTODE_CONF_DIR}/vpn.d"
+	sudo install -m 600 -g "${INST_GRP_NAME}" -o root "etc/cryptoded.conf" "${CRYPTODE_CONF_DIR}/"
+	sudo install -m 500 -g "${INST_GRP_NAME}" -o root "src/cryptode" "${CRYPTODE_INST_DIR}/"
+	sudo install -m 555 -g "${INST_GRP_NAME}" -o root "src/cryptoded" "${CRYPTODED_INST_DIR}/"
+	sudo install -m 600 -g "${INST_GRP_NAME}" -o root "etc/cryptoded.conf" "${CRYPTODE_CONF_DIR}/"
+	sudo install -m 600 -g "${INST_GRP_NAME}" -o root "ci/${CRYPTODED_CONF_FILE}" "${CRYPTODE_CONF_DIR}/cryptoded.conf"
 }
 
 run_openvpn_server
-install_rvd
+install_cryptoded
 make check
 
 exit 0

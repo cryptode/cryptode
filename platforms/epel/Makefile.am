@@ -1,3 +1,3 @@
 
-EXTRA_DIST = rvc.spec \
-             rvd.service
+EXTRA_DIST = cryptode.spec \
+             cryptoded.service

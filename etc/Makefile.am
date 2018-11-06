@@ -1,3 +1,3 @@
 
-EXTRA_DIST = rvd.conf
-sysconf_DATA = rvd.conf
+EXTRA_DIST = cryptoded.conf
+sysconf_DATA = cryptoded.conf

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, [Ribose Inc](https://www.ribose.com).
+ * Copyright (c) 2017, [Ribose Inc](https://www.cryptode.com).
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -45,7 +45,7 @@
 #include "log.h"
 
 static FILE *g_log_fp = NULL;
-static char g_log_path[RVD_MAX_PATH];
+static char g_log_path[COD_MAX_PATH];
 static size_t g_log_fsize;
 static pthread_mutex_t g_log_mt = PTHREAD_MUTEX_INITIALIZER;
 
@@ -56,7 +56,7 @@ static pthread_mutex_t g_log_mt = PTHREAD_MUTEX_INITIALIZER;
 static int open_log_file(int backup)
 {
 	int fd;
-	char backup_log_path[RVD_MAX_PATH];
+	char backup_log_path[COD_MAX_PATH];
 
 	struct stat st;
 
@@ -113,7 +113,7 @@ static int open_log_file(int backup)
  * initialize rvd logging
  */
 
-int rvd_log_init(const char *log_dir_path)
+int cod_log_init(const char *log_dir_path)
 {
 	/* create log directory */
 	if (create_dir(log_dir_path, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH) != 0)
@@ -139,7 +139,7 @@ int rvd_log_init(const char *log_dir_path)
  * finalize rvd logging
  */
 
-void rvd_log_finalize()
+void cod_log_finalize(void)
 {
 	/* close syslog */
 	closelog();
@@ -162,7 +162,7 @@ static const char *log_type_str[] = {
 	"INFO", "ERR", "WARN"
 };
 
-void rvd_debug_log(enum LOG_TYPE log_type, const char *file_name, int file_line, const char *format, ...)
+void cod_debug_log(enum LOG_TYPE log_type, const char *file_name, int file_line, const char *format, ...)
 {
 	va_list va_args;
 

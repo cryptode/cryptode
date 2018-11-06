@@ -19,22 +19,18 @@ stamp-h1
 ar-lib
 test-driver
 autom4te.cache/
-rvc
 Makefile.in
 aclocal.m4
 config.h.in*
 m4/*.m4
 src/.deps
-src/rvcd.dSYM
 *tar.gz
-platforms/macos/rvc.dist
-rvc.pkg
-src/rvd
-etc/rvd.json
-etc/rvd.conf
-rvc.spec
-tests/rvd_tests
+src/cryptoded
+etc/cryptoded.json
+etc/cryptoded.conf
+cryptode.spec
 tests/.deps
+tests/cryptoded_tests
 tmp
 
 # Intellij IdeaC
@@ -43,15 +39,15 @@ CMakeLists.txt
 cmake-build-debug/
 upload_release.sh
 
-rvd.nos.c
-rvd.nos.h
-
 tests/test-suite.log
 
 tests/runtests.sh.log
 tests/runtests.sh.trs
-src/rvd.nos
+src/cryptoded.nos
 src/conf.nos.c
 src/conf.nos.h
-src/rvc.nos.c
-src/rvc.nos.h
+src/cryptode.nos.c
+src/cryptode.nos.h
+src/cryptode
+src/cryptoded.nos.c
+src/cryptoded.nos.h

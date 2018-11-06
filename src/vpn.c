@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, [Ribose Inc](https://www.ribose.com).
+ * Copyright (c) 2017, [Ribose Inc](https://www.cryptode.com).
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -44,31 +44,31 @@
 
 #include <json-c/json.h>
 
-#include "rvd.h"
+#include "cryptoded.h"
 
 #define CLOSE_PIPE(p)            { close(p[0]); close(p[1]); }
 
 /*
- * rvd connection state strings
+ * cryptoded connection state strings
  */
 
-struct rvd_vpn_state {
-	enum RVD_VPNCONN_STATE state;
+struct cod_vpn_state {
+	enum COD_VPNCONN_STATE state;
 	char *state_str;
-} g_rvd_state[] = {
-	{RVD_CONN_STATE_DISCONNECTED, "DISCONNECTED"},
-	{RVD_CONN_STATE_CONNECTED, "CONNECTED"},
-	{RVD_CONN_STATE_CONNECTING, "CONNECTING"},
-	{RVD_CONN_STATE_DISCONNECTING, "DISCONNECTING"},
-	{RVD_CONN_STATE_RECONNECTING, "RECONNECTING"},
-	{RVD_CONN_STATE_UNKNOWN, NULL}
+} g_cod_state[] = {
+	{COD_CONN_STATE_DISCONNECTED, "DISCONNECTED"},
+	{COD_CONN_STATE_CONNECTED, "CONNECTED"},
+	{COD_CONN_STATE_CONNECTING, "CONNECTING"},
+	{COD_CONN_STATE_DISCONNECTING, "DISCONNECTING"},
+	{COD_CONN_STATE_RECONNECTING, "RECONNECTING"},
+	{COD_CONN_STATE_UNKNOWN, NULL}
 };
 
 /*
  * openvpn connection state strings
  */
 
-struct rvd_ovpn_state {
+struct cod_ovpn_state {
 	enum OVPN_CONN_STATE ovpn_state;
 	char *ovpn_state_str;
 } g_ovpn_state[] = {
@@ -89,12 +89,12 @@ struct rvd_ovpn_state {
  * add configuration item
  */
 
-static void add_vpn_conn(rvd_vpnconn_mgr_t *vpnconn_mgr, struct rvc_vpn_config *config)
+static void add_vpn_conn(cod_vpnconn_mgr_t *vpnconn_mgr, struct coc_vpn_config *config)
 {
-	struct rvc_vpn_conn *vpn_conn;
+	struct coc_vpn_conn *vpn_conn;
 
 	/* allocate memory for vpn connection info */
-	vpn_conn = (struct rvc_vpn_conn *) malloc(sizeof(struct rvc_vpn_conn));
+	vpn_conn = (struct coc_vpn_conn *) malloc(sizeof(struct coc_vpn_conn));
 	if (!vpn_conn)
 		return;
 
@@ -105,7 +105,7 @@ static void add_vpn_conn(rvd_vpnconn_mgr_t *vpnconn_mgr, struct rvc_vpn_config *
 	if (vpnconn_mgr->vpn_conns_count == 0)
 		vpnconn_mgr->vpn_conns = vpn_conn;
 	else {
-		struct rvc_vpn_conn *p = vpnconn_mgr->vpn_conns;
+		struct coc_vpn_conn *p = vpnconn_mgr->vpn_conns;
 
 		while (p->next)
 			p = p->next;
@@ -115,12 +115,12 @@ static void add_vpn_conn(rvd_vpnconn_mgr_t *vpnconn_mgr, struct rvc_vpn_config *
 	}
 
 	/* initialize vpn connection info */
-	memset(vpn_conn, 0, sizeof(struct rvc_vpn_conn));
+	memset(vpn_conn, 0, sizeof(struct coc_vpn_conn));
 
 	/* set configuration item infos */
-	memcpy(&vpn_conn->config, config, sizeof(struct rvc_vpn_config));
+	memcpy(&vpn_conn->config, config, sizeof(struct coc_vpn_config));
 
-	RVD_DEBUG_MSG("VPN: Added VPN configuration with name '%s', openvpn path '%s'", config->name, config->ovpn_profile_path);
+	COD_DEBUG_MSG("VPN: Added VPN configuration with name '%s', openvpn path '%s'", config->name, config->ovpn_profile_path);
 
 	/* set vpnconn_mgr pointer */
 	vpn_conn->vpnconn_mgr = vpnconn_mgr;
@@ -136,7 +136,7 @@ static void add_vpn_conn(rvd_vpnconn_mgr_t *vpnconn_mgr, struct rvc_vpn_config *
  * free VPN connection
  */
 
-static void free_vpn_conns(struct rvc_vpn_conn *vpn_conns)
+static void free_vpn_conns(struct coc_vpn_conn *vpn_conns)
 {
 	if (!vpn_conns)
 		return;
@@ -153,9 +153,9 @@ static void free_vpn_conns(struct rvc_vpn_conn *vpn_conns)
  * get VPN connection by name
  */
 
-static struct rvc_vpn_conn *get_vpnconn_byname(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name)
+static struct coc_vpn_conn *get_vpnconn_byname(cod_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name)
 {
-	struct rvc_vpn_conn *vpn_conn = vpnconn_mgr->vpn_conns;
+	struct coc_vpn_conn *vpn_conn = vpnconn_mgr->vpn_conns;
 
 	pthread_mutex_lock(&vpnconn_mgr->conn_mt);
 
@@ -175,21 +175,21 @@ static struct rvc_vpn_conn *get_vpnconn_byname(rvd_vpnconn_mgr_t *vpnconn_mgr, c
  * send command to openvpn management socket
  */
 
-static int send_cmd_to_ovpn_mgm(struct rvc_vpn_conn *vpn_conn, const char *cmd)
+static int send_cmd_to_ovpn_mgm(struct coc_vpn_conn *vpn_conn, const char *cmd)
 {
 	char resp[512];
 
 	if (send(vpn_conn->ovpn_mgm_sock, cmd, strlen(cmd), 0) <= 0) {
-		RVD_DEBUG_ERR("VPN: Couldn't send '%s' command to OpenVPN management socket(err:%d)", cmd, errno);
+		COD_DEBUG_ERR("VPN: Couldn't send '%s' command to OpenVPN management socket(err:%d)", cmd, errno);
 		return -1;
 	}
 
 	memset(resp, 0, sizeof(resp));
 	if (recv(vpn_conn->ovpn_mgm_sock, resp, sizeof(resp), 0) <= 0) {
-		RVD_DEBUG_ERR("VPN: Couldn't receive response for '%s' command from OpenVPN management socket(err:%d)", cmd, errno);
+		COD_DEBUG_ERR("VPN: Couldn't receive response for '%s' command from OpenVPN management socket(err:%d)", cmd, errno);
 		return -1;
 	}
-	RVD_DEBUG_MSG("VPN: The response is '%s' for cmd '%s'", resp, cmd);
+	COD_DEBUG_MSG("VPN: The response is '%s' for cmd '%s'", resp, cmd);
 
 	return 0;
 }
@@ -198,7 +198,7 @@ static int send_cmd_to_ovpn_mgm(struct rvc_vpn_conn *vpn_conn, const char *cmd)
  * close openvpn management socket
  */
 
-static void close_ovpn_mgm_sock(struct rvc_vpn_conn *vpn_conn)
+static void close_ovpn_mgm_sock(struct coc_vpn_conn *vpn_conn)
 {
 	/* close socket */
 	close(vpn_conn->ovpn_mgm_sock);
@@ -209,14 +209,14 @@ static void close_ovpn_mgm_sock(struct rvc_vpn_conn *vpn_conn)
  * connect to openvpn management socket
  */
 
-static int connect_to_ovpn_mgm(struct rvc_vpn_conn *vpn_conn)
+static int connect_to_ovpn_mgm(struct coc_vpn_conn *vpn_conn)
 {
 	int sock;
 	struct sockaddr_in mgm_addr;
 
 	char resp[512];
 
-	RVD_DEBUG_MSG("VPN: Creating OpenVPN management socket for connection '%s'", vpn_conn->config.name);
+	COD_DEBUG_MSG("VPN: Creating OpenVPN management socket for connection '%s'", vpn_conn->config.name);
 
 	/* create socket */
 	sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -231,7 +231,7 @@ static int connect_to_ovpn_mgm(struct rvc_vpn_conn *vpn_conn)
 
 	/* connet to openvpn management console */
 	if (connect(sock, (const struct sockaddr *) &mgm_addr, sizeof(struct sockaddr_in)) != 0) {
-		RVD_DEBUG_ERR("VPN: Couldn't connect to OpenVPN management console '127.0.0.1:%d'(err:%d)", vpn_conn->ovpn_mgm_port, errno);
+		COD_DEBUG_ERR("VPN: Couldn't connect to OpenVPN management console '127.0.0.1:%d'(err:%d)", vpn_conn->ovpn_mgm_port, errno);
 		close(sock);
 
 		return -1;
@@ -239,7 +239,7 @@ static int connect_to_ovpn_mgm(struct rvc_vpn_conn *vpn_conn)
 
 	/* get first response from management socket */
 	if (recv(sock, resp, sizeof(resp), 0) <= 0) {
-		RVD_DEBUG_ERR("VPN: Couldn't get first response from OpenVPN management socket for connection '%s'(err:%d)",
+		COD_DEBUG_ERR("VPN: Couldn't get first response from OpenVPN management socket for connection '%s'(err:%d)",
 			vpn_conn->config.name, errno);
 		close(sock);
 
@@ -263,14 +263,14 @@ static int connect_to_ovpn_mgm(struct rvc_vpn_conn *vpn_conn)
  * send SIGTERM signal to openvpn process via management socket
  */
 
-static int send_sigterm_to_ovpn(struct rvc_vpn_conn *vpn_conn)
+static int send_sigterm_to_ovpn(struct coc_vpn_conn *vpn_conn)
 {
 	int ret = 0;
 
 	if (vpn_conn->ovpn_mgm_sock <= 0)
 		return -1;
 
-	RVD_DEBUG_MSG("VPN: Sending SIGTERM signal to OpenVPN process with connection name '%s'", vpn_conn->config.name);
+	COD_DEBUG_MSG("VPN: Sending SIGTERM signal to OpenVPN process with connection name '%s'", vpn_conn->config.name);
 
 	/* send SIGTERM command to openvpn */
 	ret = send_cmd_to_ovpn_mgm(vpn_conn, OVPN_MGM_CMD_SIGTERM);
@@ -287,16 +287,16 @@ static int send_sigterm_to_ovpn(struct rvc_vpn_conn *vpn_conn)
 
 static void *stop_vpn_conn(void *p)
 {
-	struct rvc_vpn_conn *vpn_conn = (struct rvc_vpn_conn *) p;
+	struct coc_vpn_conn *vpn_conn = (struct coc_vpn_conn *) p;
 
-	RVD_DEBUG_MSG("VPN: Stopping VPN connection with name '%s'", vpn_conn->config.name);
+	COD_DEBUG_MSG("VPN: Stopping VPN connection with name '%s'", vpn_conn->config.name);
 
 	/* if vpn connection thread is already run, then wait until it was finished */
 	pthread_join(vpn_conn->pt_conn, NULL);
 
 	/* check openvpn process ID */
 	if (vpn_conn->ovpn_pid <= 0) {
-		RVD_DEBUG_MSG("VPN: OpenVPN process isn't running with name '%s'", vpn_conn->config.name);
+		COD_DEBUG_MSG("VPN: OpenVPN process isn't running with name '%s'", vpn_conn->config.name);
 	} else {
 		bool force_kill_ovpn = false;
 
@@ -311,7 +311,7 @@ static void *stop_vpn_conn(void *p)
 					break;
 				else if (w == 0) {
 					/* check timeout */
-					if (timeout == RVD_OVPN_STOP_TIMEOUT) {
+					if (timeout == COD_OVPN_STOP_TIMEOUT) {
 						force_kill_ovpn = true;
 						break;
 					}
@@ -328,20 +328,20 @@ static void *stop_vpn_conn(void *p)
 
 		/* if openvpn process isn't response, then try killing it force */
 		if (force_kill_ovpn) {
-			RVD_DEBUG_ERR("VPN: OpenVPN process for connection '%s' isn't responding. Try killing it in force...",
+			COD_DEBUG_ERR("VPN: OpenVPN process for connection '%s' isn't responding. Try killing it in force...",
 				vpn_conn->config.name);
 
 			kill(vpn_conn->ovpn_pid, SIGTERM);
 		}
 	}
 
-	RVD_DEBUG_MSG("VPN: Stopping VPN connection with name '%s' has succeeded", vpn_conn->config.name);
+	COD_DEBUG_MSG("VPN: Stopping VPN connection with name '%s' has succeeded", vpn_conn->config.name);
 
 	/* init openvpn process ID */
 	vpn_conn->ovpn_pid = -1;
 
 	/* set connection state */
-	vpn_conn->conn_state = RVD_CONN_STATE_DISCONNECTED;
+	vpn_conn->conn_state = COD_CONN_STATE_DISCONNECTED;
 	vpn_conn->ovpn_state = OVPN_STATE_DISCONNECTED;
 
 	vpn_conn->tun_ip[0] = '\0';
@@ -359,19 +359,19 @@ static int check_ovpn_binary(const char *ovpn_bin_path, bool root_check)
 
 	/* get stat of openvpn binary file */
 	if (stat(ovpn_bin_path, &st) != 0 || !S_ISREG(st.st_mode)) {
-		RVD_DEBUG_ERR("VPN: Wrong path of OpenVPN binary '%s'", ovpn_bin_path);
+		COD_DEBUG_ERR("VPN: Wrong path of OpenVPN binary '%s'", ovpn_bin_path);
 		return -1;
 	}
 
 	/* check executable status */
 	if (!is_valid_permission(ovpn_bin_path, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)) {
-		RVD_DEBUG_ERR("VPN: Wrong permission of OpenVPN binary '%s'", ovpn_bin_path);
+		COD_DEBUG_ERR("VPN: Wrong permission of OpenVPN binary '%s'", ovpn_bin_path);
 		return -1;
 	}
 
 	/* check root status */
 	if (root_check && !is_owned_by_user(ovpn_bin_path, "root")) {
-		RVD_DEBUG_ERR("VPN: Wrong owner of OpenVPN binary '%s'", ovpn_bin_path);
+		COD_DEBUG_ERR("VPN: Wrong owner of OpenVPN binary '%s'", ovpn_bin_path);
 		return -1;
 	}
 
@@ -400,7 +400,7 @@ static void log_pre_exec_output(int fd, const char *log_path, const char *cmd, i
 
 		cmd_out = realloc(cmd_out, total_size);
 		if (!cmd_out) {
-			RVD_DEBUG_ERR("VPN: Out of memory");
+			COD_DEBUG_ERR("VPN: Out of memory");
 			return;
 		}
 
@@ -411,7 +411,7 @@ static void log_pre_exec_output(int fd, const char *log_path, const char *cmd, i
 	/* open log file for append mode and write pre-exec command output */
 	log_fd = open(log_path, O_CREAT | O_WRONLY | O_APPEND, S_IRUSR | S_IWUSR);
 	if (log_fd < 0) {
-		RVD_DEBUG_ERR("VPN: Couldn't open openvpn log file '%s'", log_path);
+		COD_DEBUG_ERR("VPN: Couldn't open openvpn log file '%s'", log_path);
 
 		if (cmd_out)
 			free(cmd_out);
@@ -421,7 +421,7 @@ static void log_pre_exec_output(int fd, const char *log_path, const char *cmd, i
 
 	log_fp = fdopen(log_fd, "a");
 	if (!log_fp) {
-		RVD_DEBUG_ERR("VPN: Couldn't open openvpn log file '%s'", log_path);
+		COD_DEBUG_ERR("VPN: Couldn't open openvpn log file '%s'", log_path);
 
 		close(log_fd);
 
@@ -444,7 +444,7 @@ static void log_pre_exec_output(int fd, const char *log_path, const char *cmd, i
  * run pre-connect command
  */
 
-static int run_preconn_cmd(struct rvc_vpn_conn *vpn_conn)
+static int run_preconn_cmd(struct coc_vpn_conn *vpn_conn)
 {
 	pid_t pre_cmd_pid;
 	int pipeout[2], pipeerr[2];
@@ -460,7 +460,7 @@ static int run_preconn_cmd(struct rvc_vpn_conn *vpn_conn)
 	if (strlen(vpn_conn->config.pre_exec_cmd) == 0)
 		return 0;
 
-	RVD_DEBUG_MSG("VPN: Running pre-connect command '%s' with uid '%d'",
+	COD_DEBUG_MSG("VPN: Running pre-connect command '%s' with uid '%d'",
 			vpn_conn->config.pre_exec_cmd, vpn_conn->config.pre_exec_uid);
 
 	/* init exit status and timestamp */
@@ -469,12 +469,12 @@ static int run_preconn_cmd(struct rvc_vpn_conn *vpn_conn)
 
 	/* open pipe to get output of pre-exec-cmd */
 	if (pipe(pipeout) != 0) {
-		RVD_DEBUG_ERR("VPN: Couldn't create pipe to get stdout of pre-exec-cmd");
+		COD_DEBUG_ERR("VPN: Couldn't create pipe to get stdout of pre-exec-cmd");
 		return -1;
 	}
 
 	if (pipe(pipeerr) != 0) {
-		RVD_DEBUG_ERR("VPN: Couldn't create pipe to get stderr of pre-exec-cmd");
+		COD_DEBUG_ERR("VPN: Couldn't create pipe to get stderr of pre-exec-cmd");
 
 		CLOSE_PIPE(pipeout);
 		return -1;
@@ -483,7 +483,7 @@ static int run_preconn_cmd(struct rvc_vpn_conn *vpn_conn)
 	/* separate commad to args */
 	cmd = strdup(vpn_conn->config.pre_exec_cmd);
 	if (!cmd) {
-		RVD_DEBUG_ERR("VPN: Out of memory(strdup)");
+		COD_DEBUG_ERR("VPN: Out of memory(strdup)");
 
 		CLOSE_PIPE(pipeout);
 		CLOSE_PIPE(pipeerr);
@@ -494,7 +494,7 @@ static int run_preconn_cmd(struct rvc_vpn_conn *vpn_conn)
 	while (tok) {
 		args = realloc(args, (++tok_count + 1) * sizeof(char *));
 		if (!args) {
-			RVD_DEBUG_ERR("VPN: Out of memory(strdup)");
+			COD_DEBUG_ERR("VPN: Out of memory(strdup)");
 
 			CLOSE_PIPE(pipeout);
 			CLOSE_PIPE(pipeerr);
@@ -540,7 +540,7 @@ static int run_preconn_cmd(struct rvc_vpn_conn *vpn_conn)
 			if (w < 0)
 				break;
 			else if (w == 0) {
-				if (timeout == RVD_PRE_EXEC_TIMEOUT) {
+				if (timeout == COD_PRE_EXEC_TIMEOUT) {
 					kill(pre_cmd_pid, SIGKILL);
 					break;
 				}
@@ -555,10 +555,10 @@ static int run_preconn_cmd(struct rvc_vpn_conn *vpn_conn)
 			}
 		} while(1);
 	} else {
-		RVD_DEBUG_ERR("VPN: Forking new process for pre-connect-exec has failed(err:%d)", errno);
+		COD_DEBUG_ERR("VPN: Forking new process for pre-connect-exec has failed(err:%d)", errno);
 	}
 
-	RVD_DEBUG_MSG("VPN: The status of pre-exec-cmd is '%d'", cmd_status);
+	COD_DEBUG_MSG("VPN: The status of pre-exec-cmd is '%d'", cmd_status);
 
 	/* append log line into openvpn log file */
 	log_pre_exec_output(cmd_status == 0 ? pipeout[0] : pipeerr[0], vpn_conn->config.ovpn_log_path,
@@ -591,7 +591,7 @@ static int run_preconn_cmd(struct rvc_vpn_conn *vpn_conn)
 static void rotate_orig_ovpn_log(const char *ovpn_log_path)
 {
 	struct stat st;
-	char backup_log_path[RVD_MAX_PATH];
+	char backup_log_path[COD_MAX_PATH];
 
 	/* get state of openvpn log file */
 	if (stat(ovpn_log_path, &st) != 0 || !S_ISREG(st.st_mode)) {
@@ -608,24 +608,24 @@ static void rotate_orig_ovpn_log(const char *ovpn_log_path)
 	unlink(backup_log_path);
 
 	if (rename(ovpn_log_path, backup_log_path) != 0)
-		RVD_DEBUG_WARN("VPN: Failed to backup OpenVPN log file.(err:%d)\n", errno);
+		COD_DEBUG_WARN("VPN: Failed to backup OpenVPN log file.(err:%d)\n", errno);
 }
 
 /*
  * Run openvpn process
  */
 
-static int run_openvpn_proc(struct rvc_vpn_conn *vpn_conn)
+static int run_openvpn_proc(struct coc_vpn_conn *vpn_conn)
 {
 	pid_t ovpn_pid;
 	char mgm_port_str[32];
-	char ovpn_log_fname[RVD_MAX_FILE_NAME];
-	char ovpn_pid_fpath[RVD_MAX_PATH];
+	char ovpn_log_fname[COD_MAX_FILE_NAME];
+	char ovpn_pid_fpath[COD_MAX_PATH];
 	int uid;
 
-	rvd_ctx_t *c = vpn_conn->vpnconn_mgr->c;
+	cod_ctx_t *c = vpn_conn->vpnconn_mgr->c;
 
-	RVD_DEBUG_MSG("VPN: Running OpenVPN process for connection '%s'", vpn_conn->config.name);
+	COD_DEBUG_MSG("VPN: Running OpenVPN process for connection '%s'", vpn_conn->config.name);
 
 	/* rotate openvpn log file */
 	snprintf(ovpn_log_fname, sizeof(ovpn_log_fname), "%s.ovpn.log", vpn_conn->config.name);
@@ -636,7 +636,7 @@ static int run_openvpn_proc(struct rvc_vpn_conn *vpn_conn)
 
 	/* run pre connect exec command */
 	if (run_preconn_cmd(vpn_conn) != 0) {
-		RVD_DEBUG_ERR("VPN: Failed exit code from running pre-connect command");
+		COD_DEBUG_ERR("VPN: Failed exit code from running pre-connect command");
 		return -1;
 	}
 
@@ -647,12 +647,12 @@ static int run_openvpn_proc(struct rvc_vpn_conn *vpn_conn)
 	/* create openvpn process */
 	vpn_conn->ovpn_mgm_port = get_free_listen_port(OVPN_MGM_PORT_START);
 	if (vpn_conn->ovpn_mgm_port < 0) {
-		RVD_DEBUG_ERR("VPN: Couldn't get free port for OpenVPN management socket.");
+		COD_DEBUG_ERR("VPN: Couldn't get free port for OpenVPN management socket.");
 		return -1;
 	}
 
 	snprintf(mgm_port_str, sizeof(mgm_port_str), "%d", vpn_conn->ovpn_mgm_port);
-	snprintf(ovpn_pid_fpath, sizeof(ovpn_pid_fpath), "%s/%s.ovpn.pid", RVD_PID_DPATH, vpn_conn->config.name);
+	snprintf(ovpn_pid_fpath, sizeof(ovpn_pid_fpath), "%s/%s.ovpn.pid", COD_PID_DPATH, vpn_conn->config.name);
 	unlink(ovpn_pid_fpath);
 
 	ovpn_pid = fork();
@@ -673,7 +673,7 @@ static int run_openvpn_proc(struct rvc_vpn_conn *vpn_conn)
 	} else if (ovpn_pid < 0)
 		return -1;
 
-	RVD_DEBUG_MSG("VPN: The OpenVPN process ID for connection '%s' is %d", vpn_conn->config.name, ovpn_pid);
+	COD_DEBUG_MSG("VPN: The OpenVPN process ID for connection '%s' is %d", vpn_conn->config.name, ovpn_pid);
 
 	/* set openvpn process ID */
 	vpn_conn->ovpn_pid = ovpn_pid;
@@ -688,7 +688,7 @@ static int run_openvpn_proc(struct rvc_vpn_conn *vpn_conn)
 
 		if (get_gid_by_uid(uid, &gid) != 0 ||
 			chown(vpn_conn->config.ovpn_log_path, uid, gid) != 0) {
-			RVD_DEBUG_WARN("VPN: Couldn't set the permission for OpenVPN log file '%s'",
+			COD_DEBUG_WARN("VPN: Couldn't set the permission for OpenVPN log file '%s'",
 						vpn_conn->config.ovpn_log_path);
 		}
 	}
@@ -700,7 +700,7 @@ static int run_openvpn_proc(struct rvc_vpn_conn *vpn_conn)
  * parse response from openvpn management socket
  */
 
-static void parse_ovpn_mgm_resp(struct rvc_vpn_conn *vpn_conn, const char *mgm_resp)
+static void parse_ovpn_mgm_resp(struct coc_vpn_conn *vpn_conn, const char *mgm_resp)
 {
 	char *buffer;
 	char *tok, *p;
@@ -709,7 +709,7 @@ static void parse_ovpn_mgm_resp(struct rvc_vpn_conn *vpn_conn, const char *mgm_r
 
 	buffer = strdup(mgm_resp);
 	if (!buffer) {
-		RVD_DEBUG_ERR("VPN: Out of memory!");
+		COD_DEBUG_ERR("VPN: Out of memory!");
 		return;
 	}
 
@@ -733,7 +733,7 @@ static void parse_ovpn_mgm_resp(struct rvc_vpn_conn *vpn_conn, const char *mgm_r
 
 			int i;
 
-			RVD_DEBUG_MSG("VPN: Try parsing OpenVPN management response '%s' for state", tok);
+			COD_DEBUG_MSG("VPN: Try parsing OpenVPN management response '%s' for state", tok);
 
 			/* parse state response */
 			p = tok + strlen(OVPN_MGM_RESP_STATE);
@@ -766,11 +766,11 @@ static void parse_ovpn_mgm_resp(struct rvc_vpn_conn *vpn_conn, const char *mgm_r
  * get connection state from openvpn management socket
  */
 
-static int get_vpn_conn_state(struct rvc_vpn_conn *vpn_conn)
+static int get_vpn_conn_state(struct coc_vpn_conn *vpn_conn)
 {
 	int failed_count = 0;
 
-	RVD_DEBUG_MSG("VPN: Getting OpenVPN connection state with name '%s'", vpn_conn->config.name);
+	COD_DEBUG_MSG("VPN: Getting OpenVPN connection state with name '%s'", vpn_conn->config.name);
 
 	do {
 		int ovpn_state = vpn_conn->ovpn_state;
@@ -779,7 +779,7 @@ static int get_vpn_conn_state(struct rvc_vpn_conn *vpn_conn)
 		if (vpn_conn->conn_cancel || vpn_conn->end_flag)
 			break;
 
-		RVD_DEBUG_MSG("VPN: The connection state for name '%s' is '%s'",
+		COD_DEBUG_MSG("VPN: The connection state for name '%s' is '%s'",
 			vpn_conn->config.name, g_ovpn_state[ovpn_state].ovpn_state_str);
 
 		/* check openvpn state */
@@ -787,7 +787,7 @@ static int get_vpn_conn_state(struct rvc_vpn_conn *vpn_conn)
 			return 0;
 
 		/* check if connection is failed for timeout */
-		if (failed_count == RVD_OVPN_CONN_TIMEOUT)
+		if (failed_count == COD_OVPN_CONN_TIMEOUT)
 			break;
 
 		failed_count++;
@@ -804,30 +804,30 @@ static int get_vpn_conn_state(struct rvc_vpn_conn *vpn_conn)
 
 static void *start_vpn_conn(void *p)
 {
-	struct rvc_vpn_conn *vpn_conn = (struct rvc_vpn_conn *) p;
+	struct coc_vpn_conn *vpn_conn = (struct coc_vpn_conn *) p;
 
-	RVD_DEBUG_MSG("VPN: Starting VPN connection with name '%s'", vpn_conn->config.name);
+	COD_DEBUG_MSG("VPN: Starting VPN connection with name '%s'", vpn_conn->config.name);
 
 	/* init */
 	vpn_conn->curr_bytes_in = vpn_conn->curr_bytes_out = 0;
 
 	/* run openvpn process */
 	if (run_openvpn_proc(vpn_conn) != 0) {
-		vpn_conn->conn_state = RVD_CONN_STATE_DISCONNECTED;
+		vpn_conn->conn_state = COD_CONN_STATE_DISCONNECTED;
 		return 0;
 	}
 
 	/* connect to openvpn process via management console */
 	if (connect_to_ovpn_mgm(vpn_conn) == 0 && get_vpn_conn_state(vpn_conn) == 0 &&
 			!vpn_conn->conn_cancel) {
-		RVD_DEBUG_MSG("VPN: VPN connection with name '%s' has been succeeded", vpn_conn->config.name);
-		vpn_conn->conn_state = RVD_CONN_STATE_CONNECTED;
+		COD_DEBUG_MSG("VPN: VPN connection with name '%s' has been succeeded", vpn_conn->config.name);
+		vpn_conn->conn_state = COD_CONN_STATE_CONNECTED;
 	} else {
 		/* check end flag */
 		if (vpn_conn->end_flag || vpn_conn->conn_cancel)
 			return 0;
 
-		RVD_DEBUG_MSG("VPN: Failed VPN connection with name '%s'. Try to stop OpenVPN", vpn_conn->config.name);
+		COD_DEBUG_MSG("VPN: Failed VPN connection with name '%s'. Try to stop OpenVPN", vpn_conn->config.name);
 		stop_vpn_conn(vpn_conn);
 	}
 
@@ -838,49 +838,49 @@ static void *start_vpn_conn(void *p)
  * start single VPN connection
  */
 
-static int start_single_conn(struct rvc_vpn_conn *vpn_conn)
+static int start_single_conn(struct coc_vpn_conn *vpn_conn)
 {
-	rvd_vpnconn_mgr_t *vpnconn_mgr = vpn_conn->vpnconn_mgr;
+	cod_vpnconn_mgr_t *vpnconn_mgr = vpn_conn->vpnconn_mgr;
 	int conf_load_status;
 
 	/* get load status of openvpn configuration */
 	conf_load_status = vpn_conn->config.load_status & OVPN_STATUS_LOADED;
 	if (!conf_load_status) {
-		RVD_DEBUG_ERR("VPN: Unloaded VPN configuration with name '%s'", vpn_conn->config.name);
-		return RVD_RESP_WRONG_PERMISSION;
+		COD_DEBUG_ERR("VPN: Unloaded VPN configuration with name '%s'", vpn_conn->config.name);
+		return COD_RESP_WRONG_PERMISSION;
 	}
 
 	/* check openvpn binary */
 	if (check_ovpn_binary(vpnconn_mgr->c->opt.ovpn_bin_path, vpnconn_mgr->c->opt.ovpn_root_check) != 0) {
-		RVD_DEBUG_ERR("VPN: Failed to check openvpn binary availability.");
-		return RVD_RESP_ERR_INVALID_OVPN_BIN;
+		COD_DEBUG_ERR("VPN: Failed to check openvpn binary availability.");
+		return COD_RESP_ERR_INVALID_OVPN_BIN;
 	}
 
 	/* set connection state */
-	vpn_conn->conn_state = RVD_CONN_STATE_CONNECTING;
+	vpn_conn->conn_state = COD_CONN_STATE_CONNECTING;
 
 	/* set end flag as false */
 	vpn_conn->conn_cancel = false;
 
 	/* create thread to start vpn connection */
 	if (pthread_create(&vpn_conn->pt_conn, NULL, start_vpn_conn, (void *) vpn_conn) != 0) {
-		RVD_DEBUG_ERR("VPN: Couldn't create thread to start VPN connection with name '%s'", vpn_conn->config.name);
-		return RVD_RESP_UNKNOWN_ERR;
+		COD_DEBUG_ERR("VPN: Couldn't create thread to start VPN connection with name '%s'", vpn_conn->config.name);
+		return COD_RESP_UNKNOWN_ERR;
 	}
 
-	return RVD_RESP_OK;
+	return COD_RESP_OK;
 }
 
 /*
  * start all VPN connections
  */
 
-static void start_all_conns(rvd_vpnconn_mgr_t *vpnconn_mgr)
+static void start_all_conns(cod_vpnconn_mgr_t *vpnconn_mgr)
 {
-	struct rvc_vpn_conn *vpn_conn = vpnconn_mgr->vpn_conns;
+	struct coc_vpn_conn *vpn_conn = vpnconn_mgr->vpn_conns;
 
 	while (vpn_conn) {
-		if (vpn_conn->conn_state == RVD_CONN_STATE_DISCONNECTED)
+		if (vpn_conn->conn_state == COD_CONN_STATE_DISCONNECTED)
 			start_single_conn(vpn_conn);
 
 		vpn_conn = vpn_conn->next;
@@ -888,27 +888,27 @@ static void start_all_conns(rvd_vpnconn_mgr_t *vpnconn_mgr)
 }
 
 /*
- * connect to rvd vpn servers
+ * connect to cryptoded vpn servers
  */
 
-int rvd_vpnconn_connect(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name)
+int cod_vpnconn_connect(cod_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name)
 {
-	struct rvc_vpn_conn *vpn_conn;
+	struct coc_vpn_conn *vpn_conn;
 
 	/* if connection name is 'all', try start all connections */
 	if (strcmp(conn_name, "all") == 0) {
-		RVD_DEBUG_MSG("VPN: Try to up all VPN connections");
+		COD_DEBUG_MSG("VPN: Try to up all VPN connections");
 
 		start_all_conns(vpnconn_mgr);
-		return RVD_RESP_OK;
+		return COD_RESP_OK;
 	}
 
-	RVD_DEBUG_MSG("VPN: Try to connect a VPN with name '%s'", conn_name);
+	COD_DEBUG_MSG("VPN: Try to connect a VPN with name '%s'", conn_name);
 
 	/* get configuration item by connection name */
 	vpn_conn = get_vpnconn_byname(vpnconn_mgr, conn_name);
 	if (!vpn_conn)
-		return RVD_RESP_CONN_NOT_FOUND;
+		return COD_RESP_CONN_NOT_FOUND;
 
 	/* start VPN connection */
 	return start_single_conn(vpn_conn);
@@ -918,11 +918,11 @@ int rvd_vpnconn_connect(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name)
  * stop single VPN connection
  */
 
-static void stop_single_conn(struct rvc_vpn_conn *vpn_conn)
+static void stop_single_conn(struct coc_vpn_conn *vpn_conn)
 {
-	if (vpn_conn->conn_state == RVD_CONN_STATE_DISCONNECTED ||
-		vpn_conn->conn_state == RVD_CONN_STATE_DISCONNECTING) {
-		RVD_DEBUG_MSG("VPN: The VPN connection with name '%s' is already disconnected or is pending", vpn_conn->config.name);
+	if (vpn_conn->conn_state == COD_CONN_STATE_DISCONNECTED ||
+		vpn_conn->conn_state == COD_CONN_STATE_DISCONNECTING) {
+		COD_DEBUG_MSG("VPN: The VPN connection with name '%s' is already disconnected or is pending", vpn_conn->config.name);
 		return;
 	}
 
@@ -930,7 +930,7 @@ static void stop_single_conn(struct rvc_vpn_conn *vpn_conn)
 	vpn_conn->conn_cancel = true;
 
 	/* set connection state */
-	vpn_conn->conn_state = RVD_CONN_STATE_DISCONNECTING;
+	vpn_conn->conn_state = COD_CONN_STATE_DISCONNECTING;
 
 	/* update total bytes */
 	vpn_conn->total_bytes_in += vpn_conn->curr_bytes_in;
@@ -938,7 +938,7 @@ static void stop_single_conn(struct rvc_vpn_conn *vpn_conn)
 
 	/* create thread to start vpn connection */
 	if (pthread_create(&vpn_conn->pt_disconn, NULL, stop_vpn_conn, (void *) vpn_conn) != 0) {
-		RVD_DEBUG_ERR("VPN: Couldn't create thread to start VPN connection with name '%s'", vpn_conn->config.name);
+		COD_DEBUG_ERR("VPN: Couldn't create thread to start VPN connection with name '%s'", vpn_conn->config.name);
 		return;
 	}
 }
@@ -947,12 +947,12 @@ static void stop_single_conn(struct rvc_vpn_conn *vpn_conn)
  * stop all VPN connections
  */
 
-static void stop_all_conns(rvd_vpnconn_mgr_t *vpnconn_mgr)
+static void stop_all_conns(cod_vpnconn_mgr_t *vpnconn_mgr)
 {
-	struct rvc_vpn_conn *vpn_conn = vpnconn_mgr->vpn_conns;
+	struct coc_vpn_conn *vpn_conn = vpnconn_mgr->vpn_conns;
 
 	while (vpn_conn) {
-		if (vpn_conn->conn_state != RVD_CONN_STATE_DISCONNECTED)
+		if (vpn_conn->conn_state != COD_CONN_STATE_DISCONNECTED)
 			stop_single_conn(vpn_conn);
 
 		vpn_conn = vpn_conn->next;
@@ -963,11 +963,11 @@ static void stop_all_conns(rvd_vpnconn_mgr_t *vpnconn_mgr)
  * disconnect VPN connection(s)
  */
 
-void rvd_vpnconn_disconnect(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name)
+void cod_vpnconn_disconnect(cod_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name)
 {
-	struct rvc_vpn_conn *vpn_conn;
+	struct coc_vpn_conn *vpn_conn;
 
-	RVD_DEBUG_MSG("VPN: Try to disconnect VPN with name '%s'", conn_name);
+	COD_DEBUG_MSG("VPN: Try to disconnect VPN with name '%s'", conn_name);
 
 	/* if connection name is 'all', try stop all connections */
 	if (strcmp(conn_name, "all") == 0) {
@@ -978,7 +978,7 @@ void rvd_vpnconn_disconnect(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_nam
 	/* get configuration item by connection name */
 	vpn_conn = get_vpnconn_byname(vpnconn_mgr, conn_name);
 	if (!vpn_conn) {
-		RVD_DEBUG_ERR("VPN: Couldn't find VPN connection with name '%s'", conn_name);
+		COD_DEBUG_ERR("VPN: Couldn't find VPN connection with name '%s'", conn_name);
 		return;
 	}
 
@@ -994,14 +994,14 @@ void rvd_vpnconn_disconnect(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_nam
 
 static void *reconnect_vpn_conn(void *p)
 {
-	struct rvc_vpn_conn *vpn_conn = (struct rvc_vpn_conn *) p;
+	struct coc_vpn_conn *vpn_conn = (struct coc_vpn_conn *) p;
 
-	RVD_DEBUG_MSG("VPN: Reconnecting VPN connection with name '%s'", vpn_conn->config.name);
+	COD_DEBUG_MSG("VPN: Reconnecting VPN connection with name '%s'", vpn_conn->config.name);
 
 	/* stop the connection */
 	vpn_conn->conn_cancel = true;
-	if (vpn_conn->conn_state != RVD_CONN_STATE_DISCONNECTED) {
-		if (vpn_conn->conn_state == RVD_CONN_STATE_DISCONNECTING)
+	if (vpn_conn->conn_state != COD_CONN_STATE_DISCONNECTED) {
+		if (vpn_conn->conn_state == COD_CONN_STATE_DISCONNECTING)
 			pthread_join(vpn_conn->pt_disconn, NULL);
 		else
 			stop_vpn_conn((void *)vpn_conn);
@@ -1017,11 +1017,11 @@ static void *reconnect_vpn_conn(void *p)
  * reconnect single VPN connection
  */
 
-static void reconnect_single_conn(struct rvc_vpn_conn *vpn_conn)
+static void reconnect_single_conn(struct coc_vpn_conn *vpn_conn)
 {
 	/* create thread to start vpn connection */
 	if (pthread_create(&vpn_conn->pt_reconn, NULL, reconnect_vpn_conn, (void *) vpn_conn) != 0) {
-		RVD_DEBUG_ERR("VPN: Couldn't create thread to start VPN connection with name '%s'", vpn_conn->config.name);
+		COD_DEBUG_ERR("VPN: Couldn't create thread to start VPN connection with name '%s'", vpn_conn->config.name);
 		return;
 	}
 }
@@ -1030,9 +1030,9 @@ static void reconnect_single_conn(struct rvc_vpn_conn *vpn_conn)
  * reconnect all VPN connections
  */
 
-static void reconnect_all_conns(rvd_vpnconn_mgr_t *vpnconn_mgr)
+static void reconnect_all_conns(cod_vpnconn_mgr_t *vpnconn_mgr)
 {
-	struct rvc_vpn_conn *vpn_conn = vpnconn_mgr->vpn_conns;
+	struct coc_vpn_conn *vpn_conn = vpnconn_mgr->vpn_conns;
 
 	while (vpn_conn) {
 		reconnect_single_conn(vpn_conn);
@@ -1044,11 +1044,11 @@ static void reconnect_all_conns(rvd_vpnconn_mgr_t *vpnconn_mgr)
  * reconnect VPN connection
  */
 
-void rvd_vpnconn_reconnect(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name)
+void cod_vpnconn_reconnect(cod_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name)
 {
-	struct rvc_vpn_conn *vpn_conn;
+	struct coc_vpn_conn *vpn_conn;
 
-	RVD_DEBUG_MSG("VPN: Try to reconnect a VPN with name '%s'", conn_name);
+	COD_DEBUG_MSG("VPN: Try to reconnect a VPN with name '%s'", conn_name);
 
 	/* if connection name is 'all', try stop all connections */
 	if (strcmp(conn_name, "all") == 0) {
@@ -1059,7 +1059,7 @@ void rvd_vpnconn_reconnect(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name
 	/* get configuration item by connection name */
 	vpn_conn = get_vpnconn_byname(vpnconn_mgr, conn_name);
 	if (!vpn_conn) {
-		RVD_DEBUG_ERR("VPN: Couldn't find VPN connection with name '%s'", conn_name);
+		COD_DEBUG_ERR("VPN: Couldn't find VPN connection with name '%s'", conn_name);
 		return;
 	}
 
@@ -1074,7 +1074,7 @@ void rvd_vpnconn_reconnect(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name
  */
 
 static int
-parse_ovpn_config(struct rvc_vpn_conn *vpn_conn, char *vpn_srv_addr, size_t addr_s, int *vpn_srv_port,
+parse_ovpn_config(struct coc_vpn_conn *vpn_conn, char *vpn_srv_addr, size_t addr_s, int *vpn_srv_port,
 		char *vpn_proto, size_t proto_s, int *proto_ver)
 {
 	FILE *fp;
@@ -1085,7 +1085,7 @@ parse_ovpn_config(struct rvc_vpn_conn *vpn_conn, char *vpn_srv_addr, size_t addr
 	/* open openvpn configuration file */
 	fp = fopen(vpn_conn->config.ovpn_profile_path, "r");
 	if (!fp) {
-		RVD_DEBUG_ERR("VPN: Could not open OpenVPN configuration file '%s' for reading", vpn_conn->config.ovpn_profile_path);
+		COD_DEBUG_ERR("VPN: Could not open OpenVPN configuration file '%s' for reading", vpn_conn->config.ovpn_profile_path);
 		return -1;
 	}
 
@@ -1130,7 +1130,7 @@ parse_ovpn_config(struct rvc_vpn_conn *vpn_conn, char *vpn_srv_addr, size_t addr
  * get status of single connection
  */
 
-static void get_single_conn_status(struct rvc_vpn_conn *vpn_conn, bool json_format, char **status_str)
+static void get_single_conn_status(struct coc_vpn_conn *vpn_conn, bool json_format, char **status_str)
 {
 	char *ret_str;
 
@@ -1138,13 +1138,13 @@ static void get_single_conn_status(struct rvc_vpn_conn *vpn_conn, bool json_form
 	char pre_exec_interval[64];
 	char conf_load_status[64];
 
-	char vpn_srv_addr[RVD_MAX_HNAME_LEN];
+	char vpn_srv_addr[COD_MAX_HNAME_LEN];
 	int vpn_srv_port;
-	char vpn_proto[RVD_MAX_PROTOSTR_LEN];
+	char vpn_proto[COD_MAX_PROTOSTR_LEN];
 
 	int proto_ver = OVPN_PROTO_VERSION_4;
 
-	char connected_time[RVD_MAX_DATETIME_LEN];
+	char connected_time[COD_MAX_DATETIME_LEN];
 	int netmask;
 
 	long total_bytes_in, total_bytes_out;
@@ -1153,12 +1153,12 @@ static void get_single_conn_status(struct rvc_vpn_conn *vpn_conn, bool json_form
 	/* parse OpenVPN configuration */
 	if (parse_ovpn_config(vpn_conn, vpn_srv_addr, sizeof(vpn_srv_addr), &vpn_srv_port,
 			vpn_proto, sizeof(vpn_proto), &proto_ver) != 0) {
-		RVD_DEBUG_WARN("VPN: Could not parse OpenVPN configuration file '%s'", vpn_conn->config.ovpn_profile_path);
+		COD_DEBUG_WARN("VPN: Could not parse OpenVPN configuration file '%s'", vpn_conn->config.ovpn_profile_path);
 	}
 	netmask = proto_ver == OVPN_PROTO_VERSION_4 ? 32 : 128;
 
 	/* calculate total in-bytes and out-bytes */
-	if (vpn_conn->conn_state == RVD_CONN_STATE_CONNECTED) {
+	if (vpn_conn->conn_state == COD_CONN_STATE_CONNECTED) {
 		total_bytes_in = vpn_conn->total_bytes_in + vpn_conn->curr_bytes_in;
 		total_bytes_out = vpn_conn->total_bytes_out + vpn_conn->curr_bytes_out;
 	} else {
@@ -1196,51 +1196,51 @@ static void get_single_conn_status(struct rvc_vpn_conn *vpn_conn, bool json_form
 
 	/* get connected time */
 	memset(connected_time, 0, sizeof(connected_time));
-	if (vpn_conn->conn_state == RVD_CONN_STATE_CONNECTED)
+	if (vpn_conn->conn_state == COD_CONN_STATE_CONNECTED)
 		convert_tt_to_str(vpn_conn->connected_tm, connected_time, sizeof(connected_time));
 
-	RVD_DEBUG_MSG("VPN: Getting status of VPN connection with name '%s'", vpn_conn->config.name);
+	COD_DEBUG_MSG("VPN: Getting status of VPN connection with name '%s'", vpn_conn->config.name);
 
 	if (json_format) {
-		rvd_json_object_t conn_status_objs[] = {
-			{"name", RVD_JTYPE_STR, vpn_conn->config.name, 0, false, NULL},
-			{"profile", RVD_JTYPE_STR, (void *)vpn_conn->config.ovpn_profile_path, 0, false, NULL},
-			{"autoConnect", RVD_JTYPE_BOOL, &vpn_conn->config.auto_connect, 0, false, NULL},
+		cod_json_object_t conn_status_objs[] = {
+			{"name", COD_JTYPE_STR, vpn_conn->config.name, 0, false, NULL},
+			{"profile", COD_JTYPE_STR, (void *)vpn_conn->config.ovpn_profile_path, 0, false, NULL},
+			{"autoConnect", COD_JTYPE_BOOL, &vpn_conn->config.auto_connect, 0, false, NULL},
 
-			{"endpointIp", RVD_JTYPE_OBJ, NULL, 0, false, NULL},
-			{"address", RVD_JTYPE_STR, vpn_srv_addr, 0, false, "endpointIp"},
-			{"netmask", RVD_JTYPE_INT, &netmask, 0, false, "endpointIp"},
+			{"endpointIp", COD_JTYPE_OBJ, NULL, 0, false, NULL},
+			{"address", COD_JTYPE_STR, vpn_srv_addr, 0, false, "endpointIp"},
+			{"netmask", COD_JTYPE_INT, &netmask, 0, false, "endpointIp"},
 
-			{"assignedIp", RVD_JTYPE_OBJ, NULL, 0, false, NULL},
-			{"address", RVD_JTYPE_STR, vpn_conn->tun_ip, 0, false, "assignedIp"},
-			{"netmask", RVD_JTYPE_INT, &netmask, 0, false, "assignedIp"},
+			{"assignedIp", COD_JTYPE_OBJ, NULL, 0, false, NULL},
+			{"address", COD_JTYPE_STR, vpn_conn->tun_ip, 0, false, "assignedIp"},
+			{"netmask", COD_JTYPE_INT, &netmask, 0, false, "assignedIp"},
 
-			{"port", RVD_JTYPE_INT, &vpn_srv_port, 0, false, NULL},
-			{"protocol", RVD_JTYPE_STR, vpn_proto, 0, false, NULL},
-			{"ipVersion", RVD_JTYPE_INT, &proto_ver, 0, false, NULL},
+			{"port", COD_JTYPE_INT, &vpn_srv_port, 0, false, NULL},
+			{"protocol", COD_JTYPE_STR, vpn_proto, 0, false, NULL},
+			{"ipVersion", COD_JTYPE_INT, &proto_ver, 0, false, NULL},
 
-			{"RvdConnectionStatus", RVD_JTYPE_OBJ, NULL, 0, false, NULL},
-			{"state", RVD_JTYPE_STR, g_rvd_state[vpn_conn->conn_state].state_str, 0, false, "RvdConnectionStatus"},
-			{"ovpnState", RVD_JTYPE_STR, g_ovpn_state[vpn_conn->ovpn_state].ovpn_state_str, 0, false, "RvdConnectionStatus"},
-			{"connectionTime", RVD_JTYPE_STR, connected_time, 0, false, "RvdConnectionStatus"},
-			{"netIn", RVD_JTYPE_INT64, &vpn_conn->curr_bytes_in, 0, false, "RvdConnectionStatus"},
-			{"netOut", RVD_JTYPE_INT64, &vpn_conn->curr_bytes_out, 0, false, "RvdConnectionStatus"},
+			{"RvdConnectionStatus", COD_JTYPE_OBJ, NULL, 0, false, NULL},
+			{"state", COD_JTYPE_STR, g_cod_state[vpn_conn->conn_state].state_str, 0, false, "RvdConnectionStatus"},
+			{"ovpnState", COD_JTYPE_STR, g_ovpn_state[vpn_conn->ovpn_state].ovpn_state_str, 0, false, "RvdConnectionStatus"},
+			{"connectionTime", COD_JTYPE_STR, connected_time, 0, false, "RvdConnectionStatus"},
+			{"netIn", COD_JTYPE_INT64, &vpn_conn->curr_bytes_in, 0, false, "RvdConnectionStatus"},
+			{"netOut", COD_JTYPE_INT64, &vpn_conn->curr_bytes_out, 0, false, "RvdConnectionStatus"},
 
-			{"RvdPreExec", RVD_JTYPE_OBJ, NULL, 0, false, NULL},
-			{"command", RVD_JTYPE_STR, vpn_conn->config.pre_exec_cmd, 0, false, "RvdPreExec"},
-			{"interval", RVD_JTYPE_INT, &vpn_conn->config.pre_exec_interval, 0, false, "RvdPreExec"},
-			{"userId", RVD_JTYPE_INT, &vpn_conn->config.pre_exec_uid, 0, false, "RvdPreExec"},
-			{"returnCode", RVD_JTYPE_INT, &vpn_conn->config.pre_exec_status, 0, false, "RvdPreExec"}
+			{"RvdPreExec", COD_JTYPE_OBJ, NULL, 0, false, NULL},
+			{"command", COD_JTYPE_STR, vpn_conn->config.pre_exec_cmd, 0, false, "RvdPreExec"},
+			{"interval", COD_JTYPE_INT, &vpn_conn->config.pre_exec_interval, 0, false, "RvdPreExec"},
+			{"userId", COD_JTYPE_INT, &vpn_conn->config.pre_exec_uid, 0, false, "RvdPreExec"},
+			{"returnCode", COD_JTYPE_INT, &vpn_conn->config.pre_exec_status, 0, false, "RvdPreExec"}
 		};
 
 		/* create json object */
-		if (rvd_json_build(conn_status_objs, sizeof(conn_status_objs) / sizeof(rvd_json_object_t), &ret_str) != 0)
+		if (cod_json_build(conn_status_objs, sizeof(conn_status_objs) / sizeof(cod_json_object_t), &ret_str) != 0)
 			return;
 	} else {
-		char status_buffer[RVD_MAX_CONN_STATUS_LEN];
+		char status_buffer[COD_MAX_CONN_STATUS_LEN];
 
 		/* set status buffer by plain format */
-		if (vpn_conn->conn_state == RVD_CONN_STATE_CONNECTED)
+		if (vpn_conn->conn_state == COD_CONN_STATE_CONNECTED)
 			snprintf(status_buffer, sizeof(status_buffer), "name: %s\n"
 				"\tconfig-status: %s\n"
 				"\tprofile: %s\n"
@@ -1259,7 +1259,7 @@ static void get_single_conn_status(struct rvc_vpn_conn *vpn_conn, bool json_form
 				vpn_conn->config.name,
 				conf_load_status,
 				vpn_conn->config.ovpn_profile_path,
-				g_rvd_state[vpn_conn->conn_state].state_str,
+				g_cod_state[vpn_conn->conn_state].state_str,
 				g_ovpn_state[vpn_conn->ovpn_state].ovpn_state_str,
 				total_bytes_in, total_bytes_out,
 				connected_time,
@@ -1286,7 +1286,7 @@ static void get_single_conn_status(struct rvc_vpn_conn *vpn_conn, bool json_form
 					vpn_conn->config.name,
 					conf_load_status,
 					vpn_conn->config.ovpn_profile_path,
-					g_rvd_state[vpn_conn->conn_state].state_str,
+					g_cod_state[vpn_conn->conn_state].state_str,
 					g_ovpn_state[vpn_conn->ovpn_state].ovpn_state_str,
 					total_bytes_in, total_bytes_out,
 					ts,
@@ -1315,9 +1315,9 @@ static void get_single_conn_status(struct rvc_vpn_conn *vpn_conn, bool json_form
  * get status of all connections
  */
 
-static void get_all_conn_status(rvd_vpnconn_mgr_t *vpnconn_mgr, bool json_format, char **status_str)
+static void get_all_conn_status(cod_vpnconn_mgr_t *vpnconn_mgr, bool json_format, char **status_str)
 {
-	struct rvc_vpn_conn *vpn_conn = vpnconn_mgr->vpn_conns;
+	struct coc_vpn_conn *vpn_conn = vpnconn_mgr->vpn_conns;
 	char *ret_str = NULL;
 
 	if (json_format) {
@@ -1395,12 +1395,12 @@ static void get_all_conn_status(rvd_vpnconn_mgr_t *vpnconn_mgr, bool json_format
  * get VPN connection status
  */
 
-void rvd_vpnconn_getstatus(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name,
+void cod_vpnconn_getstatus(cod_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name,
 	bool json_format, char **status_str)
 {
-	struct rvc_vpn_conn *vpn_conn;
+	struct coc_vpn_conn *vpn_conn;
 
-	RVD_DEBUG_MSG("VPN: Getting connection status for VPN connection with name '%s'", conn_name);
+	COD_DEBUG_MSG("VPN: Getting connection status for VPN connection with name '%s'", conn_name);
 
 	/* if connection name is 'all', then try get all connection info */
 	if (strcmp(conn_name, "all") == 0) {
@@ -1411,7 +1411,7 @@ void rvd_vpnconn_getstatus(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name
 	/* get configuration item by connection name */
 	vpn_conn = get_vpnconn_byname(vpnconn_mgr, conn_name);
 	if (!vpn_conn) {
-		RVD_DEBUG_ERR("VPN: Couldn't find VPN connection with name '%s', conn_name");
+		COD_DEBUG_ERR("VPN: Couldn't find VPN connection with name '%s', conn_name");
 		return;
 	}
 
@@ -1423,16 +1423,16 @@ void rvd_vpnconn_getstatus(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name
  * finalize VPN connections
  */
 
-static void finalize_vpn_conns(rvd_vpnconn_mgr_t *vpnconn_mgr)
+static void finalize_vpn_conns(cod_vpnconn_mgr_t *vpnconn_mgr)
 {
-	struct rvc_vpn_conn *vpn_conn = vpnconn_mgr->vpn_conns;
+	struct coc_vpn_conn *vpn_conn = vpnconn_mgr->vpn_conns;
 
 	/* set end flag for each vpn connection */
 	while (vpn_conn) {
 		/* stop all VPN connection */
 		vpn_conn->conn_cancel = true;
-		if (vpn_conn->conn_state != RVD_CONN_STATE_DISCONNECTED) {
-			if (vpn_conn->conn_state == RVD_CONN_STATE_DISCONNECTING)
+		if (vpn_conn->conn_state != COD_CONN_STATE_DISCONNECTED) {
+			if (vpn_conn->conn_state == COD_CONN_STATE_DISCONNECTING)
 				pthread_join(vpn_conn->pt_disconn, NULL);
 			else
 				stop_vpn_conn(vpn_conn);
@@ -1453,29 +1453,29 @@ static void finalize_vpn_conns(rvd_vpnconn_mgr_t *vpnconn_mgr)
  * read configuration from directory
  */
 
-static void read_config(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *dir_path, bool load_status)
+static void read_config(cod_vpnconn_mgr_t *vpnconn_mgr, const char *dir_path, bool load_status)
 {
 	DIR *dir;
 	struct dirent *dp;
 
 	if (load_status) {
-		RVD_DEBUG_MSG("VPN: Loading VPN configurations from %s", dir_path);
+		COD_DEBUG_MSG("VPN: Loading VPN configurations from %s", dir_path);
 	}
 
 	/* open config directory */
 	dir = opendir(dir_path);
 	if (!dir) {
-		RVD_DEBUG_ERR("VPN: Couldn't open directory '%s'", dir_path);
+		COD_DEBUG_ERR("VPN: Couldn't open directory '%s'", dir_path);
 		return;
 	}
 
 	while ((dp = readdir(dir)) != NULL) {
-		char conf_name[RVD_MAX_FILE_NAME];
+		char conf_name[COD_MAX_FILE_NAME];
 		size_t conf_name_len;
 
 		const char *p;
 
-		struct rvc_vpn_config vpn_config;
+		struct coc_vpn_config vpn_config;
 
 		/* check whether the file is ovpn file */
 		p = strstr(dp->d_name, OVPN_CONFIG_EXTENSION);
@@ -1491,11 +1491,11 @@ static void read_config(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *dir_path, bo
 		conf_name[conf_name_len] = '\0';
 
 		/* check whether configuration is exist with given name */
-		if (!load_status && rvd_vpnconn_get_byname(vpnconn_mgr, conf_name))
+		if (!load_status && cod_vpnconn_get_byname(vpnconn_mgr, conf_name))
 			continue;
 
 		/* parse configuration file */
-		if (rvc_read_vpn_config(dir_path, conf_name, &vpn_config) == 0) {
+		if (coc_read_vpn_config(dir_path, conf_name, &vpn_config) == 0) {
 			if (!load_status)
 				vpn_config.load_status = OVPN_STATUS_NOT_LOADED;
 
@@ -1515,7 +1515,7 @@ static void read_config(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *dir_path, bo
  * get VPN connection by name
  */
 
-struct rvc_vpn_conn *rvd_vpnconn_get_byname(rvd_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name)
+struct coc_vpn_conn *cod_vpnconn_get_byname(cod_vpnconn_mgr_t *vpnconn_mgr, const char *conn_name)
 {
 	return get_vpnconn_byname(vpnconn_mgr, conn_name);
 }
@@ -1526,9 +1526,9 @@ struct rvc_vpn_conn *rvd_vpnconn_get_byname(rvd_vpnconn_mgr_t *vpnconn_mgr, cons
 
 static void *monitor_vpn_conn(void *p)
 {
-	struct rvc_vpn_conn *vpn_conn = (struct rvc_vpn_conn *) p;
+	struct coc_vpn_conn *vpn_conn = (struct coc_vpn_conn *) p;
 
-	RVD_DEBUG_MSG("VPN: Starting VPN connection monitoring thread with name '%s'", vpn_conn->config.name);
+	COD_DEBUG_MSG("VPN: Starting VPN connection monitoring thread with name '%s'", vpn_conn->config.name);
 
 	while (!vpn_conn->end_flag) {
 		fd_set fds;
@@ -1546,13 +1546,13 @@ static void *monitor_vpn_conn(void *p)
 		}
 
 		/* check if connected and run pre-exec-command by interval */
-		if (vpn_conn->conn_state == RVD_CONN_STATE_CONNECTED &&
+		if (vpn_conn->conn_state == COD_CONN_STATE_CONNECTED &&
 			vpn_conn->config.pre_exec_interval > 0) {
 			time_t curr_ts = time(NULL);
 
 			if (curr_ts - vpn_conn->config.pre_exec_ts > vpn_conn->config.pre_exec_interval) {
 				if (run_preconn_cmd(vpn_conn) != 0) {
-					RVD_DEBUG_ERR("VPN: Failed exit code from running pre-connect command");
+					COD_DEBUG_ERR("VPN: Failed exit code from running pre-connect command");
 				}
 			}
 		}
@@ -1568,7 +1568,7 @@ static void *monitor_vpn_conn(void *p)
 		/* get notifications from openvpn client */
 		ret = select(vpn_conn->ovpn_mgm_sock + 1, &fds, NULL, NULL, &tv);
 		if (ret < 0) {
-			RVD_DEBUG_ERR("VPN: Exception has occurred on openvpn management socket(errno: %d)", errno);
+			COD_DEBUG_ERR("VPN: Exception has occurred on openvpn management socket(errno: %d)", errno);
 			break;
 		}
 
@@ -1585,16 +1585,16 @@ static void *monitor_vpn_conn(void *p)
 			parse_ovpn_mgm_resp(vpn_conn, ovpn_mgm_resp);
 
 			/* check if openvpn connection has abnormally disconnected */
-			if (vpn_conn->conn_state == RVD_CONN_STATE_CONNECTED
+			if (vpn_conn->conn_state == COD_CONN_STATE_CONNECTED
 				&& vpn_conn->ovpn_state != OVPN_STATE_CONNECTED) {
-				RVD_DEBUG_WARN("VPN: Detected that OpenVPN connection was abnormally terminated.");
-				vpn_conn->conn_state = RVD_CONN_STATE_RECONNECTING;
+				COD_DEBUG_WARN("VPN: Detected that OpenVPN connection was abnormally terminated.");
+				vpn_conn->conn_state = COD_CONN_STATE_RECONNECTING;
 
 				vpn_conn->tun_ip[0] = '\0';
-			} else if (vpn_conn->conn_state == RVD_CONN_STATE_RECONNECTING
+			} else if (vpn_conn->conn_state == COD_CONN_STATE_RECONNECTING
 				&& vpn_conn->ovpn_state == OVPN_STATE_CONNECTED) {
-				RVD_DEBUG_MSG("VPN: OpenVPN connection was recovered after abnormal termination.");
-				vpn_conn->conn_state = RVD_CONN_STATE_CONNECTED;
+				COD_DEBUG_MSG("VPN: OpenVPN connection was recovered after abnormal termination.");
+				vpn_conn->conn_state = COD_CONN_STATE_CONNECTED;
 			}
 		} else if (ret == 0)
 			failed = true;
@@ -1605,17 +1605,17 @@ static void *monitor_vpn_conn(void *p)
 
 		/* stop VPN connection */
 		if (failed) {
-			if (vpn_conn->conn_state != RVD_CONN_STATE_DISCONNECTED &&
-				vpn_conn->conn_state != RVD_CONN_STATE_DISCONNECTING) {
-				vpn_conn->conn_state = RVD_CONN_STATE_DISCONNECTING;
-				RVD_DEBUG_WARN("VPN: Detected that OpenVPN process was abnormally terminated.");
+			if (vpn_conn->conn_state != COD_CONN_STATE_DISCONNECTED &&
+				vpn_conn->conn_state != COD_CONN_STATE_DISCONNECTING) {
+				vpn_conn->conn_state = COD_CONN_STATE_DISCONNECTING;
+				COD_DEBUG_WARN("VPN: Detected that OpenVPN process was abnormally terminated.");
 				stop_vpn_conn(vpn_conn);
 			}
 			close_ovpn_mgm_sock(vpn_conn);
 		}
 	}
 
-	RVD_DEBUG_MSG("VPN: VPN connection monitoring thread with name '%s' stopped", vpn_conn->config.name);
+	COD_DEBUG_MSG("VPN: VPN connection monitoring thread with name '%s' stopped", vpn_conn->config.name);
 
 	return 0;
 }
@@ -1624,11 +1624,11 @@ static void *monitor_vpn_conn(void *p)
  * enable/disable script security
  */
 
-void rvd_vpnconn_enable_script_sec(rvd_vpnconn_mgr_t *vpnconn_mgr, bool enable_script_sec)
+void cod_vpnconn_enable_script_sec(cod_vpnconn_mgr_t *vpnconn_mgr, bool enable_script_sec)
 {
-	struct rvc_vpn_conn *vpn_conn = vpnconn_mgr->vpn_conns;
+	struct coc_vpn_conn *vpn_conn = vpnconn_mgr->vpn_conns;
 
-	RVD_DEBUG_MSG("VPN: %s script security", enable_script_sec ? "Enable" : "Disable");
+	COD_DEBUG_MSG("VPN: %s script security", enable_script_sec ? "Enable" : "Disable");
 
 	while (vpn_conn) {
 		vpn_conn->enable_script_sec = enable_script_sec;
@@ -1642,10 +1642,10 @@ void rvd_vpnconn_enable_script_sec(rvd_vpnconn_mgr_t *vpnconn_mgr, bool enable_s
 
 static void *read_vpn_configs(void *p)
 {
-	rvd_vpnconn_mgr_t *vpnconn_mgr = (rvd_vpnconn_mgr_t *) p;
-	rvd_ctx_t *c = vpnconn_mgr->c;
+	cod_vpnconn_mgr_t *vpnconn_mgr = (cod_vpnconn_mgr_t *) p;
+	cod_ctx_t *c = vpnconn_mgr->c;
 
-	RVD_DEBUG_MSG("VPN: Starting VPN configurations reading thread");
+	COD_DEBUG_MSG("VPN: Starting VPN configurations reading thread");
 
 	while (!vpnconn_mgr->end_flag) {
 		read_config(vpnconn_mgr, c->opt.vpn_config_dir, false);
@@ -1656,15 +1656,15 @@ static void *read_vpn_configs(void *p)
 }
 
 /*
- * initialize rvd VPN connection manager
+ * initialize cryptoded VPN connection manager
  */
 
-int rvd_vpnconn_mgr_init(struct rvd_ctx *c)
+int cod_vpnconn_mgr_init(struct cod_ctx *c)
 {
-	rvd_vpnconn_mgr_t *vpnconn_mgr = &c->vpnconn_mgr;
-	struct rvc_vpn_conn *vpn_conn;
+	cod_vpnconn_mgr_t *vpnconn_mgr = &c->vpnconn_mgr;
+	struct coc_vpn_conn *vpn_conn;
 
-	RVD_DEBUG_MSG("VPN: Initializing VPN connection manager");
+	COD_DEBUG_MSG("VPN: Initializing VPN connection manager");
 
 	/* set context object */
 	vpnconn_mgr->c = c;
@@ -1683,12 +1683,12 @@ int rvd_vpnconn_mgr_init(struct rvd_ctx *c)
 	while (vpn_conn) {
 		/* if auto connect flag enabled, then start VPN connection */
 		if (vpn_conn->config.auto_connect) {
-			RVD_DEBUG_MSG("VPN: The auto-connect for VPN connection '%s' is enabled. Try to start it.", vpn_conn->config.name);
+			COD_DEBUG_MSG("VPN: The auto-connect for VPN connection '%s' is enabled. Try to start it.", vpn_conn->config.name);
 			start_single_conn(vpn_conn);
 		}
 
 		if (pthread_create(&vpn_conn->pt_conn_mon, NULL, monitor_vpn_conn, (void *) vpn_conn) != 0) {
-			RVD_DEBUG_ERR("VPN: Couldn't create VPN connection monitoring thread");
+			COD_DEBUG_ERR("VPN: Couldn't create VPN connection monitoring thread");
 			return -1;
 		}
 
@@ -1697,7 +1697,7 @@ int rvd_vpnconn_mgr_init(struct rvd_ctx *c)
 
 	/* create thread for reading VPN configurations */
 	if (pthread_create(&vpnconn_mgr->pt_read_conf, NULL, read_vpn_configs, (void *) vpnconn_mgr) != 0) {
-		RVD_DEBUG_ERR("VPN: Couldn't read VPN configuration list thread");
+		COD_DEBUG_ERR("VPN: Couldn't read VPN configuration list thread");
 		return -1;
 	}
 
@@ -1705,16 +1705,16 @@ int rvd_vpnconn_mgr_init(struct rvd_ctx *c)
 }
 
 /*
- * finalize rvd VPN connection manager
+ * finalize cryptoded VPN connection manager
  */
 
-void rvd_vpnconn_mgr_finalize(rvd_vpnconn_mgr_t *vpnconn_mgr)
+void cod_vpnconn_mgr_finalize(cod_vpnconn_mgr_t *vpnconn_mgr)
 {
 	/* check init state */
 	if (!vpnconn_mgr->init_flag)
 		return;
 
-	RVD_DEBUG_MSG("VPN: Finalizing VPN connection manager");
+	COD_DEBUG_MSG("VPN: Finalizing VPN connection manager");
 
 	/* set end status */
 	vpnconn_mgr->end_flag = true;

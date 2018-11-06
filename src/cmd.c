@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, [Ribose Inc](https://www.ribose.com).
+ * Copyright (c) 2017, [Ribose Inc](https://www.cryptode.com).
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -45,13 +45,13 @@
 #include "log.h"
 #include "util.h"
 
-#include "rvd.h"
+#include "cryptoded.h"
 
 /*
  * create listen socket
  */
 
-static int create_listen_socket(rvd_options_t *op)
+static int create_listen_socket(cod_options_t *op)
 {
 	int listen_sock;
 	struct sockaddr_un listen_addr;
@@ -61,28 +61,28 @@ static int create_listen_socket(rvd_options_t *op)
 	/* create unix domain socket */
 	listen_sock = socket(AF_UNIX, SOCK_STREAM, 0);
 	if (listen_sock < 0) {
-		RVD_DEBUG_ERR("CMD: Couldn't create UNIX domain socket(err:%d)", errno);
+		COD_DEBUG_ERR("CMD: Couldn't create UNIX domain socket(err:%d)", errno);
 		return -1;
 	}
 
 	/* set listen address */
 	memset(&listen_addr, 0, sizeof(struct sockaddr_un));
 	listen_addr.sun_family = AF_UNIX;
-	strlcpy(listen_addr.sun_path, RVD_LISTEN_SOCK_PATH, sizeof(listen_addr.sun_path));
+	strlcpy(listen_addr.sun_path, COD_LISTEN_SOCK_PATH, sizeof(listen_addr.sun_path));
 
 	/* remove socket at first */
-	unlink(RVD_LISTEN_SOCK_PATH);
+	unlink(COD_LISTEN_SOCK_PATH);
 
 	/* bind and listen socket */
 	if (bind(listen_sock, (struct sockaddr *) &listen_addr, sizeof(struct sockaddr_un)) != 0) {
-		RVD_DEBUG_ERR("CMD: Couldn't bind on unix domain socket '%s'(err:%d)", RVD_LISTEN_SOCK_PATH, errno);
+		COD_DEBUG_ERR("CMD: Couldn't bind on unix domain socket '%s'(err:%d)", COD_LISTEN_SOCK_PATH, errno);
 		close(listen_sock);
 
 		return -1;
 	}
 
 	if (listen(listen_sock, 5) != 0) {
-		RVD_DEBUG_ERR("CMD: Couldn't listen on unix domain socket '%s'(err:%d)", RVD_LISTEN_SOCK_PATH, errno);
+		COD_DEBUG_ERR("CMD: Couldn't listen on unix domain socket '%s'(err:%d)", COD_LISTEN_SOCK_PATH, errno);
 		close(listen_sock);
 
 		return -1;
@@ -90,17 +90,17 @@ static int create_listen_socket(rvd_options_t *op)
 
 	/* set permission of socket */
 	if (op->restrict_cmd_sock && op->allowed_uid > 0) {
-		if ((chown(RVD_LISTEN_SOCK_PATH, op->allowed_uid, 0) != 0 ||
-			 chmod(RVD_LISTEN_SOCK_PATH, S_IRUSR | S_IWUSR) != 0))
+		if ((chown(COD_LISTEN_SOCK_PATH, op->allowed_uid, 0) != 0 ||
+			 chmod(COD_LISTEN_SOCK_PATH, S_IRUSR | S_IWUSR) != 0))
 			ret = -1;
 	} else {
-		if (chmod(RVD_LISTEN_SOCK_PATH, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH) != 0)
+		if (chmod(COD_LISTEN_SOCK_PATH, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH) != 0)
 			ret = -1;
 	}
 
 	if (ret == -1) {
-		RVD_DEBUG_ERR("CMD: Couldn't set the permissions for unix domain socket '%s'(err:%d)",
-				RVD_LISTEN_SOCK_PATH, errno);
+		COD_DEBUG_ERR("CMD: Couldn't set the permissions for unix domain socket '%s'(err:%d)",
+				COD_LISTEN_SOCK_PATH, errno);
 		close(listen_sock);
 		return -1;
 	}
@@ -112,20 +112,20 @@ static int create_listen_socket(rvd_options_t *op)
  * send command response
  */
 
-struct rvd_resp_errs {
-	enum RVD_RESP_CODE resp_code;
+struct cod_resp_errs {
+	enum COD_RESP_CODE resp_code;
 	const char *err_msg;
-} g_rvd_resp_errs[] = {
-	{RVD_RESP_OK, "Success"},
-	{RVD_RESP_INVALID_CMD, "Invalid command"},
-	{RVD_RESP_NO_MEMORY, "Insufficient memory"},
-	{RVD_RESP_EMPTY_LIST, "Empty List"},
-	{RVD_RESP_CONN_NOT_FOUND, "Connection not found"},
-	{RVD_RESP_CONN_ALREADY_CONNECTED, "Already connected"},
-	{RVD_RESP_CONN_ALREADY_DISCONNECTED, "Already disconnected"},
-	{RVD_RESP_CONN_IN_PROGRESS, "Connection/Disconnection is in progress"},
-	{RVD_RESP_WRONG_PERMISSION, "Wrong permission"},
-	{RVD_RESP_UNKNOWN_ERR, NULL},
+} g_cod_resp_errs[] = {
+	{COD_RESP_OK, "Success"},
+	{COD_RESP_INVALID_CMD, "Invalid command"},
+	{COD_RESP_NO_MEMORY, "Insufficient memory"},
+	{COD_RESP_EMPTY_LIST, "Empty List"},
+	{COD_RESP_CONN_NOT_FOUND, "Connection not found"},
+	{COD_RESP_CONN_ALREADY_CONNECTED, "Already connected"},
+	{COD_RESP_CONN_ALREADY_DISCONNECTED, "Already disconnected"},
+	{COD_RESP_CONN_IN_PROGRESS, "Connection/Disconnection is in progress"},
+	{COD_RESP_WRONG_PERMISSION, "Wrong permission"},
+	{COD_RESP_UNKNOWN_ERR, NULL},
 };
 
 static void send_cmd_response(int clnt_sock, int resp_code, const char *buffer, bool use_json)
@@ -134,41 +134,41 @@ static void send_cmd_response(int clnt_sock, int resp_code, const char *buffer, 
 	const char *err_buf = "Unknown Error";
 	int i;
 
-	RVD_DEBUG_MSG("CMD: Sending response");
+	COD_DEBUG_MSG("CMD: Sending response");
 
 	/* get error message by errcode */
-	for (i = 0; g_rvd_resp_errs[i].err_msg != NULL; i++) {
-		if ((int)g_rvd_resp_errs[i].resp_code == resp_code) {
-			err_buf = g_rvd_resp_errs[i].err_msg;
+	for (i = 0; g_cod_resp_errs[i].err_msg != NULL; i++) {
+		if ((int)g_cod_resp_errs[i].resp_code == resp_code) {
+			err_buf = g_cod_resp_errs[i].err_msg;
 			break;
 		}
 	}
 
 	if (!use_json) {
-		rvd_json_object_t resp_jobjs[] = {
-			{"code", RVD_JTYPE_INT, &resp_code, 0, false, NULL},
-			{"data", RVD_JTYPE_STR, (void *)(buffer ? buffer : err_buf), 0, false, NULL}
+		cod_json_object_t resp_jobjs[] = {
+			{"code", COD_JTYPE_INT, &resp_code, 0, false, NULL},
+			{"data", COD_JTYPE_STR, (void *)(buffer ? buffer : err_buf), 0, false, NULL}
 		};
 
-		rvd_json_build(resp_jobjs, sizeof(resp_jobjs) / sizeof(rvd_json_object_t), &resp_buffer);
+		cod_json_build(resp_jobjs, sizeof(resp_jobjs) / sizeof(cod_json_object_t), &resp_buffer);
 	} else {
-		rvd_json_object_t resp_jobjs[] = {
-			{"code", RVD_JTYPE_INT, &resp_code, 0, false, NULL},
-			{"data", RVD_JTYPE_OBJ, (void *)buffer, 0, false, NULL}
+		cod_json_object_t resp_jobjs[] = {
+			{"code", COD_JTYPE_INT, &resp_code, 0, false, NULL},
+			{"data", COD_JTYPE_OBJ, (void *)buffer, 0, false, NULL}
 		};
 
-		rvd_json_build(resp_jobjs, sizeof(resp_jobjs) / sizeof(rvd_json_object_t), &resp_buffer);
+		cod_json_build(resp_jobjs, sizeof(resp_jobjs) / sizeof(cod_json_object_t), &resp_buffer);
 	}
 
 	if (!resp_buffer) {
-		RVD_DEBUG_ERR("CMD: Coudln't send response. Out of memory");
+		COD_DEBUG_ERR("CMD: Coudln't send response. Out of memory");
 		return;
 	}
 
-	RVD_DEBUG_MSG("CMD: Response string is \n'%s'\n(code: %d)", resp_buffer, resp_code);
+	COD_DEBUG_MSG("CMD: Response string is\n'%s'\n(code: %d)", resp_buffer, resp_code);
 
 	if (send(clnt_sock, resp_buffer, strlen(resp_buffer), 0) <= 0) {
-		RVD_DEBUG_ERR("CMD: Failed sending response(err: %d)", errno);
+		COD_DEBUG_ERR("CMD: Failed sending response(err: %d)", errno);
 	}
 
 	/* free response buffer */
@@ -179,37 +179,37 @@ static void send_cmd_response(int clnt_sock, int resp_code, const char *buffer, 
  * process 'connect' command
  */
 
-static int process_cmd_connect(rvd_cmd_proc_t *cmd_proc, const char *conn_name, bool json_format, char **status_jstr)
+static int process_cmd_connect(cod_cmd_proc_t *cmd_proc, const char *conn_name, bool json_format, char **status_jstr)
 {
 	int ret;
 
-	RVD_DEBUG_MSG("CMD: Processing 'connect' command");
+	COD_DEBUG_MSG("CMD: Processing 'connect' command");
 
 	/* check connection name */
 	if (!conn_name) {
-		RVD_DEBUG_ERR("CMD: Missing connection name");
-		return RVD_RESP_INVALID_CMD;
+		COD_DEBUG_ERR("CMD: Missing connection name");
+		return COD_RESP_INVALID_CMD;
 	}
 
 	/* check connection status */
 	if (strcmp(conn_name, "all") != 0) {
-		struct rvc_vpn_conn *vpn_conn = rvd_vpnconn_get_byname(&cmd_proc->c->vpnconn_mgr, conn_name);
+		struct coc_vpn_conn *vpn_conn = cod_vpnconn_get_byname(&cmd_proc->c->vpnconn_mgr, conn_name);
 
 		if (!vpn_conn) {
-			RVD_DEBUG_ERR("CMD: Couldn't find VPN connection with name '%s'", conn_name);
-			return RVD_RESP_CONN_NOT_FOUND;
-		} else if (vpn_conn->conn_state != RVD_CONN_STATE_DISCONNECTED) {
-			RVD_DEBUG_ERR("CMD: Connection is already established or is pending", conn_name);
-			return (vpn_conn->conn_state == RVD_CONN_STATE_CONNECTED) ? RVD_RESP_CONN_ALREADY_CONNECTED :
-				RVD_RESP_CONN_IN_PROGRESS;
+			COD_DEBUG_ERR("CMD: Couldn't find VPN connection with name '%s'", conn_name);
+			return COD_RESP_CONN_NOT_FOUND;
+		} else if (vpn_conn->conn_state != COD_CONN_STATE_DISCONNECTED) {
+			COD_DEBUG_ERR("CMD: Connection is already established or is pending", conn_name);
+			return (vpn_conn->conn_state == COD_CONN_STATE_CONNECTED) ? COD_RESP_CONN_ALREADY_CONNECTED :
+				COD_RESP_CONN_IN_PROGRESS;
 		}
 	}
 
-	/* connect to rvd servers */
-	ret = rvd_vpnconn_connect(&cmd_proc->c->vpnconn_mgr, conn_name);
+	/* connect to cod servers */
+	ret = cod_vpnconn_connect(&cmd_proc->c->vpnconn_mgr, conn_name);
 
 	/* get connection status */
-	rvd_vpnconn_getstatus(&cmd_proc->c->vpnconn_mgr, conn_name, json_format, status_jstr);
+	cod_vpnconn_getstatus(&cmd_proc->c->vpnconn_mgr, conn_name, json_format, status_jstr);
 
 	return ret;
 }
@@ -218,190 +218,190 @@ static int process_cmd_connect(rvd_cmd_proc_t *cmd_proc, const char *conn_name, 
  * process 'disconnect' command
  */
 
-static int process_cmd_disconnect(rvd_cmd_proc_t *cmd_proc, const char *conn_name, bool json_format, char **status_jstr)
+static int process_cmd_disconnect(cod_cmd_proc_t *cmd_proc, const char *conn_name, bool json_format, char **status_jstr)
 {
-	RVD_DEBUG_MSG("CMD: Processing 'disconnect' command");
+	COD_DEBUG_MSG("CMD: Processing 'disconnect' command");
 
 	/* check connection name */
 	if (!conn_name) {
-		RVD_DEBUG_ERR("CMD: Missing connection name");
-		return RVD_RESP_INVALID_CMD;
+		COD_DEBUG_ERR("CMD: Missing connection name");
+		return COD_RESP_INVALID_CMD;
 	}
 
 	/* check connection status */
 	if (strcmp(conn_name, "all") != 0) {
-		struct rvc_vpn_conn *vpn_conn = rvd_vpnconn_get_byname(&cmd_proc->c->vpnconn_mgr, conn_name);
+		struct coc_vpn_conn *vpn_conn = cod_vpnconn_get_byname(&cmd_proc->c->vpnconn_mgr, conn_name);
 
 		if (!vpn_conn) {
-			RVD_DEBUG_ERR("CMD: Couldn't find VPN connection with name '%s'", conn_name);
-			return RVD_RESP_CONN_NOT_FOUND;
-		} else if (vpn_conn->conn_state == RVD_CONN_STATE_DISCONNECTED
-				|| vpn_conn->conn_state == RVD_CONN_STATE_DISCONNECTING) {
-			RVD_DEBUG_ERR("CMD: Connection is already disconnected or is pending", conn_name);
-			return (vpn_conn->conn_state == RVD_CONN_STATE_DISCONNECTED) ? RVD_RESP_CONN_ALREADY_DISCONNECTED :
-				RVD_RESP_CONN_IN_PROGRESS;
+			COD_DEBUG_ERR("CMD: Couldn't find VPN connection with name '%s'", conn_name);
+			return COD_RESP_CONN_NOT_FOUND;
+		} else if (vpn_conn->conn_state == COD_CONN_STATE_DISCONNECTED
+				|| vpn_conn->conn_state == COD_CONN_STATE_DISCONNECTING) {
+			COD_DEBUG_ERR("CMD: Connection is already disconnected or is pending", conn_name);
+			return (vpn_conn->conn_state == COD_CONN_STATE_DISCONNECTED) ? COD_RESP_CONN_ALREADY_DISCONNECTED :
+				COD_RESP_CONN_IN_PROGRESS;
 		}
 	}
 
-	/* disconnect from rvd servers */
-	rvd_vpnconn_disconnect(&cmd_proc->c->vpnconn_mgr, conn_name);
+	/* disconnect from cod servers */
+	cod_vpnconn_disconnect(&cmd_proc->c->vpnconn_mgr, conn_name);
 
 	/* get connection status */
-	rvd_vpnconn_getstatus(&cmd_proc->c->vpnconn_mgr, conn_name, json_format, status_jstr);
+	cod_vpnconn_getstatus(&cmd_proc->c->vpnconn_mgr, conn_name, json_format, status_jstr);
 
-	return RVD_RESP_OK;
+	return COD_RESP_OK;
 }
 
 /*
  * process 'reconnect' command
  */
 
-static int process_cmd_reconnect(rvd_cmd_proc_t *cmd_proc, const char *conn_name, bool json_format, char **status_jstr)
+static int process_cmd_reconnect(cod_cmd_proc_t *cmd_proc, const char *conn_name, bool json_format, char **status_jstr)
 {
-	RVD_DEBUG_MSG("CMD: Processing 'reconnect' command");
+	COD_DEBUG_MSG("CMD: Processing 'reconnect' command");
 
 	/* check connection name */
 	if (!conn_name) {
-		RVD_DEBUG_ERR("CMD: Missing connection name");
-		return RVD_RESP_INVALID_CMD;
+		COD_DEBUG_ERR("CMD: Missing connection name");
+		return COD_RESP_INVALID_CMD;
 	}
 
 	/* check connection status */
 	if (strcmp(conn_name, "all") != 0) {
-		struct rvc_vpn_conn *vpn_conn = rvd_vpnconn_get_byname(&cmd_proc->c->vpnconn_mgr, conn_name);
+		struct coc_vpn_conn *vpn_conn = cod_vpnconn_get_byname(&cmd_proc->c->vpnconn_mgr, conn_name);
 
 		if (!vpn_conn) {
-			RVD_DEBUG_ERR("CMD: Couldn't find VPN connection with name '%s'", conn_name);
-			return RVD_RESP_CONN_NOT_FOUND;
+			COD_DEBUG_ERR("CMD: Couldn't find VPN connection with name '%s'", conn_name);
+			return COD_RESP_CONN_NOT_FOUND;
 		}
 	}
 
-	/* reconnect to rvd servers */
-	rvd_vpnconn_reconnect(&cmd_proc->c->vpnconn_mgr, conn_name);
+	/* reconnect to cryptoded servers */
+	cod_vpnconn_reconnect(&cmd_proc->c->vpnconn_mgr, conn_name);
 
 	/* get connection status */
-	rvd_vpnconn_getstatus(&cmd_proc->c->vpnconn_mgr, conn_name, json_format, status_jstr);
+	cod_vpnconn_getstatus(&cmd_proc->c->vpnconn_mgr, conn_name, json_format, status_jstr);
 
-	return RVD_RESP_OK;
+	return COD_RESP_OK;
 }
 
 /*
  * process 'status' command
  */
 
-static int process_cmd_status(rvd_cmd_proc_t *cmd_proc, const char *conn_name, bool json_format, char **status_jstr)
+static int process_cmd_status(cod_cmd_proc_t *cmd_proc, const char *conn_name, bool json_format, char **status_jstr)
 {
-	RVD_DEBUG_MSG("CMD: Processing 'status' command");
+	COD_DEBUG_MSG("CMD: Processing 'status' command");
 
 	/* check connection name */
 	if (!conn_name) {
-		RVD_DEBUG_ERR("CMD: Missing connection name");
-		return RVD_RESP_INVALID_CMD;
+		COD_DEBUG_ERR("CMD: Missing connection name");
+		return COD_RESP_INVALID_CMD;
 	}
 
 	/* check connection is exist */
 	if (strcmp(conn_name, "all") != 0) {
-		struct rvc_vpn_conn *vpn_conn = rvd_vpnconn_get_byname(&cmd_proc->c->vpnconn_mgr, conn_name);
+		struct coc_vpn_conn *vpn_conn = cod_vpnconn_get_byname(&cmd_proc->c->vpnconn_mgr, conn_name);
 
 		if (!vpn_conn) {
-			RVD_DEBUG_ERR("CMD: Couldn't find VPN connection with name '%s'", conn_name);
-			return RVD_RESP_CONN_NOT_FOUND;
+			COD_DEBUG_ERR("CMD: Couldn't find VPN connection with name '%s'", conn_name);
+			return COD_RESP_CONN_NOT_FOUND;
 		}
 	}
 
 	/* get status for vpn connection */
-	rvd_vpnconn_getstatus(&cmd_proc->c->vpnconn_mgr, conn_name, json_format, status_jstr);
+	cod_vpnconn_getstatus(&cmd_proc->c->vpnconn_mgr, conn_name, json_format, status_jstr);
 
-	return RVD_RESP_OK;
+	return COD_RESP_OK;
 }
 
 /*
  * process 'script-security' command
  */
 
-static int process_cmd_script_security(rvd_cmd_proc_t *cmd_proc, const char *param)
+static int process_cmd_script_security(cod_cmd_proc_t *cmd_proc, const char *param)
 {
 	bool enable_script_security = false;
 
-	RVD_DEBUG_MSG("CMD: Processing 'script-security' command");
+	COD_DEBUG_MSG("CMD: Processing 'script-security' command");
 
 	if (strcmp(param, "enable") == 0)
 		enable_script_security = true;
 	else if (strcmp(param, "disable") == 0)
 		enable_script_security = false;
 	else {
-		RVD_DEBUG_ERR("CMD: Unknown command parameter '%s'", param);
-		return RVD_RESP_INVALID_CMD;
+		COD_DEBUG_ERR("CMD: Unknown command parameter '%s'", param);
+		return COD_RESP_INVALID_CMD;
 	}
 
 	/* enable/disable script security */
-	rvd_vpnconn_enable_script_sec(&cmd_proc->c->vpnconn_mgr, enable_script_security);
+	cod_vpnconn_enable_script_sec(&cmd_proc->c->vpnconn_mgr, enable_script_security);
 
-	return RVD_RESP_OK;
+	return COD_RESP_OK;
 }
 
 /*
  * process 'get-configdir' command
  */
 
-static int process_cmd_get_confdir(rvd_cmd_proc_t *cmd_proc, char **conf_dir)
+static int process_cmd_get_confdir(cod_cmd_proc_t *cmd_proc, char **conf_dir)
 {
-	RVD_DEBUG_MSG("CMD: Processing 'get_confdir' command");
+	COD_DEBUG_MSG("CMD: Processing 'get_confdir' command");
 
 	/* set configuration directory path */
 	*conf_dir = strdup(cmd_proc->c->opt.vpn_config_dir);
 
-	return RVD_RESP_OK;
+	return COD_RESP_OK;
 }
 
 /*
  * process commands
  */
 
-static int process_cmd(rvd_cmd_proc_t *cmd_proc, const char *cmd,
+static int process_cmd(cod_cmd_proc_t *cmd_proc, const char *cmd,
 		char **resp_data, bool *json_format)
 {
-	int cmd_code = RVD_CMD_UNKNOWN;
+	int cmd_code = COD_CMD_UNKNOWN;
 	char cmd_param[512];
 
-	int resp_code = RVD_RESP_INVALID_CMD;
+	int resp_code = COD_RESP_INVALID_CMD;
 
-	rvd_json_object_t cmd_objs[] = {
-		{"cmd", RVD_JTYPE_INT, &cmd_code, 0, true, NULL},
-		{"json", RVD_JTYPE_BOOL, json_format, 0, false, NULL},
-		{"param", RVD_JTYPE_STR, cmd_param, sizeof(cmd_param), false, NULL}
+	cod_json_object_t cmd_objs[] = {
+		{"cmd", COD_JTYPE_INT, &cmd_code, 0, true, NULL},
+		{"json", COD_JTYPE_BOOL, json_format, 0, false, NULL},
+		{"param", COD_JTYPE_STR, cmd_param, sizeof(cmd_param), false, NULL}
 	};
 
-	RVD_DEBUG_MSG("CMD: Received command '%s'", cmd);
+	COD_DEBUG_MSG("CMD: Received command '%s'", cmd);
 
 	/* parse json command */
-	if (rvd_json_parse(cmd, cmd_objs, sizeof(cmd_objs) / sizeof(rvd_json_object_t)) != 0) {
-		RVD_DEBUG_ERR("CMD: Couln't parse command '%s'", cmd);
-		return RVD_RESP_INVALID_CMD;
+	if (cod_json_parse(cmd, cmd_objs, sizeof(cmd_objs) / sizeof(cod_json_object_t)) != 0) {
+		COD_DEBUG_ERR("CMD: Couln't parse command '%s'", cmd);
+		return COD_RESP_INVALID_CMD;
 	}
 
 	switch (cmd_code) {
-	case RVD_CMD_CONNECT:
+	case COD_CMD_CONNECT:
 		resp_code = process_cmd_connect(cmd_proc, cmd_param, *json_format, resp_data);
 		break;
 
-	case RVD_CMD_DISCONNECT:
+	case COD_CMD_DISCONNECT:
 		resp_code = process_cmd_disconnect(cmd_proc, cmd_param, *json_format, resp_data);
 		break;
 
-	case RVD_CMD_RECONNECT:
+	case COD_CMD_RECONNECT:
 		resp_code = process_cmd_reconnect(cmd_proc, cmd_param, *json_format, resp_data);
 		break;
 
-	case RVD_CMD_STATUS:
+	case COD_CMD_STATUS:
 		resp_code = process_cmd_status(cmd_proc, cmd_param, *json_format, resp_data);
 		break;
 
-	case RVD_CMD_SCRIPT_SECURITY:
+	case COD_CMD_SCRIPT_SECURITY:
 		resp_code = process_cmd_script_security(cmd_proc, cmd_param);
 		break;
 
-	case RVD_CMD_GET_CONFDIR:
+	case COD_CMD_GET_CONFDIR:
 		resp_code = process_cmd_get_confdir(cmd_proc, resp_data);
 		break;
 
@@ -413,17 +413,17 @@ static int process_cmd(rvd_cmd_proc_t *cmd_proc, const char *cmd,
 }
 
 /*
- * rvd command proc thread
+ * cryptoded command proc thread
  */
 
-static void *rvd_cmd_proc(void *p)
+static void *cod_cmd_proc(void *p)
 {
-	rvd_cmd_proc_t *cmd_proc = (rvd_cmd_proc_t *) p;
+	cod_cmd_proc_t *cmd_proc = (cod_cmd_proc_t *) p;
 
 	fd_set fds;
 	int max_fd = cmd_proc->listen_sock;
 
-	RVD_DEBUG_MSG("CMD: Starting rvd command processing thread");
+	COD_DEBUG_MSG("CMD: Starting cryptoded command processing thread");
 
 	/* set fdset */
 	FD_ZERO(&fds);
@@ -445,7 +445,7 @@ static void *rvd_cmd_proc(void *p)
 		/* I/O polling */
 		ret = select(max_fd + 1, &tmp_fds, NULL, NULL, &tv);
 		if (ret < 0) {
-			RVD_DEBUG_ERR("CMD: Failed async select I/O multiplexing.(err:%d) Exiting...", errno);
+			COD_DEBUG_ERR("CMD: Failed async select I/O multiplexing.(err:%d) Exiting...", errno);
 			exit(-1);
 		}
 
@@ -460,7 +460,7 @@ static void *rvd_cmd_proc(void *p)
 				do {
 					clnt_fd = accept(cmd_proc->listen_sock, NULL, NULL);
 					if (clnt_fd < 0 && errno != EWOULDBLOCK) {
-						RVD_DEBUG_ERR("CMD: Failed accepting connection request.(err:%d)", errno);
+						COD_DEBUG_ERR("CMD: Failed accepting connection request.(err:%d)", errno);
 						break;
 					}
 
@@ -473,12 +473,12 @@ static void *rvd_cmd_proc(void *p)
 				} while (clnt_fd == -1);
 			} else {
 				do {
-					char cmd_buf[RVD_MAX_CMD_LEN + 1];
+					char cmd_buf[COD_MAX_CMD_LEN + 1];
 					bool failed = false;
 
 					/* get command */
 					memset(cmd_buf, 0, sizeof(cmd_buf));
-					ret = recv(i, cmd_buf, RVD_MAX_CMD_LEN, 0);
+					ret = recv(i, cmd_buf, COD_MAX_CMD_LEN, 0);
 					if (ret > 0) {
 						char *resp_data = NULL;
 						int resp_code;
@@ -519,7 +519,7 @@ static void *rvd_cmd_proc(void *p)
 		}
 	}
 
-	RVD_DEBUG_MSG("CMD: rvd command processing thread stopped");
+	COD_DEBUG_MSG("CMD: cryptoded command processing thread stopped");
 
 	return 0;
 }
@@ -528,15 +528,15 @@ static void *rvd_cmd_proc(void *p)
  * initialize command proc
  */
 
-int rvd_cmd_proc_init(struct rvd_ctx *c)
+int cod_cmd_proc_init(struct cod_ctx *c)
 {
-	rvd_cmd_proc_t *cmd_proc = &c->cmd_proc;
+	cod_cmd_proc_t *cmd_proc = &c->cmd_proc;
 	int listen_sock;
 
-	RVD_DEBUG_MSG("CMD: Initializing rvd command processor");
+	COD_DEBUG_MSG("CMD: Initializing cryptoded command processor");
 
 	/* init command processor object */
-	memset(cmd_proc, 0, sizeof(rvd_cmd_proc_t));
+	memset(cmd_proc, 0, sizeof(cod_cmd_proc_t));
 
 	/* create listening unix domain socket */
 	listen_sock = create_listen_socket(&c->opt);
@@ -545,7 +545,7 @@ int rvd_cmd_proc_init(struct rvd_ctx *c)
 
 	/* set socket as non blocking mode */
 	if (set_non_blocking(listen_sock) != 0) {
-		RVD_DEBUG_ERR("CMD: Couldn't set socket in non-blocking mode(err:%d)", errno);
+		COD_DEBUG_ERR("CMD: Couldn't set socket in non-blocking mode(err:%d)", errno);
 		close(listen_sock);
 
 		return -1;
@@ -553,8 +553,8 @@ int rvd_cmd_proc_init(struct rvd_ctx *c)
 
 	/* create thread for command process */
 	cmd_proc->c = c;
-	if (pthread_create(&cmd_proc->pt_cmd_proc, NULL, rvd_cmd_proc, (void *) cmd_proc) != 0) {
-		RVD_DEBUG_ERR("CMD: Couldn't create command processor thread(err:%d)", errno);
+	if (pthread_create(&cmd_proc->pt_cmd_proc, NULL, cod_cmd_proc, (void *) cmd_proc) != 0) {
+		COD_DEBUG_ERR("CMD: Couldn't create command processor thread(err:%d)", errno);
 		close(listen_sock);
 
 		return -1;
@@ -576,13 +576,13 @@ int rvd_cmd_proc_init(struct rvd_ctx *c)
  * finalize command proc
  */
 
-void rvd_cmd_proc_finalize(rvd_cmd_proc_t *cmd_proc)
+void cod_cmd_proc_finalize(cod_cmd_proc_t *cmd_proc)
 {
 	/* check init flag */
 	if (!cmd_proc->init_flag)
 		return;
 
-	RVD_DEBUG_MSG("CMD: Finalizing rvd command processor");
+	COD_DEBUG_MSG("CMD: Finalizing cryptoded command processor");
 
 	/* set end flag */
 	cmd_proc->end_flag = true;
@@ -597,5 +597,5 @@ void rvd_cmd_proc_finalize(rvd_cmd_proc_t *cmd_proc)
 	close(cmd_proc->listen_sock);
 
 	/* remove socket */
-	unlink(RVD_LISTEN_SOCK_PATH);
+	unlink(COD_LISTEN_SOCK_PATH);
 }
