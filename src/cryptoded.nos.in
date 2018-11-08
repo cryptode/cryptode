@@ -160,7 +160,7 @@ config_option "log_directory" {
 	env = "CRYPTODED_LOG_DIR"
 	config = "global.log_directory"
 
-	default = "/var/log/cod"
+	default = "/var/log/cryptoded"
 }
 
 config_option "vpn_config_paths" {
