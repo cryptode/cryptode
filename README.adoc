@@ -1,19 +1,15 @@
-= RVC: the **R**elaxed **V**PN **C**lient
+= Cryptode: Cryptode protects you using a hidden path
 
-image:https://travis-ci.org/riboseinc/rvc.svg?branch=master["Build Status", link="https://travis-ci.org/riboseinc/rvc"]
-image:https://img.shields.io/coverity/scan/13269.svg["Coverity Scan", link="https://scan.coverity.com/projects/riboseinc-rvc"]
+image:https://travis-ci.org/riboseinc/cryptode.svg?branch=master["Build Status", link="https://travis-ci.org/riboseinc/cryptode"]
+image:https://img.shields.io/coverity/scan/13269.svg["Coverity Scan", link="https://scan.coverity.com/projects/riboseinc-cryptode"]
 
 
-RVC is a command-line driven OpenVPN client for macOS (Sierra and High
+Cryptode is a command-line driven OpenVPN client for macOS (Sierra and High
 Sierra) and (WIP: RHEL/CentOS 7 + Ubuntu) with two focus areas:
 
 * CLI usage for automation
 * Security for protection of your OpenVPN private keys + certificates
   and ensuring that only approved routes are added to your route table
-
-Don't get fooled by the word *Relaxed*. It is meant that you can relax
-when using RVC and not having to stress about your VPN private keys and
-certificates getting compromised.
 
 NOTE1: Let us know if you have any comments, suggestions for improvement,
 found a bug or identified a security vulnerability.
@@ -27,14 +23,14 @@ On macOS:
 
 [source,sh]
 ----
-brew tap riboseinc/rvc
-brew install rvc
-sudo /usr/local/bin/rvc_install.sh
+brew tap riboseinc/cryptode
+brew install cryptode
+sudo /usr/local/bin/cryptode_install.sh
 ----
 
 WARNING: **Remember to follow instructions given in the "caveats" section during `brew install`!**
 
-NOTE: Take a look at the https://github.com/riboseinc/homebrew-rvc[RVC
+NOTE: Take a look at the https://github.com/riboseinc/homebrew-cryptode[Cryptode
   homebrew formula] if you want to know more.
 
 
@@ -50,8 +46,8 @@ sudo yum install https://github.com/<TODO>
 
 [source,console]
 ----
-$ rvc
-Usage: rvc [options]
+$ cryptode
+Usage: cryptode [options]
     connect         <all|connection name>                                        : connect to a VPN with given name (default:all)
     disconnect      <all|connection name>                                        : disconnect VPN with given name (default:all)
     reconnect       <all|connection name>                                        : reconnect VPN with given name (default:all)
@@ -76,13 +72,13 @@ Add the OpenVPN configuration (a `.ovpn` file):
 
 [source,sh]
 ----
-sudo vi /opt/rvc/etc/vpn.d/vpn1.ovpn
+sudo vi /opt/cryptode/etc/vpn.d/vpn1.ovpn
 ----
 
 Example OpenVPN file (with empty `<cert>`, `<ca>` and `<key>`, these
 obviously needs to be in there when actually adding the VPN):
 
-.<RVC path>/etc/vpn.d/vpn1.ovpn
+.<Cryptode path>/etc/vpn.d/vpn1.ovpn
 [source]
 ----
 client
@@ -122,10 +118,10 @@ tls-version-min 1.2
 
 [source,sh]
 ----
-sudo vi /opt/rvc/etc/vpn.d/vpn1.noc
+sudo vi /opt/cryptode/etc/vpn.d/vpn1.noc
 ----
 
-.<RVC path>/etc/vpn.d/vpn1.noc
+.<Cryptode path>/etc/vpn.d/vpn1.noc
 [source]
 ----
 {
@@ -139,29 +135,29 @@ Set the correct permissions on both files:
 
 [source,sh]
 ----
-sudo chmod 500 /opt/rvc/etc/vpn.d/vpn1.ovpn
-sudo chmod 500 /opt/rvc/etc/vpn.d/vpn1.noc
+sudo chmod 500 /opt/cryptode/etc/vpn.d/vpn1.ovpn
+sudo chmod 500 /opt/cryptode/etc/vpn.d/vpn1.noc
 ----
 
 After adding the new VPN called `vpn1` by adding the `.ovpn` + `.noc` files
-to `<RVC path>/etc/vpn.d` you need to reload `rvd`.
+to `<Cryptode path>/etc/vpn.d` you need to reload `cryptoded`.
 
-Reload `rvd`:
+Reload `cryptoded`:
 
 [source,console]
 ----
-$ sudo rvc reload
-Sending reload signal to rvd process '3667' has succeeded.
+$ sudo cryptode reload
+Sending reload signal to cryptoded process '3667' has succeeded.
 ----
 
 Check status:
 
 [source,console]
 ----
-$ rvc status vpn1
+$ cryptode status vpn1
 name: vpn1
 	config-status: NOC configuration exists
-	profile: /opt/rvc/etc/vpn.d/vpn1.ovpn
+	profile: /opt/cryptode/etc/vpn.d/vpn1.ovpn
 	status: DISCONNECTED
 	openvpn-status: DISCONNECTED
 	in-total: 0
@@ -179,10 +175,10 @@ name: vpn1
 
 [source,console]
 ----
-$ rvc connect vpn1
+$ cryptode connect vpn1
 name: vpn1
 	config-status: NOC configuration exists
-	profile: /opt/rvc/etc/vpn.d/vpn1.ovpn
+	profile: /opt/cryptode/etc/vpn.d/vpn1.ovpn
 	status: CONNECTING
 	openvpn-status: DISCONNECTED
 	in-total: 0
@@ -193,10 +189,10 @@ name: vpn1
 	pre-exec-status:
 	pre-exec-interval:
 
-$ rvc status vpn1
+$ cryptode status vpn1
 name: vpn1
 	config-status: NOC configuration exists
-	profile: /opt/rvc/etc/vpn.d/vpn1.ovpn
+	profile: /opt/cryptode/etc/vpn.d/vpn1.ovpn
 	status: CONNECTED
 	openvpn-status: CONNECTED
 	in-total: 2293
@@ -217,10 +213,10 @@ name: vpn1
 
 [source,console]
 ----
-$ rvc status vpn1
+$ cryptode status vpn1
 name: vpn1
 	config-status: NOC configuration exists
-	profile: /opt/rvc/etc/vpn.d/vpn1.ovpn
+	profile: /opt/cryptode/etc/vpn.d/vpn1.ovpn
 	status: CONNECTED
 	openvpn-status: CONNECTED
 	in-total: 3036
@@ -241,10 +237,10 @@ name: vpn1
 
 [source,console]
 ----
-$ rvc disconnect vpn1
+$ cryptode disconnect vpn1
 name: vpn1
 	config-status: NOC configuration exists
-	profile: /opt/rvc/etc/vpn.d/vpn1.ovpn
+	profile: /opt/cryptode/etc/vpn.d/vpn1.ovpn
 	status: DISCONNECTING
 	openvpn-status: CONNECTED
 	in-total: 3226
@@ -255,10 +251,10 @@ name: vpn1
 	pre-exec-status:
 	pre-exec-interval:
 
-$ rvc status vpn1
+$ cryptode status vpn1
 name: vpn1
 	config-status: NOC configuration exists
-	profile: /opt/rvc/etc/vpn.d/vpn1.ovpn
+	profile: /opt/cryptode/etc/vpn.d/vpn1.ovpn
 	status: DISCONNECTED
 	openvpn-status: DISCONNECTED
 	in-total: 3226
@@ -274,42 +270,42 @@ name: vpn1
 
 == Structure
 
-RVC has the following structure:
+Cryptode has the following structure:
 
-* `<RVC path>/bin/rvd`: the daemon that is responsible for starting and
+* `<Cryptode path>/bin/cryptoded`: the daemon that is responsible for starting and
   stopping VPN connections
-* `<RVC path>/bin/rvc`: the client that is used to make `rvd`
+* `<Cryptode path>/bin/cryptode`: the client that is used to make `cryptoded`
   connect/disconnect to VPNs
-* `<RVC path>/etc/rvd.conf`: the main configuration file for `rvd`
-* `<RVC path>/etc/vpn.d`: the directory in which `.ovpn` and `.noc` files are
+* `<Cryptode path>/etc/cryptoded.conf`: the main configuration file for `cryptoded`
+* `<Cryptode path>/etc/vpn.d`: the directory in which `.ovpn` and `.noc` files are
   stored
-* `/var/run/rvd`: the socket that `rvc` uses to communicate with `rvd`
-* `/var/log/rvd/rvd.log`: the log file from `rvd`, use this for
+* `/var/run/cryptoded`: the socket that `cryptode` uses to communicate with `cryptoded`
+* `/var/log/cryptoded/cryptoded.log`: the log file from `cryptoded`, use this for
   troubleshooting
 
 Mandatory VPN configuration files:
 
-* `<RVC path>/etc/vpn.d/<vpn>.ovpn`: the OpenVPN file that contains the
+* `<Cryptode path>/etc/vpn.d/<vpn>.ovpn`: the OpenVPN file that contains the
   configuration of the VPN, private key, client certificate and CA
   certificate
 
 Optional VPN configuration files:
 
-* `<RVC path>/etc/vpn.d/<vpn>.noc`: the `rvd` configuration of this
+* `<Cryptode path>/etc/vpn.d/<vpn>.noc`: the `cryptoded` configuration of this
   particular VPN
 
 VPN log files:
 
-* `/var/log/rvd/<vpn>.ovpn.log`: VPN log file
+* `/var/log/cryptoded/<vpn>.ovpn.log`: VPN log file
 
 
 === Platform Specific Paths and Dependencies: macOS
 
-RVC path::
-  `/opt/rvc`
+Cryptode path::
+  `/opt/cryptode`
 
-`launchd` `rvd` plist::
-  `/Library/LaunchDaemons/com.ribose.rvd.plist`
+`launchd` `cryptoded` plist::
+  `/Library/LaunchDaemons/com.ribose.cryptoded.plist`
 
 Dependencies:
 
@@ -319,11 +315,11 @@ Dependencies:
 
 === Platform Specific Paths and Dependencies: RHEL/CentOS
 
-RVC path::
+Cryptode path::
   `/usr/local`
 
 `systemd` unit file::
-  `/lib/systemd/system/rvd.service`
+  `/lib/systemd/system/cryptoded.service`
 
 Dependencies:
 
@@ -332,20 +328,20 @@ Dependencies:
 
 == Configuration
 
-RVC has HCL-based configuration format which is parsed by https://github.com/riboseinc/libnereon[libnereon]
+Cryptode has HCL-based configuration format which is parsed by https://github.com/riboseinc/libnereon[libnereon]
 
 === Global Configuration
 
-The `<RVC path>/etc/rvd.conf` configuration file looks like this on macOS:
+The `<Cryptode path>/etc/cryptoded.conf` configuration file looks like this on macOS:
 
-.<RVC path>/etc/rvd.conf
+.<Cryptode path>/etc/cryptoded.conf
 [source]
 ----
 global {
   user_id = 501
   restrict_socket = true
-  log_directory = "/var/log/rvd"
-  vpn_config_paths = "/opt/rvc/etc/vpn.d"
+  log_directory = "/var/log/cryptoded"
+  vpn_config_paths = "/opt/cryptode/etc/vpn.d"
 }
 
 openvpn {
@@ -363,13 +359,13 @@ openvpn {
 +
 NOTE: On macOS OpenVPN will be most likely installed by `brew` in
   `/usr/local/sbin` and for security purposes therefore must be copied
-  to `/opt/openvpn/sbin`. If you wish to have `rvd` use the OpenVPN
+  to `/opt/openvpn/sbin`. If you wish to have `cryptoded` use the OpenVPN
   executable in `/usr/local/sbin` then you can, **but this is not
   advised as a local attacker typically can replace anything in `/usr/local/`**.
 
 `openvpn_root_check`::
-  `rvd` can perform a check whether the OpenVPN executable is owned by
-  root. On macOS `rvd` will expect OpenVPN to live in
+  `cryptoded` can perform a check whether the OpenVPN executable is owned by
+  root. On macOS `cryptoded` will expect OpenVPN to live in
   `/opt/openvpn/sbin` which must be owned by root. In case you want to
   use the OpenVPN executable in another directory such as
   `/usr/local/bin` then you can disable this check, **but this is not
@@ -378,26 +374,26 @@ NOTE: On macOS OpenVPN will be most likely installed by `brew` in
 `ovpn_up_down_scripts`::
   OpenVPN allows to run up and down scripts to set routes and perform
   MFA actions. By default this behaviour is disabled and up scripts are
-  handled by `rvd` on a per VPN basis with the `pre-connect-exec`
+  handled by `cryptoded` on a per VPN basis with the `pre-connect-exec`
   statement in the VPN .noc file. **It is not advised to enable the
   `ovpn_up_down_scripts` globally unless you really need this and know
   what you are doing.**
 
 `user_id`::
-  this is the UID of the unprivileged user `rvd` will execute
-  `pre-connect-exec` scripts as. Also the socket of `rvd` will only be
+  this is the UID of the unprivileged user `cryptoded` will execute
+  `pre-connect-exec` scripts as. Also the socket of `cryptoded` will only be
   writable to by this UID.
 
 `restrict_socket`::
-  `rvd` by default only accepts `rvc` socket connections from the UID
+  `cryptoded` by default only accepts `cryptode` socket connections from the UID
   set in `user_id`. This is to prevent access to your VPN connections on
   multi-user systems. **Disabling this restriction is not advised.**
 
 `log`::
-  this is the log file `rvd` will write to.
+  this is the log file `cryptoded` will write to.
 
 `vpn_config_paths`::
-  `rvd` stores OpenVPN files on macOS in `/opt/rvc/etc/vpn.d` and on
+  `cryptoded` stores OpenVPN files on macOS in `/opt/cryptode/etc/vpn.d` and on
   RHEL/CentOS in `/usr/local/etc/vpn.d/`.
 
 This file is **mandatory**.
@@ -405,9 +401,9 @@ This file is **mandatory**.
 
 === Per-VPN Configuration
 
-Example `rvd` configuration for a VPN: `<RVC path>/etc/vpn.d/vpn1.noc`.
+Example `cryptoded` configuration for a VPN: `<Cryptode path>/etc/vpn.d/vpn1.noc`.
 
-.<RVC path>/etc/vpn.d/vpn1.noc
+.<Cryptode path>/etc/vpn.d/vpn1.noc
 [source]
 ----
 {
@@ -422,7 +418,7 @@ This file is **optional**.
 
 `auto-connect`::
   Set this to `true` when you want to automatically connect to a VPN
-  when `rvd` starts. This is useful when you have Jenkins slaves auto
+  when `cryptoded` starts. This is useful when you have Jenkins slaves auto
   connecting to VPNs upon boot.
 
 `pre-connect-exec`::
@@ -440,7 +436,7 @@ to run.
 
 == Security Architecture And Considerations
 
-The architecture of RVC is designed to be seamlessly used and managed
+The architecture of Cryptode is designed to be seamlessly used and managed
 from the command line, but kept as secure as possible.
 
 You need `sudo` for operations that require access to root owned
@@ -448,7 +444,7 @@ directories and files.
 
 NOTE: macOS clients are typically GUI based and require you to enter a
 password every time you want to change something. This approach makes it
-impossible to automate VPN management and operation. RVC is created
+impossible to automate VPN management and operation. Cryptode is created
 to fix this for macOS OpenVPN connection management.
 
 
@@ -460,105 +456,105 @@ to fix this for macOS OpenVPN connection management.
 +-+---------------+
   |
   v
-+--------------------+  +-main configuration------+
-| <RVC path>/bin/rvd +->| <RVC path>/etc/rvd.conf |
-+-+----+-------------+  +-------------------------+
++----------------------------------+  +-main configuration--------------+
+| <Cryptode path>/bin/cryptoded +->| <Cryptode path>/etc/cryptoded.conf |
++-+----+---------------------------+  +---------------------------------+
   |
-  |        +-rvd VPN configuration file------+
-  |     +->| <RVC path>/etc/vpn.d/<vpn>.noc |
-  |     |  +---------------------------------+
+  |        +-cryptoded VPN configuration file----+
+  |     +->| <Cryptode path>/etc/vpn.d/<vpn>.noc |
+  |     |  +-------------------------------------+
   +-----+
-  |     |  +-OpenVPN configuration file------+
-  |     +->| <RVC path>/etc/vpn.d/<vpn>.ovpn |<-+
-  |        +---------------------------------+  |
-  |                                             |
-  |      +-rvd log--------------+          +----+
-  +----->| /var/log/rvd/rvd.log |          |
-  |      +----------------------+          |
-  |                                        |
-  |      +-OpenVPN started by rvd----------+-------------------------------+
-  +----->| <OpenVPN path>/openvpn --config <RVC path>/etc/vpn.d/<vpn>.ovpn |
-  |      +                        --log-append /var/log/rvd/<vpn>.ovpn.log |
-  |      +-------------------------------------+---------------------------+
+  |     |  +-OpenVPN configuration file-----------+
+  |     +->| <Cryptode path>/etc/vpn.d/<vpn>.ovpn |<-+
+  |        +--------------------------------------+  |
+  |                                                  |
+  |      +-cryptoded log--------------------+        +----+
+  +----->| /var/log/cryptoded/cryptoded.log |        |
+  |      +----------------------------------+        |
+  |                                         |
+  |      +-OpenVPN started by cryptoded----------+-------------------------------+
+  +----->| <OpenVPN path>/openvpn --config <Cryptode path>/etc/vpn.d/<vpn>.ovpn  |
+  |      +                        --log-append /var/log/cryptoded/<vpn>.ovpn.log |
+  |      +-------------------------------------+---------------------------------+
   |                                            |
-  |                        +-------------------+
-  |                        |
-  |      +-socket-------+  |  +-VPN log file----------------+
-  +----->| /var/run/rvd |  +->| /var/log/rvd/<vpn>.ovpn.log |
-         +--------------+     +-----------------------------+
+  |                              +-------------+
+  |                              |
+  |      +-socket-------------+  |  +-VPN log file----------------------+
+  +----->| /var/run/cryptoded |  +->| /var/log/cryptoded/<vpn>.ovpn.log |
+         +--------------------+     +-----------------------------------+
            ^
            |
-+----------+---------+
-| <RVC path>/bin/rvc +
-+--------------------+
++----------+-------------------+
+| <Cryptode path>/bin/cryptode +
++------------------------------+
 ----
 
 
-=== RVD Binary Ownership
+=== Cryptoded Binary Ownership
 
-`rvd` is owned by `root:wheel` and has the following permissions:
-`-r-x------`. `rvd` is meant to be only executed by `launchd` or
-`systemd`. So don't start it manually. Upon starting `rvd` will create a
-socket in `/var/run/rvd` which will be writable only by a predefined
-userid that is set in `<RVC path>/etc/rvd.conf`.
+`cryptoded` is owned by `root:wheel` and has the following permissions:
+`-r-x------`. `cryptoded` is meant to be only executed by `launchd` or
+`systemd`. So don't start it manually. Upon starting `cryptoded` will create a
+socket in `/var/run/cryptoded` which will be writable only by a predefined
+userid that is set in `<Cryptode path>/etc/cryptoded.conf`.
 
 It looks like this:
 
 [source,console]
 ----
-$ ls -la /var/run/rvd
-srw-------  1 test  wheel  0 Sep 19 15:52 /var/run/rvd
+$ ls -la /var/run/cryptoded
+srw-------  1 test  wheel  0 Sep 19 15:52 /var/run/cryptoded
 $ id test
 uid=501(test) gid=20(staff) groups=20(staff),401(com.apple.sharepoint.group.1),12(everyone),61(localaccounts),79(_appserverusr),80(admin),81(_appserveradm),98(_lpadmin),501(access_bpf),701(com.apple.sharepoint.group.3),33(_appstore),100(_lpoperator),204(_developer),395(com.apple.access_ftp),398(com.apple.access_screensharing),399(com.apple.access_ssh),402(com.apple.sharepoint.group.2)
 ----
 
 
-=== RVC Binary Ownerships
+=== Cryptode Binary Ownerships
 
-`rvc` is owned by `root:wheel` and has the following permissions:
-`-r-xr-xr-x`. `rvc` can be executed by any user but the socket `rvc`
+`cryptode` is owned by `root:wheel` and has the following permissions:
+`-r-xr-xr-x`. `cryptode` can be executed by any user but the socket `cryptode`
 connects to can only be written to a predefined userid. This restricts
 the connecting/disconnecting of VPNs to a single userid. Sending a
-`reload` signal to `rvd` using `rvc` requires `sudo`.
+`reload` signal to `cryptoded` using `cryptode` requires `sudo`.
 
-On macOS Brew and/or a manual `make install` installs `rvc` to
+On macOS Brew and/or a manual `make install` installs `cryptode` to
 `/usr/local/bin`, you **MUST** follow the instructions to install the
-executables in `/opt/rvc/bin` using `rvc_install.sh`.
+executables in `/opt/cryptode/bin` using `cryptode_install.sh`.
 
-`rvc` performs a check whether it is executed from `/opt/rvc/bin` or
+`cryptode` performs a check whether it is executed from `/opt/cryptode/bin` or
 not. If it isn't then it will exit. This will force you to put
-`/opt/rvc/bin` in the beginning of your `PATH`. This is to prevent you
-from running `sudo` on a backdoored `rvc` that was placed in
+`/opt/cryptode/bin` in the beginning of your `PATH`. This is to prevent you
+from running `sudo` on a backdoored `cryptode` that was placed in
 `/usr/local/bin` by a local attacker.
 
 
 === OpenVPN Files
 
-OpenVPN configuration files are stored in `<RVC path>/etc/vpn.d` which
+OpenVPN configuration files are stored in `<Cryptode path>/etc/vpn.d` which
 is owned by `root:wheel` and has `drwxr-xr-x` permissions.
 
 The per-connection OpenVPN files are stored as
-`<RVC path>/etc/vpn.d/<vpn>.ovpn`, owned by `root:wheel` and have
+`<Cryptode path>/etc/vpn.d/<vpn>.ovpn`, owned by `root:wheel` and have
 `-rw-------` permissions.
 
-The `rvd` VPN configuration are stored as
-`<RVC path>/etc/vpn.d/<vpn>.noc`, owned by `root:wheel` and have
+The `cryptoded` VPN configuration are stored as
+`<Cryptode path>/etc/vpn.d/<vpn>.noc`, owned by `root:wheel` and have
 `-rw-------` permissions.
 
 This strict permission and owner scheme is to prevent your private keys
 being leaked and/or your VPN configurations modified by a local
 attacker.
 
-If `rvd` were to be allowed to use *any* OpenVPN file then a local
+If `cryptoded` were to be allowed to use *any* OpenVPN file then a local
 attacker could potentially change the routes to the system's DNS servers
 to an attacker controlled IP.
 
-`rvd` *only* accepts OpenVPN files that are owned by `root` and are not
+`cryptoded` *only* accepts OpenVPN files that are owned by `root` and are not
 readable by `others`:
 
 [source,console]
 ----
-$ ls -la /opt/rvc/etc/vpn.d
+$ ls -la /opt/cryptode/etc/vpn.d
 total 144
 drwxr-xr-x  14 root  wheel   476 Sep 15 13:28 .
 drwxr-xr-x   4 root  wheel   136 Sep 15 16:48 ..
@@ -569,7 +565,7 @@ drwxr-xr-x   4 root  wheel   136 Sep 15 16:48 ..
 
 === Per-VPN Configuration
 
-VPNs do not not require a .noc `rvd` configuration file. By default
+VPNs do not not require a .noc `cryptoded` configuration file. By default
 VPN connections will not `auto-connect` and no `pre-connect-exec` will
 be executed.
 
@@ -578,10 +574,10 @@ be executed.
 
 VPNs can be configured that a script is executed before OpenVPN will
 connect. This is defined in `pre-connect-exec` in
-`<RVC path>/etc/vpn.d/<vpn>.noc`.
+`<Cryptode path>/etc/vpn.d/<vpn>.noc`.
 
-As `rvd` runs as `root` it will drop its root privileges to the UID
-defined with `user_id` in `<RVC path>/etc/rvd.conf`.
+As `cryptoded` runs as `root` it will drop its root privileges to the UID
+defined with `user_id` in `<Cryptode path>/etc/cryptoded.conf`.
 
 
 === Log Files
@@ -597,10 +593,10 @@ The following code in `src/vpn.c` is responsible for this:
 
 On macOS Brew installs OpenVPN in `/usr/local/sbin`. This allows a local
 attacker to replace the `openvpn` executable with something malicious.
-Therefore during installation of RVC a root-owned copy of `openvpn`
+Therefore during installation of Cryptode a root-owned copy of `openvpn`
 needs to be placed in `/opt/openvpn/sbin`.
 
-Upon start, `rvd` will perform the `root` check on the `openvpn`
+Upon start, `cryptoded` will perform the `root` check on the `openvpn`
 executable before it actually runs it.
 
 
@@ -619,9 +615,9 @@ Manual compilation and installation:
 
 [source,sh]
 ----
-git clone https://github.com/riboseinc/rvc
-cd rvc
+git clone https://github.com/riboseinc/cryptode
+cd cryptode
 ./build_macos.sh
 make install
-sudo /usr/local/bin/rvc_install.sh
+sudo /usr/local/bin/cryptode_install.sh
 ----

@@ -108,7 +108,7 @@ print_ovpn_log(const char *ovpn_profile_name)
 	char *buf;
 
 	/* allocate logging buffer */
-	snprintf(ovpn_log_path, sizeof(ovpn_log_path), "/var/log/cod/%s.ovpn.log", ovpn_profile_name);
+	snprintf(ovpn_log_path, sizeof(ovpn_log_path), "/var/log/cryptoded/%s.ovpn.log", ovpn_profile_name);
 	if (stat(ovpn_log_path, &st) != 0 || st.st_size == 0) {
 		fprintf(stderr, "Couldn't get stat of log file '%s'\n", ovpn_log_path);
 		return;

@@ -52,17 +52,17 @@
 #define COC_COPYRIGHT_MSG          "Copyright 2017 Ribose Inc <https://www.ribose.com>"
 
 /* cryptoded default command listen socket path */
-#define COD_LISTEN_SOCK_PATH       "/var/run/cod.sock"
+#define COD_LISTEN_SOCK_PATH       "/var/run/cryptoded.sock"
 
 /* cryptoded default log file path */
-#define COD_DEFAULT_LOGDIR_PATH    "/var/log/cod"
+#define COD_DEFAULT_LOGDIR_PATH    "/var/log/cryptoded"
 
 /* cryptoded default UID for writing to cryptoded socket */
 #define COD_DEFAULT_UID            501
 
 /* cryptoded pid file path */
-#define COD_PID_DPATH              "/var/run/cod"
-#define COD_PID_FPATH              "/var/run/cod/cod.pid"
+#define COD_PID_DPATH              "/var/run/cryptoded"
+#define COD_PID_FPATH              "/var/run/cryptoded/cryptoded.pid"
 
 /* cryptoded command codes */
 enum COD_CMD_CODE {
