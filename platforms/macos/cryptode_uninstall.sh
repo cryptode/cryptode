@@ -6,14 +6,14 @@ if [ "${UID}" -ne 0 ]; then
 	exit 1
 fi
 
-RVD_LAUNCHD_PLIST="/Library/LaunchDaemons/com.ribose.rvd.plist"
+CRYPTODED_LAUNCHD_PLIST="/Library/LaunchDaemons/com.ribose.cryptoded.plist"
 
-# unload rvd
-launchctl unload "${RVD_LAUNCHD_PLIST}" >/dev/null 2>&1
-rm -f "${RVD_LAUNCHD_PLIST}"
+# unload cryptoded
+launchctl unload "${CRYPTODED_LAUNCHD_PLIST}" >/dev/null 2>&1
+rm -f "${CRYPTODED_LAUNCHD_PLIST}"
 
 # remove log directory
-rm -rf /var/log/rvd
+rm -rf /var/log/cryptoded
 
-# remove /opt/rvc/bin and /opt/openvpn directory but keep /opt/rvc/etc to preserve any .ovpn files
-rm -rf /opt/rvc/bin /opt/openvpn
+# remove /opt/cryptode/bin and /opt/openvpn directory but keep /opt/cryptode/etc to preserve any .ovpn files
+rm -rf /opt/cryptode/bin /opt/openvpn

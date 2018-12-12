@@ -110,7 +110,7 @@ static int open_log_file(int backup)
 }
 
 /*
- * initialize rvd logging
+ * initialize cryptoded logging
  */
 
 int cod_log_init(const char *log_dir_path)
@@ -120,7 +120,7 @@ int cod_log_init(const char *log_dir_path)
 		return -1;
 
 	/* set path of log file */
-	get_full_path(log_dir_path, RVD_LOG_FILE_NAME, g_log_path, sizeof(g_log_path));
+	get_full_path(log_dir_path, CRYPTODED_LOG_FILE_NAME, g_log_path, sizeof(g_log_path));
 
 	/* open log file */
 	if (open_log_file(0) != 0)
@@ -136,7 +136,7 @@ int cod_log_init(const char *log_dir_path)
 }
 
 /*
- * finalize rvd logging
+ * finalize cryptoded logging
  */
 
 void cod_log_finalize(void)
@@ -195,7 +195,7 @@ void cod_debug_log(enum LOG_TYPE log_type, const char *file_name, int file_line,
 	pthread_mutex_lock(&g_log_mt);
 
 	/* check log file size */
-	if (!g_log_fp || g_log_fsize > RVD_MAX_LOG_FSIZE) {
+	if (!g_log_fp || g_log_fsize > CRYPTODED_MAX_LOG_FSIZE) {
 		open_log_file(1);
 		g_log_fsize = 0;
 	}

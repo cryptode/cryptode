@@ -279,7 +279,7 @@ parse_config_options(cod_options_t *opts, int argc, char **argv)
 	/* initialize libnereon context */
 	nos_cfg = get_cryptoded_nos_cfg();
 	if (nereon_ctx_init(&opts->nctx, nos_cfg) != 0) {
-		fprintf(stderr, "Failed to parse RVD NOS configuration\n");
+		fprintf(stderr, "Failed to parse CRYPTODED NOS configuration\n");
 		return -1;
 	}
 

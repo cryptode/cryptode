@@ -614,7 +614,7 @@ check_default_connect(void)
 	}
 
 	printf("response JSON buffer is %s\n", resp_buf);
-	if (json_object_object_get_ex(j_obj, "RvdConnectionStatus", &j_sub_obj) &&
+	if (json_object_object_get_ex(j_obj, "CryptodedConnectionStatus", &j_sub_obj) &&
 		json_object_object_get_ex(j_sub_obj, "state", &j_state_obj))
 		conn_status = strdup(json_object_get_string(j_state_obj));
 	else
@@ -682,14 +682,14 @@ check_preconn_cmd(void)
 		}
 
 		printf("response JSON buffer is %s\n", resp_buf);
-		if (json_object_object_get_ex(j_obj, "RvdConnectionStatus", &j_sub_obj) &&
+		if (json_object_object_get_ex(j_obj, "CryptodedConnectionStatus", &j_sub_obj) &&
 			json_object_object_get_ex(j_sub_obj, "state", &j_state_obj))
 			conn_status = strdup(json_object_get_string(j_state_obj));
 		else
 			fprintf(stderr, "Couldn't get 'status' field from json buffer '%s'\n", resp_buf);
 
 		pre_exec_status = i == 0 ? 0 : 1;
-		if (json_object_object_get_ex(j_obj, "RvdPreExec", &j_sub_obj) &&
+		if (json_object_object_get_ex(j_obj, "CryptodedPreExec", &j_sub_obj) &&
 			json_object_object_get_ex(j_sub_obj, "returnCode", &j_state_obj))
 			pre_exec_status = json_object_get_int(j_state_obj);
 		else
@@ -815,7 +815,7 @@ check_kill_ovpn(void)
 	}
 
 	printf("response JSON buffer is %s\n", resp_buf);
-	if (json_object_object_get_ex(j_obj, "RvdConnectionStatus", &j_sub_obj) &&
+	if (json_object_object_get_ex(j_obj, "CryptodedConnectionStatus", &j_sub_obj) &&
 		json_object_object_get_ex(j_sub_obj, "state", &j_state_obj))
 		conn_status = strdup(json_object_get_string(j_state_obj));
 	else
@@ -874,7 +874,7 @@ check_auto_connect(void)
 	}
 
 	printf("response JSON buffer is %s\n", resp_buf);
-	if (json_object_object_get_ex(j_obj, "RvdConnectionStatus", &j_sub_obj) &&
+	if (json_object_object_get_ex(j_obj, "CryptodedConnectionStatus", &j_sub_obj) &&
 		json_object_object_get_ex(j_sub_obj, "state", &j_state_obj))
 		conn_status = strdup(json_object_get_string(j_state_obj));
 	else

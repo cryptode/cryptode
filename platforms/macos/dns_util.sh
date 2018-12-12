@@ -6,8 +6,8 @@
 PRI_IFACE=`echo 'show State:/Network/Global/IPv4' | scutil | grep PrimaryInterface | sed -e 's/.*PrimaryInterface : //'`
 PRI_SERVICE=`echo 'show State:/Network/Global/IPv4' | scutil | grep PrimaryService | sed -e 's/.*PrimaryService : //'`
 
-CRYPTODE_DNS_SETTING_KEY="com.ribose.rvd:/DNSSetting"
-CRYPTODE_DNS_BACKUP_KEY="com.ribose.rvd:/DNSBackup"
+CRYPTODE_DNS_SETTING_KEY="com.ribose.cryptoded:/DNSSetting"
+CRYPTODE_DNS_BACKUP_KEY="com.ribose.cryptoded:/DNSBackup"
 
 # check root privilege
 if ! [ $(id -u) = 0 ]; then
