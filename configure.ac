@@ -1,5 +1,5 @@
 AC_PREREQ(2.60)
-AC_INIT([cryptode], [1.3.0], [https://cryptode.com])
+AC_INIT([cryptode], [1.3.1], [https://cryptode.com])
 AM_INIT_AUTOMAKE([foreign subdir-objects -Wall])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 AC_CONFIG_MACRO_DIR([m4])

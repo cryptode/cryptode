@@ -1,6 +1,11 @@
 
 # Changelog
 
+## [1.3.1] - 2018-12-14
+### Changed
+
+- Renamed `rvc` to `cryptode`, `rvd` to `cryptoded`
+
 ## [1.3.0] - 2018-11-08
 ### Changed
 
