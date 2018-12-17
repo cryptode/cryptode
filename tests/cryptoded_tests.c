@@ -624,7 +624,7 @@ check_default_connect(void)
 	json_object_put(j_obj);
 
 	if (!conn_status || strcmp(conn_status, "CONNECTED") != 0) {
-		fprintf(stderr, "Failed to test the case 'CHECK-DEFAULT-CONNECT'"
+		fprintf(stderr, "Failed to test the case 'CHECK-DEFAULT-CONNECT':"
 				"Connection status is %s\n", conn_status);
 		print_ovpn_log("test");
 		if (conn_status)
