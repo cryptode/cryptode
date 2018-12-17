@@ -1,6 +1,12 @@
 
 # Changelog
 
+## [1.3.1] - 2018-12-17
+### Changed
+
+- Fixed issues after renamed the project
+- Replace OpenVPN profiles for testing
+
 ## [1.3.0] - 2018-11-08
 ### Changed
 
