@@ -1219,18 +1219,18 @@ static void get_single_conn_status(struct coc_vpn_conn *vpn_conn, bool json_form
 			{"protocol", COD_JTYPE_STR, vpn_proto, 0, false, NULL},
 			{"ipVersion", COD_JTYPE_INT, &proto_ver, 0, false, NULL},
 
-			{"RvdConnectionStatus", COD_JTYPE_OBJ, NULL, 0, false, NULL},
-			{"state", COD_JTYPE_STR, g_cod_state[vpn_conn->conn_state].state_str, 0, false, "RvdConnectionStatus"},
-			{"ovpnState", COD_JTYPE_STR, g_ovpn_state[vpn_conn->ovpn_state].ovpn_state_str, 0, false, "RvdConnectionStatus"},
-			{"connectionTime", COD_JTYPE_STR, connected_time, 0, false, "RvdConnectionStatus"},
-			{"netIn", COD_JTYPE_INT64, &vpn_conn->curr_bytes_in, 0, false, "RvdConnectionStatus"},
-			{"netOut", COD_JTYPE_INT64, &vpn_conn->curr_bytes_out, 0, false, "RvdConnectionStatus"},
+			{"CryptodedConnectionStatus", COD_JTYPE_OBJ, NULL, 0, false, NULL},
+			{"state", COD_JTYPE_STR, g_cod_state[vpn_conn->conn_state].state_str, 0, false, "CryptodedConnectionStatus"},
+			{"ovpnState", COD_JTYPE_STR, g_ovpn_state[vpn_conn->ovpn_state].ovpn_state_str, 0, false, "CryptodedConnectionStatus"},
+			{"connectionTime", COD_JTYPE_STR, connected_time, 0, false, "CryptodedConnectionStatus"},
+			{"netIn", COD_JTYPE_INT64, &vpn_conn->curr_bytes_in, 0, false, "CryptodedConnectionStatus"},
+			{"netOut", COD_JTYPE_INT64, &vpn_conn->curr_bytes_out, 0, false, "CryptodedConnectionStatus"},
 
-			{"RvdPreExec", COD_JTYPE_OBJ, NULL, 0, false, NULL},
-			{"command", COD_JTYPE_STR, vpn_conn->config.pre_exec_cmd, 0, false, "RvdPreExec"},
-			{"interval", COD_JTYPE_INT, &vpn_conn->config.pre_exec_interval, 0, false, "RvdPreExec"},
-			{"userId", COD_JTYPE_INT, &vpn_conn->config.pre_exec_uid, 0, false, "RvdPreExec"},
-			{"returnCode", COD_JTYPE_INT, &vpn_conn->config.pre_exec_status, 0, false, "RvdPreExec"}
+			{"CryptodedPreExec", COD_JTYPE_OBJ, NULL, 0, false, NULL},
+			{"command", COD_JTYPE_STR, vpn_conn->config.pre_exec_cmd, 0, false, "CryptodedPreExec"},
+			{"interval", COD_JTYPE_INT, &vpn_conn->config.pre_exec_interval, 0, false, "CryptodedPreExec"},
+			{"userId", COD_JTYPE_INT, &vpn_conn->config.pre_exec_uid, 0, false, "CryptodedPreExec"},
+			{"returnCode", COD_JTYPE_INT, &vpn_conn->config.pre_exec_status, 0, false, "CryptodedPreExec"}
 		};
 
 		/* create json object */

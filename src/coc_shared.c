@@ -67,7 +67,7 @@
 static int g_sock;
 
 /*
- * rvc connection state strings
+ * cryptode connection state strings
  */
 
 struct cod_vpn_state {
@@ -83,11 +83,11 @@ struct cod_vpn_state {
 };
 
 /*
- * get process ID of rvd process
+ * get process ID of cryptoded process
  */
 
 static pid_t
-get_pid_of_rvd()
+get_pid_of_cryptoded()
 {
 	FILE *pid_fp;
 	pid_t pid = 0;
@@ -345,7 +345,7 @@ static int convert_tblk_to_ovpn(const char *conf_dir, const char *container_path
 	fclose(new_fp);
 	fclose(fp);
 
-	/* copy new profile to rvd configuratio directory */
+	/* copy new profile to cryptoded configuration directory */
 	if (ret == 0)
 		ret = copy_file_into_dir(conf_dir, new_ovpn_path, S_IRUSR | S_IWUSR);
 
@@ -481,10 +481,10 @@ static int parse_resp(const char *resp, char **resp_data)
 }
 
 /*
- * connect to rvd
+ * connect to cryptoded
  */
 
-static int connect_to_rvd(void)
+static int connect_to_cryptoded(void)
 {
 	struct sockaddr_un addr;
 
@@ -498,23 +498,23 @@ static int connect_to_rvd(void)
 	addr.sun_family = AF_UNIX;
 	strlcpy(addr.sun_path, COD_LISTEN_SOCK_PATH, sizeof(addr.sun_path));
 
-	/* connect to rvd */
+	/* connect to cryptoded */
 	return connect(g_sock, (struct sockaddr *) &addr, sizeof(struct sockaddr_un));
 }
 
 /*
- * send command to rvd daemon
+ * send command to cryptoded daemon
  */
 
-int send_cmd_to_rvd(int cmd_code, const char *param, int json_format, char **resp_data)
+int send_cmd_to_cryptoded(int cmd_code, const char *param, int json_format, char **resp_data)
 {
 	int ret;
 	char *resp;
 
-	/* connect to rvd daemon */
-	ret = connect_to_rvd();
+	/* connect to cryptoded daemon */
+	ret = connect_to_cryptoded();
 	if (ret != 0) {
-		fprintf(stderr, "Couldn't to connect to rvd(err:%d)\n", errno);
+		fprintf(stderr, "Couldn't to connect to cryptoded(err:%d)\n", errno);
 		return COD_RESP_SOCK_CONN;
 	}
 
@@ -535,7 +535,7 @@ int send_cmd_to_rvd(int cmd_code, const char *param, int json_format, char **res
 
 int coc_connect(const char *name, int json_format, char **conn_status)
 {
-	return send_cmd_to_rvd(COD_CMD_CONNECT, name, json_format, conn_status);
+	return send_cmd_to_cryptoded(COD_CMD_CONNECT, name, json_format, conn_status);
 }
 
 /*
@@ -544,7 +544,7 @@ int coc_connect(const char *name, int json_format, char **conn_status)
 
 int coc_disconnect(const char *name, int json_format, char **conn_status)
 {
-	return send_cmd_to_rvd(COD_CMD_DISCONNECT, name, json_format, conn_status);
+	return send_cmd_to_cryptoded(COD_CMD_DISCONNECT, name, json_format, conn_status);
 }
 
 /*
@@ -553,7 +553,7 @@ int coc_disconnect(const char *name, int json_format, char **conn_status)
 
 int coc_reconnect(const char *name, int json_format, char **conn_status)
 {
-	return send_cmd_to_rvd(COD_CMD_RECONNECT, name, json_format, conn_status);
+	return send_cmd_to_cryptoded(COD_CMD_RECONNECT, name, json_format, conn_status);
 }
 
 /*
@@ -562,7 +562,7 @@ int coc_reconnect(const char *name, int json_format, char **conn_status)
 
 int coc_get_status(const char *name, int json_format, char **conn_status)
 {
-	return send_cmd_to_rvd(COD_CMD_STATUS, name, json_format, conn_status);
+	return send_cmd_to_cryptoded(COD_CMD_STATUS, name, json_format, conn_status);
 }
 
 /*
@@ -571,22 +571,22 @@ int coc_get_status(const char *name, int json_format, char **conn_status)
 
 int coc_get_confdir(char **conf_dir)
 {
-	return send_cmd_to_rvd(COD_CMD_GET_CONFDIR, NULL, false, conf_dir);
+	return send_cmd_to_cryptoded(COD_CMD_GET_CONFDIR, NULL, false, conf_dir);
 }
 
 
 #ifdef ENABLE_STRICT_PATH
 
 /*
- * check whether rvc is located into desired installation directory
+ * check whether cryptode is located into desired installation directory
  */
 
 static const char *g_coc_allowed_paths[] = {
 #ifdef _DARWIN_C_SOURCE
-	"/opt/rvc/bin/rvc",
+	"/opt/cryptode/bin/cryptode",
 #else
-	"/usr/bin/rvc",
-	"/usr/local/bin/rvc",
+	"/usr/bin/cryptode",
+	"/usr/local/bin/cryptode",
 #endif
 	NULL
 };
@@ -618,7 +618,7 @@ static int check_coc_bin_path(void)
 #endif
 
 /*
- * pre-checks for running environment of rvc utility
+ * pre-checks for running environment of cryptode utility
  */
 
 static int pre_check_running_env(void)
@@ -630,12 +630,12 @@ static int pre_check_running_env(void)
 	}
 
 #ifdef ENABLE_STRICT_PATH
-	/* check rvc binrary path */
+	/* check cryptode binrary path */
 	if (check_coc_bin_path() != 0) {
 #ifdef _DARWIN_C_SOURCE
-		fprintf(stderr, "Wrong path, rvc needs to be installed in '/opt/rvc/bin'\n");
+		fprintf(stderr, "Wrong path, cryptode needs to be installed in '/opt/cryptode/bin'\n");
 #else
-		fprintf(stderr, "Wrong path, rvc needs to be installed in '/usr/bin' or '/usr/local/bin'\n");
+		fprintf(stderr, "Wrong path, cryptode needs to be installed in '/usr/bin' or '/usr/local/bin'\n");
 #endif
 		return COD_RESP_ERR_WRONG_COC_PATH;
 	}
@@ -650,27 +650,27 @@ static int pre_check_running_env(void)
 
 int coc_reload(void)
 {
-	pid_t pid_rvd;
+	pid_t pid_cryptoded;
 	int ret;
 
-	/* pre-checking for running enviroment of rvc */
+	/* pre-checking for running environment of cryptode */
 	ret = pre_check_running_env();
 	if (ret != 0)
 		return ret;
 
-	/* get process ID of rvd */
-	pid_rvd = get_pid_of_rvd();
-	if (pid_rvd <= 0) {
-		fprintf(stderr, "The rvd process isn't running.\n");
+	/* get process ID of cryptoded */
+	pid_cryptoded = get_pid_of_cryptoded();
+	if (pid_cryptoded <= 0) {
+		fprintf(stderr, "The cryptoded process isn't running.\n");
 		return COD_RESP_COD_NOT_RUNNING;
 	}
 
 	/* send SIGUSR1 signal */
-	if (kill(pid_rvd, SIGUSR1) < 0) {
-		fprintf(stderr, "Couldn't to send SIGUSR1 signal to rvd process.(err:%d)\n", errno);
+	if (kill(pid_cryptoded, SIGUSR1) < 0) {
+		fprintf(stderr, "Couldn't to send SIGUSR1 signal to cryptoded process.(err:%d)\n", errno);
 		return COD_RESP_SEND_SIG;
 	} else
-		fprintf(stderr, "Sending reload signal to rvd process '%d' has succeeded.\n", pid_rvd);
+		fprintf(stderr, "Sending reload signal to cryptoded process '%d' has succeeded.\n", pid_cryptoded);
 
 	return COD_RESP_OK;
 }
@@ -684,14 +684,14 @@ int coc_import(int import_type, const char *import_path)
 	char *conf_dir = NULL;
 	int ret;
 
-	/* pre-checking for running enviroment of rvc */
+	/* pre-checking for running environment of cryptode */
 	ret = pre_check_running_env();
 	if (ret != 0)
 		return ret;
 
 	/* get configuration directory path */
 	if (coc_get_confdir(&conf_dir) != 0) {
-		fprintf(stderr, "Couldn't get the configuration directory of rvd\n");
+		fprintf(stderr, "Couldn't get the configuration directory of cryptoded\n");
 		if (conf_dir)
 			free(conf_dir);
 		return COD_RESP_INVALID_CONF_DIR;
@@ -736,7 +736,7 @@ int coc_import(int import_type, const char *import_path)
 			return COD_RESP_IMPORT_EXIST_PROFILE;
 		}
 
-		/* copy files into rvd config directory */
+		/* copy files into cryptoded config directory */
 		if (copy_file_into_dir(conf_dir, import_path, S_IRUSR | S_IWUSR) != 0) {
 			fprintf(stderr, "Couldn't copy file '%s' into '%s'\n", import_path, conf_dir);
 			free(conf_dir);
@@ -832,7 +832,7 @@ int coc_edit(const char *conn_name, enum COC_VPNCONN_OPTION opt_type, const char
 	struct coc_vpnconn_status vpnconn_status;
 	int ret;
 
-	/* pre-checking for running enviroment of rvc */
+	/* pre-checking for running environment of cryptode */
 	ret = pre_check_running_env();
 	if (ret != 0)
 		return ret;
@@ -855,7 +855,7 @@ int coc_edit(const char *conn_name, enum COC_VPNCONN_OPTION opt_type, const char
 
 	/* get configuration directory path */
 	if (coc_get_confdir(&conf_dir) != 0) {
-		fprintf(stderr, "Couldn't get the configuration directory of rvd\n");
+		fprintf(stderr, "Couldn't get the configuration directory of cryptoded\n");
 
 		if (conf_dir)
 			free(conf_dir);
@@ -920,7 +920,7 @@ int coc_remove(const char *conn_name, int force)
 	struct coc_vpnconn_status vpnconn_status;
 	int ret;
 
-	/* pre-checking for running enviroment of rvc */
+	/* pre-checking for running environment of cryptode */
 	ret = pre_check_running_env();
 	if (ret != 0)
 		return ret;
@@ -938,7 +938,7 @@ int coc_remove(const char *conn_name, int force)
 	/* remove profile connection */
 	unlink(vpnconn_status.ovpn_profile_path);
 
-	/* reload rvd */
+	/* reload cryptoded */
 	return coc_reload();
 }
 
@@ -950,14 +950,14 @@ static int check_dns_util_path()
 {
 	/* check whether dns utility is exist */
 	if (!is_exist_path(COC_DNS_UTIL_PATH, 0)) {
-		fprintf(stderr, "No exist rvc DNS utility '%s'\n", COC_DNS_UTIL_PATH);
+		fprintf(stderr, "No exist cryptode DNS utility '%s'\n", COC_DNS_UTIL_PATH);
 		return COD_RESP_NO_EXIST_DNS_UTIL;
 	}
 
-	/* check whether rvc utility is exist and valid permission */
+	/* check whether cryptode utility is exist and valid permission */
 	if (!is_valid_permission(COC_DNS_UTIL_PATH, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH) ||
 		!is_owned_by_user(COC_DNS_UTIL_PATH, "root")) {
-		fprintf(stderr, "rvc DNS utility '%s' has wrong owner or permission.\n", COC_DNS_UTIL_PATH);
+		fprintf(stderr, "cryptode DNS utility '%s' has wrong owner or permission.\n", COC_DNS_UTIL_PATH);
 		return COD_RESP_WRONG_PERMISSION;
 	}
 
@@ -973,7 +973,7 @@ int coc_dns_override(int enabled, const char *dns_ip_list)
 	char cmd[512];
 	int ret;
 
-	/* pre-checking for running enviroment of rvc */
+	/* pre-checking for running environment of cryptode */
 	ret = pre_check_running_env();
 	if (ret != 0)
 		return ret;
@@ -1006,7 +1006,7 @@ int coc_dns_print(void)
 	char cmd[COD_MAX_PATH];
 	int ret;
 
-	/* pre-checking for running enviroment of rvc */
+	/* pre-checking for running environment of cryptode */
 	ret = pre_check_running_env();
 	if (ret != 0)
 		return ret;
