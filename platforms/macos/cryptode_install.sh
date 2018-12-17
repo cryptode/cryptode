@@ -17,48 +17,48 @@ BASEDIR=$(dirname "$0")
 BUILD_PACKAGE=0
 
 if [ "${BASEDIR}" == "/usr/local/bin" ]; then
-	RVC_DATA_DIR="/usr/local"
+	CRYPTODE_DATA_DIR="/usr/local"
 else
-	RVC_DATA_DIR="/tmp/rvc.dist"
+	CRYPTODE_DATA_DIR="/tmp/cryptode.dist"
 	BUILD_PACKAGE=1
 fi
 
-TARGET_PREFIX="/opt/rvc"
+TARGET_PREFIX="/opt/cryptode"
 OPT_OPENVPN="/opt/openvpn"
-RVD_PLIST_NAME="com.ribose.rvd.plist"
+CRYPTODED_PLIST_NAME="com.ribose.cryptoded.plist"
 LAUNCHD="/Library/LaunchDaemons"
 
 # install files
 install -d -g wheel -m 755 -o root "${TARGET_PREFIX}/bin" "${TARGET_PREFIX}/etc/vpn.d" "${OPT_OPENVPN}/sbin"
 
-install -m 500 -g wheel -o root "${RVC_DATA_DIR}/bin/rvd" "${TARGET_PREFIX}/bin"
-install -m 555 -g wheel -o root "${RVC_DATA_DIR}/bin/rvc" "${TARGET_PREFIX}/bin"
-install -m 500 -g wheel -o root "${RVC_DATA_DIR}/bin/dns_util.sh" "${TARGET_PREFIX}/bin"
-install -m 600 -g wheel -o root "${RVC_DATA_DIR}/etc/rvd.conf" "${TARGET_PREFIX}/etc"
+install -m 500 -g wheel -o root "${CRYPTODE_DATA_DIR}/bin/cryptoded" "${TARGET_PREFIX}/bin"
+install -m 555 -g wheel -o root "${CRYPTODE_DATA_DIR}/bin/cryptode" "${TARGET_PREFIX}/bin"
+install -m 500 -g wheel -o root "${CRYPTODE_DATA_DIR}/bin/dns_util.sh" "${TARGET_PREFIX}/bin"
+install -m 600 -g wheel -o root "${CRYPTODE_DATA_DIR}/etc/cryptoded.conf" "${TARGET_PREFIX}/etc"
 
 # set the 'user_id' for 'pre-connect-exec' to the UID of the desktop user
-sed -i "" "s/RVC_USER_ID/${SUDO_UID}/g" "${TARGET_PREFIX}/etc/rvd.conf"
-install -m 500 -g wheel -o root "${RVC_DATA_DIR}/sbin/openvpn" "${OPT_OPENVPN}/sbin"
+sed -i "" "s/CRYPTODE_USER_ID/${SUDO_UID}/g" "${TARGET_PREFIX}/etc/cryptoded.conf"
+install -m 500 -g wheel -o root "${CRYPTODE_DATA_DIR}/sbin/openvpn" "${OPT_OPENVPN}/sbin"
 
-# unload rvd daemon
-launchctl unload "${LAUNCHD}/${RVD_PLIST_FILE}" >/dev/null 2>&1
+# unload cryptoded daemon
+launchctl unload "${LAUNCHD}/${CRYPTODED_PLIST_FILE}" >/dev/null 2>&1
 
-# check if rvc was installed with brew
+# check if cryptode was installed with brew
 if [ "$BUILD_PACKAGE" -eq 1 ]; then
-	RVD_PLIST_FILE="${RVC_DATA_DIR}/var/plist/${RVD_PLIST_NAME}"
+	CRYPTODED_PLIST_FILE="${CRYPTODE_DATA_DIR}/var/plist/${CRYPTODED_PLIST_NAME}"
 else
-	readonly RVC_BREW_DIR="$(brew --prefix rvc)"
-	if [ -d ${RVC_BREW_DIR} ]; then
-		RVD_PLIST_FILE="${RVC_BREW_DIR}/var/plist/${RVD_PLIST_NAME}"
+	readonly CRYPTODE_BREW_DIR="$(brew --prefix cryptode)"
+	if [ -d ${CRYPTODE_BREW_DIR} ]; then
+		CRYPTODED_PLIST_FILE="${CRYPTODE_BREW_DIR}/var/plist/${CRYPTODED_PLIST_NAME}"
 	else
-		RVD_PLIST_FILE="${RVC_DATA_DIR}/var/plist/${RVD_PLIST_NAME}"
+		CRYPTODED_PLIST_FILE="${CRYPTODE_DATA_DIR}/var/plist/${CRYPTODED_PLIST_NAME}"
 	fi
 fi
 
-install -m 600 -g wheel -o root "${RVD_PLIST_FILE}" "${LAUNCHD}"
-launchctl load -w "${LAUNCHD}/${RVD_PLIST_NAME}"
+install -m 600 -g wheel -o root "${CRYPTODED_PLIST_FILE}" "${LAUNCHD}"
+launchctl load -w "${LAUNCHD}/${CRYPTODED_PLIST_NAME}"
 
-# This is to ensure you will always use the correct rvc that is living in /opt/rvc/bin
-rm -f /usr/local/bin/rvc /usr/local/bin/rvd
+# This is to ensure you will always use the correct cryptode that is living in /opt/cryptode/bin
+rm -f /usr/local/bin/cryptode /usr/local/bin/cryptoded
 
 exit 0

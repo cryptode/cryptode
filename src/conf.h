@@ -38,7 +38,7 @@
 #define MAX_PRE_EXEC_INTERVAL           60
 
 /*
- * RVC configuration structure
+ * cryptode configuration structure
  */
 
 struct coc_vpn_config {

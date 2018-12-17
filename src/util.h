@@ -23,8 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __RVD_UTIL_H__
-#define __RVD_UTIL_H__
+#ifndef __CRYPTODED_UTIL_H__
+#define __CRYPTODED_UTIL_H__
 
 /* get maximum fd from fd_set */
 int get_max_fd(int orig_max_fd, fd_set *fds);
@@ -84,4 +84,4 @@ size_t strlcpy(char *dst, const char *src, size_t size);
 size_t strlcat(char *dst, const char *src, size_t size);
 #endif
 
-#endif /* __RVD_UTIL_H__ */
+#endif /* __CRYPTODED_UTIL_H__ */

@@ -23,12 +23,12 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __RVD_LOG_H__
-#define __RVD_LOG_H__
+#ifndef __CRYPTODED_LOG_H__
+#define __CRYPTODED_LOG_H__
 
-#define RVD_LOG_FILE_NAME            "cryptoded.log"
+#define COD_LOG_FILE_NAME            "cryptoded.log"
 
-#define RVD_MAX_LOG_FSIZE            30 * 1024 * 1024
+#define COD_MAX_LOG_FSIZE            30 * 1024 * 1024
 
 /* macro definition of debug functions */
 #define COD_DEBUG_MSG(...)           cod_debug_log(LOG_TYPE_MSG, __FILE__, __LINE__, __VA_ARGS__);
@@ -42,10 +42,10 @@ enum LOG_TYPE {
 	LOG_TYPE_WARN
 };
 
-/* rvd log functions */
+/* cryptoded log functions */
 int cod_log_init(const char *log_dir_path);
 void cod_log_finalize(void);
 
 void cod_debug_log(enum LOG_TYPE log_type, const char *file_name, int file_line, const char *format, ...);
 
-#endif /* __RVD_LOG_H__ */
+#endif /* __CRYPTODED_LOG_H__ */
