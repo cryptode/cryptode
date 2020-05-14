@@ -1,7 +1,7 @@
 = Cryptode: Cryptode protects you using a hidden path
 
-image:https://travis-ci.org/riboseinc/cryptode.svg?branch=master["Build Status", link="https://travis-ci.org/riboseinc/cryptode"]
-image:https://img.shields.io/coverity/scan/13269.svg["Coverity Scan", link="https://scan.coverity.com/projects/riboseinc-cryptode"]
+image:https://travis-ci.org/cryptode/cryptode.svg?branch=master["Build Status", link="https://travis-ci.org/cryptode/cryptode"]
+image:https://img.shields.io/coverity/scan/13269.svg["Coverity Scan", link="https://scan.coverity.com/projects/cryptode-cryptode"]
 
 
 Cryptode is a command-line driven OpenVPN client for macOS (Sierra and High
@@ -23,14 +23,14 @@ On macOS:
 
 [source,sh]
 ----
-brew tap riboseinc/cryptode
+brew tap cryptode/cryptode
 brew install cryptode
 sudo /usr/local/bin/cryptode_install.sh
 ----
 
 WARNING: **Remember to follow instructions given in the "caveats" section during `brew install`!**
 
-NOTE: Take a look at the https://github.com/riboseinc/homebrew-cryptode[Cryptode
+NOTE: Take a look at the https://github.com/cryptode/homebrew-cryptode[Cryptode
   homebrew formula] if you want to know more.
 
 
@@ -615,7 +615,7 @@ Manual compilation and installation:
 
 [source,sh]
 ----
-git clone https://github.com/riboseinc/cryptode
+git clone https://github.com/cryptode/cryptode
 cd cryptode
 ./build_macos.sh
 make install

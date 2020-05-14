@@ -9,7 +9,7 @@ Summary: Relaxed VPN Client command line tool
 Version: %{version}
 Release: %{release}%{?dist}
 License: GPLv2+
-URL: https://github.com/riboseinc/cryptode
+URL: https://github.com/cryptode/cryptode
 Group: System Environment/Daemons
 
 Source0: cryptode-%{version}.tar.gz
